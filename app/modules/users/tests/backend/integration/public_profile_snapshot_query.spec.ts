@@ -1,13 +1,13 @@
 import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
-import { userProfileActionFactory } from '#composition/user_action_factory'
+import { userProfileActionFactory } from '#composition/users/user-factories/user_action_factory'
 import { cacheStore } from '#modules/cache/public_contracts/cache_store'
-import { GetCurrentProfileSnapshotDTO } from '#modules/users/actions/queries/get_current_profile_snapshot_query'
-import { GetProfileSnapshotHistoryDTO } from '#modules/users/actions/queries/get_profile_snapshot_history_query'
-import { GetPublicProfileSnapshotDTO } from '#modules/users/actions/queries/get_public_profile_snapshot_query'
+import { GetCurrentProfileSnapshotDTO } from '#modules/users/actions/queries/profile/get_current_profile_snapshot_query'
+import { GetProfileSnapshotHistoryDTO } from '#modules/users/actions/queries/profile/get_profile_snapshot_history_query'
+import { GetPublicProfileSnapshotDTO } from '#modules/users/actions/queries/profile/get_public_profile_snapshot_query'
 import { makeSystemUserActionContext } from '#modules/users/actions/user_action_context'
-import UserProfileSnapshot from '#modules/users/infra/models/user_profile_snapshot'
+import UserProfileSnapshot from '#modules/users/infra/models/profile/user_profile_snapshot'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import { UserFactory, cleanupTestData } from '#tests/helpers/factories'
 
@@ -39,16 +39,23 @@ test.group('Integration | Public Profile Snapshot Query', (group) => {
     const user = await UserFactory.create()
 
     const slug = `public-snapshot-${user.id}`
-    const snapshot = await UserProfileSnapshot.create({
+    await UserProfileSnapshot.create({
       user_id: user.id,
       version: 1,
       is_current: true,
       is_public: true,
       shareable_slug: slug,
       shareable_token: 'token-public',
-      summary: { username: user.username },
+      summary: { username: user.username, user_id: user.id },
       skills_verified: [],
-      work_highlights: [],
+      work_highlights: [
+        {
+          task_id: 'internal-task-id',
+          task_assignment_id: 'internal-assignment-id',
+          task_title: 'Public API delivery',
+          verification: { status: 'retrospective', confidence: 'limited' },
+        },
+      ],
       performance_metrics: {},
       trust_metrics: {},
       scoring_version: 'v1',
@@ -58,14 +65,23 @@ test.group('Integration | Public Profile Snapshot Query', (group) => {
     )
     const result = await query.handle(new GetPublicProfileSnapshotDTO(slug))
 
-    assert.equal(result.snapshot.id, snapshot.id)
+    assert.notProperty(result.snapshot, 'id')
+    assert.notProperty(result.snapshot, 'user_id')
+    assert.isNull(result.snapshot.shareable_token)
+    assert.notProperty(result.snapshot.summary, 'user_id')
+    assert.notProperty(result.snapshot.work_highlights?.[0], 'task_id')
+    assert.notProperty(result.snapshot.work_highlights?.[0], 'task_assignment_id')
+    assert.equal(
+      (result.snapshot.work_highlights?.[0] as { task_title?: string } | undefined)?.task_title,
+      'Public API delivery'
+    )
   })
 
   test('returns private snapshot when token matches', async ({ assert }) => {
     const user = await UserFactory.create()
 
     const slug = `private-snapshot-${user.id}`
-    const snapshot = await UserProfileSnapshot.create({
+    await UserProfileSnapshot.create({
       user_id: user.id,
       version: 1,
       is_current: true,
@@ -84,7 +100,8 @@ test.group('Integration | Public Profile Snapshot Query', (group) => {
     )
     const result = await query.handle(new GetPublicProfileSnapshotDTO(slug, 'token-private'))
 
-    assert.equal(result.snapshot.id, snapshot.id)
+    assert.notProperty(result.snapshot, 'id')
+    assert.notProperty(result.snapshot, 'user_id')
     const cachePage = await cacheStore.scanKeys('profile:snapshot:public:*', '0', 100)
     assert.lengthOf(cachePage.keys, 0)
     assert.isNull(result.snapshot.shareable_token)
@@ -112,7 +129,8 @@ test.group('Integration | Public Profile Snapshot Query', (group) => {
     const dto = new GetPublicProfileSnapshotDTO(snapshot.shareable_slug ?? '', 'token-to-revoke')
 
     const firstResult = await query.handle(dto)
-    assert.equal(firstResult.snapshot.id, snapshot.id)
+    assert.notProperty(firstResult.snapshot, 'id')
+    assert.notProperty(firstResult.snapshot, 'user_id')
     await snapshot.merge({ shareable_token: null }).save()
 
     await assert.rejects(() => query.handle(dto), /not found/i)

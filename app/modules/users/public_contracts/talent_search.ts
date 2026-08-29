@@ -16,6 +16,8 @@ export interface SearchTalentsDTO {
   saved?: boolean
   min_trust_score?: number
   min_completed_tasks?: number
+  available_before?: string
+  min_proficiency?: string
   page?: number
   per_page?: number
 }
@@ -39,6 +41,19 @@ export interface TalentSearchResult {
   imported_skills_count?: number
   under_dispute_skills_count?: number
   latest_confidence_signal?: 'low' | 'medium' | 'high' | null
+  public_accomplishments?: readonly TalentPublicAccomplishmentSummary[]
+}
+
+export interface TalentPublicAccomplishmentSummary {
+  title: string
+  concise_statement: string
+  action: string
+  object: string
+  role: string | null
+  ownership_level: string
+  verification_status: 'verified' | 'partially_verified'
+  confidence_band: 'low' | 'medium' | 'high'
+  published_at: string
 }
 
 export interface TalentSearchCapability {

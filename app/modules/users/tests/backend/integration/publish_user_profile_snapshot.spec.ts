@@ -2,12 +2,12 @@ import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 import { DateTime } from 'luxon'
 
-import { makePublishUserProfileSnapshotCommand } from '#composition/user_action_factory'
-import { getCanonicalProficiencyLevelValue } from '#modules/skills/public_contracts/proficiency_level_catalog'
-import TaskAssignment from '#modules/tasks/infra/models/task_assignment'
+import { makePublishUserProfileSnapshotCommand } from '#composition/users/user-factories/user_action_factory'
+import { getCanonicalProficiencyLevelValue } from '#modules/skills/public_contracts/rubric-and-proficiency/proficiency_level_catalog'
+import TaskAssignment from '#modules/tasks/infra/models/task-assignment/task_assignment'
 import { makeSystemUserActionContext } from '#modules/users/actions/user_action_context'
-import UserProfileSnapshot from '#modules/users/infra/models/user_profile_snapshot'
-import UserWorkHistory from '#modules/users/infra/models/user_work_history'
+import UserProfileSnapshot from '#modules/users/infra/models/profile/user_profile_snapshot'
+import UserWorkHistory from '#modules/users/infra/models/profile/user_work_history'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   SkillFactory,
@@ -176,6 +176,10 @@ test.group('Integration | Publish User Profile Snapshot', (group) => {
     assert.equal(performanceMetrics['total_tasks_completed'], 1)
     assert.equal(workHighlights.length, 1)
     assert.equal(workHighlights[0]?.['task_title'], 'Delivered feature')
+    assert.deepEqual(workHighlights[0]?.['verification'], {
+      status: 'retrospective',
+      confidence: 'limited',
+    })
     assert.include(trustMetrics['tech_stack'], 'ts')
 
     workHistory.is_public = false
@@ -185,8 +189,7 @@ test.group('Integration | Publish User Profile Snapshot', (group) => {
       snapshotName: 'Published profile without private rows',
     })
     const excludedSnapshot = await UserProfileSnapshot.findOrFail(excludedResult.snapshotId)
-    const excludedHighlights =
-      excludedSnapshot.work_highlights as Record<string, unknown>[] | null
+    const excludedHighlights = excludedSnapshot.work_highlights as Record<string, unknown>[] | null
 
     assert.equal(excludedResult.version, 3)
     assert.isTrue(excludedResult.isPublic)

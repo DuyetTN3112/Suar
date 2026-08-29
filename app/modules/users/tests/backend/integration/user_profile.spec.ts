@@ -4,14 +4,14 @@ import { DateTime } from 'luxon'
 import {
   makeAddUserSkillCommand,
   makeGetUserProfileQuery,
-} from '#composition/user_action_factory'
+} from '#composition/users/user-factories/user_action_factory'
 import { cacheStore } from '#modules/cache/public_contracts/cache_store'
-import { getCanonicalProficiencyLevelValue } from '#modules/skills/public_contracts/proficiency_level_catalog'
-import { CanonicalProficiencyLevelCode } from '#modules/skills/public_contracts/proficiency_level_constants'
-import { AddUserSkillDTO } from '#modules/users/actions/dtos/request/user_skill_dtos'
-import { GetUserProfileDTO } from '#modules/users/actions/queries/get_user_profile_query'
+import { getCanonicalProficiencyLevelValue } from '#modules/skills/public_contracts/rubric-and-proficiency/proficiency_level_catalog'
+import { CanonicalProficiencyLevelCode } from '#modules/skills/public_contracts/rubric-and-proficiency/proficiency_level_constants'
+import { AddUserSkillDTO } from '#modules/users/actions/dtos/request/profile-skills/user_skill_dtos'
+import { GetUserProfileDTO } from '#modules/users/actions/queries/profile/get_user_profile_query'
 import { makeSystemUserActionContext } from '#modules/users/actions/user_action_context'
-import UserRepository from '#modules/users/infra/repositories/user_repository'
+import UserRepository from '#modules/users/infra/repositories/profile/user_repository'
 import { SystemRoleName } from '#modules/users/public_contracts/user_constants'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {

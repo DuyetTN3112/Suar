@@ -1,7 +1,7 @@
 import { test } from '@japa/runner'
 
-import OrganizationUser from '#modules/organizations/members/infra/models/organization_user'
-import UserProfileSnapshot from '#modules/users/infra/models/user_profile_snapshot'
+import OrganizationUser from '#modules/organizations/infra/models/members/organization_user'
+import UserProfileSnapshot from '#modules/users/infra/models/profile/user_profile_snapshot'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   cleanupTestData,

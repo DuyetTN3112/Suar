@@ -1,8 +1,8 @@
 import { test } from '@japa/runner'
 
-import { makeGetUserSkillsQuery, makeGetUsersListQuery } from '#composition/user_action_factory'
-import { userProfilePageQueryFactory } from '#composition/user_query_composition'
-import RedisCacheStore from '#modules/cache/infra/redis_cache_store'
+import { makeGetUserSkillsQuery, makeGetUsersListQuery } from '#composition/users/user-factories/user_action_factory'
+import { userProfilePageQueryFactory } from '#composition/users/user-reading/user_query_composition'
+import RedisCacheStore from '#modules/cache/infra/adapters/cache-runtime/redis_cache_store'
 import { cacheStore } from '#modules/cache/public_contracts/cache_store'
 import { UserPaginationDTO } from '#modules/users/actions/dtos/common/user_action_dtos'
 import { GetUserDetailDTO } from '#modules/users/actions/dtos/request/get_user_detail_dto'
@@ -10,7 +10,7 @@ import {
   GetUsersListDTO,
   UserFiltersDTO,
 } from '#modules/users/actions/dtos/request/get_users_list_dto'
-import { GetUserSkillsDTO } from '#modules/users/actions/queries/get_user_skills_query'
+import { GetUserSkillsDTO } from '#modules/users/actions/queries/profile-skills/get_user_skills_query'
 import { makeSystemUserActionContext } from '#modules/users/actions/user_action_context'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import { cleanupTestData, OrganizationFactory, UserFactory } from '#tests/helpers/factories'

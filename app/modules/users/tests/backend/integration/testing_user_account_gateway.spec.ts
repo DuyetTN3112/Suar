@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto'
 import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
-import { TestingUserAccountGateway } from '#modules/users/infra/adapters/testing_user_account_gateway'
+import { TestingUserAccountGateway } from '#modules/users/infra/adapters/profile/testing_user_account_gateway'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 
 test.group('Integration | Testing user account gateway', (group) => {

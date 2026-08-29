@@ -1,17 +1,16 @@
 import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
-import { talentExplainabilityProjectionListenerDependencies } from '#composition/user_talent_explainability_listener_composition'
+import { talentExplainabilityProjectionListenerDependencies } from '#composition/users/user-talent/user_talent_explainability_listener_composition'
 import {
   makeGetTalentDirectoryPageQuery,
   makeSearchTalentsQuery,
-} from '#composition/users_search_composition'
-import { omitUndefined } from '#modules/contracts/public_contracts/optional_payload'
-import ListTalentExplainabilityProjectionsV1Query from '#modules/reviews/actions/queries/list_talent_explainability_projections_v1_query'
+} from '#composition/users/user-search/users_search_composition'
+import ListTalentExplainabilityProjectionsV1Query from '#modules/reviews/actions/queries/review-core/list_talent_explainability_projections_v1_query'
 import { makeSystemReviewActionContext } from '#modules/reviews/actions/review_action_context'
-import { LucidTalentExplainabilityFactSourceReader } from '#modules/reviews/infra/adapters/lucid_review_fact_source_readers'
-import { getCanonicalProficiencyLevelValue } from '#modules/skills/public_contracts/proficiency_level_catalog'
-import type { SearchTalentsDTO } from '#modules/users/actions/queries/search_talents_query'
+import { LucidTalentExplainabilityFactSourceReader } from '#modules/reviews/infra/adapters/review-core/lucid_review_fact_source_readers'
+import { getCanonicalProficiencyLevelValue } from '#modules/skills/public_contracts/rubric-and-proficiency/proficiency_level_catalog'
+import type { SearchTalentsDTO } from '#modules/users/actions/queries/search/search_talents_query'
 import { handleTalentExplainabilityProjectionChanged } from '#modules/users/listeners/talent_explainability_projection_listener'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
@@ -25,6 +24,23 @@ import {
   UserSkillFactory,
 } from '#tests/helpers/factories'
 import { testId } from '#tests/helpers/test_utils'
+
+type OptionalPayloadKeys<T extends object> = {
+  [Key in keyof T]-?: undefined extends T[Key] ? Key : never
+}[keyof T]
+
+type OmittedUndefined<T extends object> = {
+  [Key in keyof T as Key extends OptionalPayloadKeys<T> ? never : Key]: T[Key]
+} & {
+  [Key in OptionalPayloadKeys<T>]?: Exclude<T[Key], undefined>
+}
+
+function omitUndefined<T extends object>(value: T): OmittedUndefined<T> {
+  return Object.fromEntries(
+    Object.entries(value).filter(([, entryValue]) => entryValue !== undefined)
+  ) as OmittedUndefined<T>
+}
+
 
 interface CurrentOrganizationRow {
   current_organization_id: string | null

@@ -1,13 +1,13 @@
 import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
-import { userExternalDependencies } from '#composition/user_external_dependencies_composition'
-import { userTalentRepository } from '#composition/user_persistence_composition'
-import { makeSearchTalentsQuery } from '#composition/users_search_composition'
+import { userExternalDependencies } from '#composition/users/user-external-dependencies/user_external_dependencies_composition'
+import { userTalentRepository } from '#composition/users/user-persistence/user_persistence_composition'
+import { makeSearchTalentsQuery } from '#composition/users/user-search/users_search_composition'
 import { makeSystemReviewActionContext } from '#modules/reviews/actions/review_action_context'
-import { getCanonicalProficiencyLevelValue } from '#modules/skills/public_contracts/proficiency_level_catalog'
-import { TaskRequirementRepository } from '#modules/tasks/infra/repositories/task_requirement_repository'
-import { LucidTalentSearchDocumentReader } from '#modules/users/infra/adapters/lucid_talent_search_document_reader'
+import { getCanonicalProficiencyLevelValue } from '#modules/skills/public_contracts/rubric-and-proficiency/proficiency_level_catalog'
+import { TaskRequirementRepository } from '#modules/tasks/infra/repositories/task-requirements/task_requirement_repository'
+import { LucidTalentSearchDocumentReader } from '#modules/users/infra/adapters/talent/lucid_talent_search_document_reader'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   cleanupTestData,
@@ -125,8 +125,8 @@ test.group('Integration | Marketplace Talent Search', (group) => {
 
     const [{ TalentSearchDocumentBuilder }, { TalentSearchIndexRepository }, { searchClient }] =
       await Promise.all([
-        import('#modules/search/infra/talents/talent_search_document_builder'),
-        import('#modules/search/infra/talents/talent_search_index_repository'),
+        import('#modules/search/infra/adapters/entity-search/talents/talent_search_document_builder'),
+        import('#modules/search/infra/repositories/entity-search/talents/talent_search_index_repository'),
         import('#platform/search/elasticsearch_client'),
       ])
 

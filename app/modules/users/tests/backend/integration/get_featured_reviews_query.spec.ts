@@ -1,12 +1,12 @@
 import { test } from '@japa/runner'
 
-import { userProfileRepository } from '#composition/user_persistence_composition'
-import { makeGetFeaturedReviewsQuery } from '#composition/user_query_composition'
+import { userProfileRepository } from '#composition/users/user-persistence/user_persistence_composition'
+import { makeGetFeaturedReviewsQuery } from '#composition/users/user-reading/user_query_composition'
 import { cacheStore } from '#modules/cache/public_contracts/cache_store'
 import InvariantViolationException from '#modules/errors/public_contracts/invariant_violation_exception'
 import GetFeaturedReviewsQuery, {
   GetFeaturedReviewsDTO,
-} from '#modules/users/actions/queries/get_featured_reviews_query'
+} from '#modules/users/actions/queries/profile/get_featured_reviews_query'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   cleanupTestData,

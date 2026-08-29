@@ -1,16 +1,17 @@
 import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
-import { userRecruiterBookmarkActionFactory } from '#composition/user_action_factory'
-import { talentExplainabilityProjectionListenerDependencies } from '#composition/user_talent_explainability_listener_composition'
-import ListTalentExplainabilityProjectionsV1Query from '#modules/reviews/actions/queries/list_talent_explainability_projections_v1_query'
+import { userRecruiterBookmarkActionFactory } from '#composition/users/user-factories/user_action_factory'
+import { talentExplainabilityProjectionListenerDependencies } from '#composition/users/user-talent/user_talent_explainability_listener_composition'
+import ListTalentExplainabilityProjectionsV1Query from '#modules/reviews/actions/queries/review-core/list_talent_explainability_projections_v1_query'
 import { makeSystemReviewActionContext } from '#modules/reviews/actions/review_action_context'
-import { LucidTalentExplainabilityFactSourceReader } from '#modules/reviews/infra/adapters/lucid_review_fact_source_readers'
-import { getCanonicalProficiencyLevelValue } from '#modules/skills/public_contracts/proficiency_level_catalog'
+import { LucidTalentExplainabilityFactSourceReader } from '#modules/reviews/infra/adapters/review-core/lucid_review_fact_source_readers'
+import { getCanonicalProficiencyLevelValue } from '#modules/skills/public_contracts/rubric-and-proficiency/proficiency_level_catalog'
 import { handleTalentExplainabilityProjectionChanged } from '#modules/users/listeners/talent_explainability_projection_listener'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   cleanupTestData,
+  OrganizationFactory,
   ReviewSessionFactory,
   SkillFactory,
   SkillReviewFactory,
@@ -27,8 +28,11 @@ test.group('Integration | Recruiter Bookmarks Workspace', (group) => {
   group.each.teardown(() => cleanupTestData())
 
   test('workspace returns explainability summary for bookmarked talent', async ({ assert }) => {
-    const recruiter = await UserFactory.create()
-    const talent = await UserFactory.create({ username: 'bookmarked_signal_user' })
+    const { org, owner: recruiter } = await OrganizationFactory.createWithOwner()
+    const talent = await UserFactory.create({
+      username: 'bookmarked_signal_user',
+      current_organization_id: org.id,
+    })
     const reviewedSkill = await SkillFactory.create({ skill_name: 'Node.js' })
     const importedSkill = await SkillFactory.create({ skill_name: 'Communication' })
 
@@ -49,12 +53,20 @@ test.group('Integration | Recruiter Bookmarks Workspace', (group) => {
       avg_percentage: null,
     })
 
-    await db.from('user_skills').where('user_id', talent.id).where('skill_id', reviewedSkill.id).update({
-      source: 'reviewed',
-    })
-    await db.from('user_skills').where('user_id', talent.id).where('skill_id', importedSkill.id).update({
-      source: 'imported',
-    })
+    await db
+      .from('user_skills')
+      .where('user_id', talent.id)
+      .where('skill_id', reviewedSkill.id)
+      .update({
+        source: 'reviewed',
+      })
+    await db
+      .from('user_skills')
+      .where('user_id', talent.id)
+      .where('skill_id', importedSkill.id)
+      .update({
+        source: 'imported',
+      })
 
     const reviewSession = await ReviewSessionFactory.create({
       reviewee_id: talent.id,
@@ -109,7 +121,10 @@ test.group('Integration | Recruiter Bookmarks Workspace', (group) => {
     })
 
     const result = await userRecruiterBookmarkActionFactory
-      .makeWorkspace(makeSystemReviewActionContext(recruiter.id))
+      .makeWorkspace({
+        ...makeSystemReviewActionContext(recruiter.id),
+        organizationId: org.id,
+      })
       .handle({})
 
     const bookmark = result.bookmarks.find((item) => item.talent.id === talent.id)

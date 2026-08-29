@@ -8,16 +8,16 @@ import {
   userAccountRepository,
   userProfileRepository,
   userTransactionRunner,
-} from '#composition/user_persistence_composition'
+} from '#composition/users/user-persistence/user_persistence_composition'
 import PersistedDataIntegrityException from '#modules/errors/public_contracts/persisted_data_integrity_exception'
-import RefreshUserProfileAggregatesCommand from '#modules/users/actions/commands/refresh_user_profile_aggregates_command'
+import RefreshUserProfileAggregatesCommand from '#modules/users/actions/commands/profile/refresh_user_profile_aggregates_command'
 import type { UserCompletedAssignmentFactReader } from '#modules/users/actions/ports/outbound/user_completed_assignment_fact_reader'
 import type { UserProfileReviewFactReader } from '#modules/users/actions/ports/outbound/user_profile_review_fact_reader'
 import type { UserSelfAssessmentAccuracyFactReader } from '#modules/users/actions/ports/outbound/user_self_assessment_accuracy_fact_reader'
 import { makeSystemUserActionContext } from '#modules/users/actions/user_action_context'
-import UserDomainExpertise from '#modules/users/infra/models/user_domain_expertise'
-import UserPerformanceStat from '#modules/users/infra/models/user_performance_stat'
-import UserWorkHistory from '#modules/users/infra/models/user_work_history'
+import UserDomainExpertise from '#modules/users/infra/models/profile-skills/user_domain_expertise'
+import UserPerformanceStat from '#modules/users/infra/models/profile-skills/user_performance_stat'
+import UserWorkHistory from '#modules/users/infra/models/profile/user_work_history'
 import { lockUserProfileAggregateRefresh } from '#modules/users/infra/repositories/write/user_profile_aggregate_lock'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import { cleanupTestData, UserFactory } from '#tests/helpers/factories'

@@ -1,10 +1,10 @@
 import { test } from '@japa/runner'
 
-import { userAccountActionFactory } from '#composition/user_action_factory'
+import { userAccountActionFactory } from '#composition/users/user-factories/user_action_factory'
 import ForbiddenException from '#modules/errors/public_contracts/forbidden_exception'
 import { RegisterUserDTO } from '#modules/users/actions/dtos/request/register_user_dto'
 import { makeSystemUserActionContext } from '#modules/users/actions/user_action_context'
-import User from '#modules/users/infra/models/user'
+import User from '#modules/users/infra/models/profile/user'
 import { UpdateUserProfileDTO } from '#modules/users/public_contracts/update_user_profile_dto'
 import { SystemRoleName, UserStatusName } from '#modules/users/public_contracts/user_constants'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
