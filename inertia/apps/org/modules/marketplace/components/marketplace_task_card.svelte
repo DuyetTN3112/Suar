@@ -14,7 +14,7 @@
 
   import { getFrontendCanonicalProficiencyLevelLabel } from '@/apps/org/modules/profile/lib/proficiency_level_catalog'
   import { normalizeMarketplaceFitScore } from '@/apps/shared/marketplace/fit_score'
-  import { getTaskApplicationsRoute, getTaskDetailRoute } from '@/apps/org/shared/constants/routes'
+  import { getMarketplaceTaskDetailRoute, getTaskApplicationsRoute } from '@/apps/org/shared/constants/routes'
   import { formatTaskVerificationMethodForDisplay } from '@/apps/org/modules/tasks/lib/rules/task_verification_methods'
   import { currentDocumentLocale } from '@/apps/org/shared/lib/date_locale'
   import { useTranslation } from '@/apps/org/shared/stores/translation.svelte'
@@ -249,55 +249,6 @@
     return items
   })
 
-  const applicationState = $derived.by(() => {
-    if (currentUserApplication) {
-      return {
-        title: applicationStatusLabel(currentUserApplication.status),
-        detail: isWithdrawable
-          ? t('task.marketplace_card.can_withdraw_pending', {}, 'Can withdraw while pending')
-          : t('task.marketplace_card.track_my_applications', {}, 'Track it in my applications'),
-        tone: 'border-emerald-200 bg-emerald-50 text-emerald-950 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-100',
-      }
-    }
-    if (canReviewApplications) {
-      return {
-        title: t('task.marketplace_card.can_review_applications', {}, 'Can review applications'),
-        detail: t('task.marketplace_card.open_candidates', {}, 'Open this task candidate list'),
-        tone: 'border-primary/25 bg-primary/10 text-foreground',
-      }
-    }
-    if (isOwnTask) {
-      return {
-        title: t('task.marketplace_card.own_task', {}, 'Your task'),
-        detail: t('task.marketplace_card.cannot_apply_own_task', {}, 'You cannot apply to your own task'),
-        tone: 'border-border bg-background text-foreground',
-      }
-    }
-    if (isApplicationDeadlinePassed) {
-      return {
-        title: t('task.marketplace_card.application_deadline_passed', {}, 'Application deadline passed'),
-        detail: t('task.marketplace_card.reference_only', {}, 'Task remains visible for reference'),
-        tone: 'border-amber-500/30 bg-amber-500/10 text-amber-800 dark:text-amber-200',
-      }
-    }
-    if (canApplyPersonally) {
-      return {
-        title: t('task.marketplace_card.can_apply', {}, 'Can apply'),
-        detail: deadlineDisplay
-          ? t('task.marketplace_card.deadline', { date: deadlineDisplay }, 'Deadline: :date')
-          : t('task.marketplace_card.marketplace_open', {}, 'Task is open on Marketplace'),
-        tone: 'border-border bg-background text-foreground',
-      }
-    }
-    return {
-      title: isRecruitingMode
-        ? t('task.marketplace_card.viewing_marketplace', {}, 'Viewing marketplace')
-        : t('task.marketplace_card.not_applied', {}, 'No application sent'),
-      detail: t('task.marketplace_card.marketplace', {}, 'Marketplace'),
-      tone: 'border-border bg-background text-foreground',
-    }
-  })
-
   function formatPercentMetric(value: number): number {
     return Math.max(0, Math.min(100, Math.round(value)))
   }
@@ -383,7 +334,7 @@
         {/if}
       </div>
       <div>
-        <a href={getTaskDetailRoute(task.id)} class="hover:underline hover:text-primary transition-colors">
+        <a href={getMarketplaceTaskDetailRoute(task.id)} class="hover:underline hover:text-primary transition-colors">
           <h2 class="text-xl font-black tracking-tight text-foreground">{task.title}</h2>
         </a>
       {#if descriptionPreview}
@@ -398,7 +349,7 @@
     {/if}
   </div>
 
-  <div class="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_260px]">
+  <div class="mt-4 space-y-4">
     <div class="space-y-4">
       <div class="flex flex-wrap gap-2">
         <span class="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-sm font-medium"><Building2 class="h-4 w-4" /> {orgName}</span>
@@ -503,7 +454,7 @@
 
       <div class="flex flex-wrap gap-2">
         <a
-          href={getTaskDetailRoute(task.id)}
+          href={getMarketplaceTaskDetailRoute(task.id)}
           class="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-sm font-semibold"
         >
           {t('task.marketplace_card.view_task_profile', {}, 'View task profile')}
@@ -529,62 +480,35 @@
           <span class="inline-flex items-center rounded-full border border-border bg-muted/40 px-4 py-2 text-sm font-semibold text-muted-foreground">
             {t('task.marketplace_card.application_deadline_passed', {}, 'Application deadline passed')}
           </span>
-        {:else if isRecruitingMode}
-          <span class="inline-flex items-center rounded-full border border-border bg-muted/40 px-4 py-2 text-sm font-semibold text-muted-foreground">
-            {t('task.marketplace_card.market_signal', {}, 'Market signal')}
-          </span>
-        {/if}
-      </div>
+         {:else if isRecruitingMode}
+           <span class="inline-flex items-center rounded-full border border-border bg-muted/40 px-4 py-2 text-sm font-semibold text-muted-foreground">
+             {t('task.marketplace_card.market_signal', {}, 'Market signal')}
+           </span>
+         {/if}
+         {#if currentUserApplication}
+           <span class="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-sm font-semibold text-foreground">
+             <CircleCheckBig class="h-4 w-4" />
+             {applicationStatusLabel(currentUserApplication.status)}
+           </span>
+           {#if isWithdrawable}
+             <button
+               type="button"
+               class="rounded-full border border-border bg-background px-4 py-2 text-sm font-semibold"
+               disabled={withdrawing}
+               onclick={handleWithdraw}
+             >
+               {withdrawing ? t('task.marketplace_card.withdraw_application_progress', {}, 'Withdrawing application...') : t('task.marketplace_card.withdraw_application', {}, 'Withdraw application')}
+             </button>
+           {/if}
+           <a
+             href="/my-applications"
+             class="inline-flex items-center justify-center rounded-full border border-border bg-background px-4 py-2 text-sm font-semibold text-foreground hover:bg-muted/50 transition-colors"
+           >
+             {t('task.marketplace_card.manage_applications', {}, 'Manage applications')}
+           </a>
+         {/if}
+       </div>
 
     </div>
-
-    <aside class="self-start rounded-[20px] border border-border bg-muted/30 p-4">
-      <h3 class="text-sm font-black text-foreground">{t('task.marketplace_card.join', {}, 'Join')}</h3>
-      <div class={`mt-3 rounded-2xl border p-3 text-sm ${applicationState.tone}`}>
-        <strong class="block">{applicationState.title}</strong>
-        <span class="mt-1 block text-xs opacity-80">{applicationState.detail}</span>
-      </div>
-      {#if currentUserApplication}
-        {#if isWithdrawable}
-          <button
-            type="button"
-            class="mt-4 w-full rounded-full border border-border bg-background px-4 py-2 text-sm font-semibold"
-            disabled={withdrawing}
-            onclick={handleWithdraw}
-          >
-            {withdrawing ? t('task.marketplace_card.withdraw_application_progress', {}, 'Withdrawing application...') : t('task.marketplace_card.withdraw_application', {}, 'Withdraw application')}
-          </button>
-        {/if}
-      {:else if canReviewApplications}
-        <a
-          href={getTaskApplicationsRoute(task.id)}
-          class="mt-4 inline-flex w-full items-center justify-center rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
-        >
-          {t('task.marketplace_card.view_applications', {}, 'View applications')}
-        </a>
-      {:else if canApplyPersonally}
-        <button
-          type="button"
-          class="mt-4 w-full rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
-          onclick={handleClick}
-          onkeydown={handleKeydown}
-        >
-          {t('task.marketplace_card.apply', {}, 'Apply')}
-        </button>
-      {/if}
-      {#if hasApplied}
-        <div class="mt-4 flex flex-wrap items-center gap-3">
-          <div class="inline-flex items-center gap-2 text-sm font-semibold text-foreground">
-            <CircleCheckBig class="h-4 w-4" /> {t('task.marketplace_card.sent_application', {}, 'Application sent')}
-          </div>
-          <a
-            href="/my-applications"
-            class="inline-flex items-center justify-center rounded-full border border-border bg-background px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-muted/50 transition-colors"
-          >
-            {t('task.marketplace_card.manage_applications', {}, 'Manage applications')}
-          </a>
-        </div>
-      {/if}
-    </aside>
   </div>
 </article>

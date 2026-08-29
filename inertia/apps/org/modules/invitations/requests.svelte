@@ -47,7 +47,9 @@
         },
         body: JSON.stringify({ action }),
       })
-      router.reload()
+      router.reload({
+        only: ['requests', 'pagination', 'filters', 'flash'],
+      })
     } finally {
       processingUserId = null
     }

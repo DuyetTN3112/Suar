@@ -4,8 +4,16 @@
   import Textarea from '@/apps/org/shared/ui/textarea.svelte'
   import Input from '@/apps/org/shared/ui/input.svelte'
   import Label from '@/apps/org/shared/ui/label.svelte'
+  import ProjectContextReadCard from '@/apps/shared/components/project_context_read_card.svelte'
+  import ProjectContextEditor from '@/apps/shared/components/project_context_editor.svelte'
+  import ProjectBusinessDomainsField from '@/apps/shared/projects/project_business_domains_field.svelte'
   import { useTranslation } from '@/apps/org/shared/hooks/use_translation.svelte'
-  import type { Project } from '../types'
+  import type { Project, ProjectShowProps } from '../types'
+
+  interface ContextConflictReloadCallbacks {
+    onSuccess: () => void
+    onError: () => void
+  }
 
   interface Props {
     projectState: Project
@@ -14,7 +22,12 @@
       name: string
       description: string
       status: string
+      businessDomains: string[]
     }
+    projectContext?: ProjectShowProps['project_context']
+    canEdit?: boolean
+    onProjectContextPublished?: () => void
+    onProjectContextConflict?: (callbacks: ContextConflictReloadCallbacks) => void
     formatDate: (d: string, options?: Intl.DateTimeFormatOptions) => string
   }
 
@@ -22,6 +35,10 @@
     projectState = $bindable(),
     editing = $bindable(),
     editForm = $bindable(),
+    projectContext,
+    canEdit = false,
+    onProjectContextPublished,
+    onProjectContextConflict,
     formatDate,
   }: Props = $props()
 
@@ -68,6 +85,16 @@
         {/if}
       </div>
 
+      <div class="md:col-span-2">
+        <ProjectBusinessDomainsField
+          domains={editing ? editForm.businessDomains : projectState.business_domains ?? []}
+          {editing}
+          onDomainsChange={(domains) => {
+            editForm.businessDomains = domains
+          }}
+        />
+      </div>
+
       <div>
         <p class="mb-1 text-sm font-medium text-foreground/80">{t('project.start_date', {}, 'Start Date')}</p>
         <p>{projectState.start_date ? formatDate(projectState.start_date) : t('project.details_tab.empty_value', {}, 'None')}</p>
@@ -100,5 +127,16 @@
         />
       </div>
     {/if}
+
+    <div class="mt-6">
+      <ProjectContextReadCard projectContext={projectContext} />
+      <ProjectContextEditor
+        projectId={projectState.id}
+        projectContext={projectContext}
+        {canEdit}
+        onPublished={onProjectContextPublished ? () => onProjectContextPublished?.() : undefined}
+        onConflict={onProjectContextConflict}
+      />
+    </div>
   </CardContent>
 </Card>

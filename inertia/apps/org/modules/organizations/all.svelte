@@ -101,7 +101,9 @@
       const data = (await response.json()) as JoinOrganizationResponse
       if (response.ok && data.data) {
         notificationStore.success(data.data.message ?? t('organization.index.join_success', {}, 'Organization join request sent'))
-        router.reload()
+        router.reload({
+          only: ['organizations', 'pagination', 'filters', 'currentOrganizationId', 'flash'],
+        })
       } else {
         notificationStore.error(data.data?.message ?? t('organization.index.join_error', {}, 'Unable to join organization'))
       }
