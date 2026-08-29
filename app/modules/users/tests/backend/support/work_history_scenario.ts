@@ -1,20 +1,22 @@
+import { randomUUID } from 'node:crypto'
+
 import db from '@adonisjs/lucid/services/db'
 import { DateTime } from 'luxon'
 
 import {
   userProfileRepository,
   userTransactionRunner,
-} from '#composition/user_persistence_composition'
+} from '#composition/users/user-persistence/user_persistence_composition'
 import {
   completedAssignmentFactReader,
   profileReviewFactReader,
-} from '#composition/user_profile_aggregate_composition'
-import ReviewEvidence from '#modules/reviews/infra/models/review_evidence'
-import TaskSelfAssessment from '#modules/reviews/infra/models/task_self_assessment'
-import { getCanonicalProficiencyLevelValue } from '#modules/skills/public_contracts/proficiency_level_catalog'
-import BuildUserWorkHistoryCommand from '#modules/users/actions/commands/build_user_work_history_command'
+} from '#composition/users/user-profile/user_profile_aggregate_composition'
+import ReviewEvidence from '#modules/reviews/infra/models/review-submission/review_evidence'
+import TaskSelfAssessment from '#modules/reviews/infra/models/self-assessment/task_self_assessment'
+import { getCanonicalProficiencyLevelValue } from '#modules/skills/public_contracts/rubric-and-proficiency/proficiency_level_catalog'
+import BuildUserWorkHistoryCommand from '#modules/users/actions/commands/talent/build_user_work_history_command'
 import type { UserActionContext } from '#modules/users/actions/user_action_context'
-import UserWorkHistory from '#modules/users/infra/models/user_work_history'
+import UserWorkHistory from '#modules/users/infra/models/profile/user_work_history'
 import {
   OrganizationFactory,
   ReviewSessionFactory,
@@ -170,6 +172,36 @@ export default class WorkHistoryScenario {
       })
       .save()
 
+    await db.table('task_assignment_snapshots').insert({
+      id: randomUUID(),
+      task_assignment_id: assignment.id,
+      task_id: task.id,
+      snapshot_reason: 'submitted',
+      task_snapshot: JSON.stringify({
+        id: task.id,
+        title: task.title,
+        organization_id: org.id,
+        project_id: task.project_id,
+        task_type: 'feature_development',
+        business_domain: 'internal_tooling',
+        problem_category: 'automation',
+        role_in_task: 'lead',
+        autonomy_level: 'autonomous',
+        collaboration_type: 'solo',
+        tech_stack: ['typescript', 'adonisjs'],
+        domain_tags: ['backend', 'platform'],
+        difficulty: task.difficulty,
+        estimated_time: task.estimated_time,
+        actual_time: task.actual_time,
+        measurable_outcomes: [{ name: 'latency', target: 'lower' }],
+        impact_scope: 'team',
+        due_date: task.due_date?.toISO() ?? null,
+      }),
+      required_skills_snapshot: JSON.stringify([]),
+      acceptance_criteria_snapshot: JSON.stringify({}),
+      workflow_snapshot: JSON.stringify({ assignment_status: 'completed' }),
+    })
+
     const session = await ReviewSessionFactory.create({
       task_assignment_id: assignment.id,
       reviewee_id: reviewee.id,
@@ -270,14 +302,14 @@ export default class WorkHistoryScenario {
   }
 
   public async getWorkHistoryRow(): Promise<WorkHistoryRow> {
-    return (await UserWorkHistory.query()
+    return await UserWorkHistory.query()
       .where('user_id', this.reviewee.id)
       .where('task_assignment_id', this.assignment.id)
-      .firstOrFail())
+      .firstOrFail()
   }
 
   public async getWorkHistoryRows(): Promise<WorkHistoryRow[]> {
-    return (await UserWorkHistory.query().where('user_id', this.reviewee.id))
+    return await UserWorkHistory.query().where('user_id', this.reviewee.id)
   }
 
   public async getAuditLogs(): Promise<AuditLogSummary[]> {
@@ -303,9 +335,12 @@ export default class WorkHistoryScenario {
   }
 
   public async clearRevieweeConfirmation(): Promise<void> {
-    await db.from('review_sessions').where('id', this.input.sessionId).update({
-      confirmations: JSON.stringify([]),
-    })
+    await db
+      .from('review_sessions')
+      .where('id', this.input.sessionId)
+      .update({
+        confirmations: JSON.stringify([]),
+      })
   }
 
   public async setWorkHistoryConsent(input: {
@@ -331,10 +366,13 @@ export default class WorkHistoryScenario {
       description: evidence.description,
       uploaded_by: evidence.uploaded_by,
     })
-    await db.from('review_evidences').where('id', created.id).update({
-      verification_status: evidence.verification_status ?? 'verified',
-      is_sensitive: evidence.is_sensitive ?? false,
-    })
+    await db
+      .from('review_evidences')
+      .where('id', created.id)
+      .update({
+        verification_status: evidence.verification_status ?? 'verified',
+        is_sensitive: evidence.is_sensitive ?? false,
+      })
   }
 
   public async replaceSelfAssessment(input: SelfAssessmentSeed): Promise<void> {

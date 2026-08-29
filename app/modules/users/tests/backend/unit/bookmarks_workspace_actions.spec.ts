@@ -1,6 +1,6 @@
 import { test } from '@japa/runner'
 
-import { userRecruiterBookmarkActionFactory } from '#composition/user_action_factory'
+import { userRecruiterBookmarkActionFactory } from '#composition/users/user-factories/user_action_factory'
 import ValidationException from '#modules/errors/public_contracts/validation_exception'
 import { makeSystemUserActionContext } from '#modules/users/actions/user_action_context'
 

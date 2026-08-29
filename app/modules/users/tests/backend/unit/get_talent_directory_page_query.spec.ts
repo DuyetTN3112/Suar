@@ -1,6 +1,6 @@
 import { test } from '@japa/runner'
 
-import GetTalentDirectoryPageQuery from '#modules/users/actions/queries/get_talent_directory_page_query'
+import GetTalentDirectoryPageQuery from '#modules/users/actions/queries/talent/get_talent_directory_page_query'
 
 test.group('Unit | Get Talent Directory Page Query', () => {
   test('uses paginated repository path for default browsing instead of full search fetch', async ({
