@@ -5,13 +5,13 @@ import { middleware } from '../../kernel.js'
 import { apiThrottle, throttle } from '#start/limiter'
 
 const GetOrganizationMembersApiController = () =>
-  import('#modules/http/controllers/get_organization_members_api_controller')
+  import('#modules/http/controllers/organization/get_organization_members_api_controller')
 const GetUsersInOrganizationApiController = () =>
-  import('#modules/http/controllers/get_users_in_organization_api_controller')
+  import('#modules/http/controllers/organization/get_users_in_organization_api_controller')
 const PendingApprovalUsersApiController = () =>
-  import('#modules/users/controllers/pending_approval_users_api_controller')
+  import('#modules/users/controllers/administration/pending_approval_users_api_controller')
 const PendingApprovalCountApiController = () =>
-  import('#modules/users/controllers/pending_approval_count_api_controller')
+  import('#modules/users/controllers/administration/pending_approval_count_api_controller')
 
 /**
  * Deprecated organization-context aliases isolated from canonical route

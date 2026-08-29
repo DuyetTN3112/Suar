@@ -5,9 +5,9 @@ import { middleware } from '../kernel.js'
 import { shouldMountTestingRoutes } from '#modules/testing/public_contracts/test_database_safety'
 import { apiThrottle, loginThrottle } from '#start/limiter'
 
-const LogoutController = () => import('#modules/auth/controllers/logout_controller')
-const SessionTokenController = () => import('#modules/auth/controllers/session_token_controller')
-const SocialAuthController = () => import('#modules/auth/controllers/social_auth_controller')
+const LogoutController = () => import('#modules/auth/controllers/session-management/logout_controller')
+const SessionTokenController = () => import('#modules/auth/controllers/session-management/session_token_controller')
+const SocialAuthController = () => import('#modules/auth/controllers/social-auth/social_auth_controller')
 
 router.get('/auth/:provider/redirect', [SocialAuthController, 'redirect']).use(loginThrottle)
 router.get('/auth/:provider/callback', [SocialAuthController, 'callback']).use(loginThrottle)
@@ -46,8 +46,11 @@ router
   .use(loginThrottle)
 
 if (shouldMountTestingRoutes()) {
-  const { testingAuthHandlers } = await import('#composition/testing_auth_composition')
-  const testingTransport = [middleware.bindHttpTransport('api-ops-internal')]
+  const { testingAuthHandlers } = await import('#composition/auth/testing/testing_auth_composition')
+  const testingTransport = [
+    middleware.bindHttpTransport('api-ops-internal'),
+    middleware.testingRoutesApiKey(),
+  ]
 
   router.post('/api/testing/login', testingAuthHandlers.login).use(testingTransport)
   router.post('/api/testing/token-login', testingAuthHandlers.tokenLogin).use(testingTransport)

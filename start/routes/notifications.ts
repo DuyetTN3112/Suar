@@ -5,13 +5,13 @@ import { middleware } from '../kernel.js'
 import { throttle } from '#start/limiter'
 
 const ListNotificationsController = () =>
-  import('#modules/notifications/controllers/list_notifications_controller')
+  import('#modules/notifications/controllers/notification-feed/list_notifications_controller')
 const LatestNotificationsController = () =>
-  import('#modules/notifications/controllers/latest_notifications_controller')
+  import('#modules/notifications/controllers/notification-feed/latest_notifications_controller')
 const MarkNotificationReadController = () =>
-  import('#modules/notifications/controllers/mark_notification_read_controller')
+  import('#modules/notifications/controllers/notification-feed/mark_notification_read_controller')
 const DeleteNotificationController = () =>
-  import('#modules/notifications/controllers/delete_notification_controller')
+  import('#modules/notifications/controllers/notification-feed/delete_notification_controller')
 
 router
   .group(() => {

@@ -4,16 +4,18 @@ import { middleware } from '../kernel.js'
 
 import { throttle } from '#start/limiter'
 
-const ShowSettingsController = () => import('#modules/settings/controllers/show_settings_controller')
-const UpdateSettingsController = () => import('#modules/settings/controllers/update_settings_controller')
+const ShowSettingsController = () =>
+  import('#modules/settings/controllers/user-settings/show_settings_controller')
+const UpdateSettingsController = () =>
+  import('#modules/settings/controllers/user-settings/update_settings_controller')
 const UpdateProfileSettingsController = () =>
-  import('#modules/settings/controllers/update_profile_settings_controller')
+  import('#modules/settings/controllers/profile-settings/update_profile_settings_controller')
 const UpdateAccountSettingsController = () =>
-  import('#modules/settings/controllers/update_account_settings_controller')
+  import('#modules/settings/controllers/account-settings/update_account_settings_controller')
 const UpdateNotificationSettingsController = () =>
-  import('#modules/settings/controllers/update_notification_settings_controller')
+  import('#modules/settings/controllers/notification-settings/update_notification_settings_controller')
 const UserListAuditLogsController = () =>
-  import('#modules/admin/audit_logs/controllers/list_audit_logs_controller')
+  import('#modules/admin/audit_logs/controllers/audit_logs/list_user_audit_logs_page_controller')
 
 router
   .group(() => {
@@ -23,9 +25,7 @@ router
 
     // Profile settings
     router
-      .get('/settings/profile', ({ response }) => {
-        return response.redirect('/settings/account')
-      })
+      .get('/settings/profile', ({ response }) => response.redirect('/settings/account'))
       .as('settings.profile')
     router
       .post('/settings/profile', [UpdateProfileSettingsController, 'handle'])
@@ -33,22 +33,20 @@ router
 
     // Account settings
     router
-      .get('/settings/account', async ({ inertia }) => {
-        return inertia.render('settings/account', {})
-      })
+      .get('/settings/account', async ({ inertia }) => inertia.render('settings/account', {}))
       .as('settings.account')
     router
       .post('/settings/account', [UpdateAccountSettingsController, 'handle'])
       .as('settings.account.update')
     router
-      .get('/settings/audit-logs', [UserListAuditLogsController, 'userHandle'])
+      .get('/settings/audit-logs', [UserListAuditLogsController, 'handle'])
       .as('settings.audit_logs.index')
 
     // Notifications settings
     router
-      .get('/settings/notifications', async ({ inertia }) => {
-        return inertia.render('settings/notifications', {})
-      })
+      .get('/settings/notifications', async ({ inertia }) =>
+        inertia.render('settings/notifications', {})
+      )
       .as('settings.notifications')
     router
       .post('/settings/notifications', [UpdateNotificationSettingsController, 'handle'])
@@ -56,15 +54,7 @@ router
 
     // Existing account routes
     router
-      .get('/account', async ({ inertia }) => {
-        return inertia.render('settings/account', {})
-      })
+      .get('/account', async ({ inertia }) => inertia.render('settings/account', {}))
       .as('account.index')
-    router
-      .delete('/account', ({ response }) => {
-        // Xử lý xóa tài khoản
-        response.redirect('/login')
-      })
-      .as('account.destroy')
   })
   .use([middleware.auth(), throttle])

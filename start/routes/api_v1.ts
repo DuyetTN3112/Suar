@@ -31,7 +31,7 @@ const ShowTaskStatusController = () =>
 const CreateTaskStatusController = () =>
   import('#modules/tasks/controllers/v1/create_task_status_controller')
 const UpdateTaskStatusController = () =>
-  import('#modules/tasks/controllers/v1/update_task_status_controller')
+  import('#modules/tasks/controllers/task-status/update_task_status_definition_controller')
 const DeleteTaskStatusController = () =>
   import('#modules/tasks/controllers/v1/delete_task_status_controller')
 const ListWorkflowController = () =>
@@ -39,23 +39,121 @@ const ListWorkflowController = () =>
 const ReplaceTaskWorkflowTransitionsV1Controller = () =>
   import('#modules/tasks/controllers/v1/replace_task_workflow_transitions_controller')
 const GetProjectDetailApiController = () =>
-  import('#modules/projects/controllers/get_project_detail_api_controller')
+  import('#modules/projects/controllers/project-context/get_project_detail_api_controller')
+const GetProjectTaskAuthoringContextController = () =>
+  import('#modules/projects/controllers/project-context/get_project_task_authoring_context_controller')
 const UpdateProjectApiController = () =>
-  import('#modules/projects/controllers/update_project_api_controller')
+  import('#modules/projects/controllers/project-context/update_project_api_controller')
 const DeleteProjectApiController = () =>
-  import('#modules/projects/controllers/delete_project_api_controller')
+  import('#modules/projects/controllers/project-context/delete_project_api_controller')
+const PublishProjectContextController = () =>
+  import('#modules/projects/controllers/project-context/publish_project_context_controller')
 const ShowOrganizationApiController = () =>
-  import('#modules/organizations/directory/controllers/show_organization_api_controller')
+  import('#modules/organizations/controllers/directory/show_organization_api_controller')
 const UpdateOrganizationApiController = () =>
-  import('#modules/organizations/directory/controllers/update_organization_api_controller')
+  import('#modules/organizations/controllers/directory/update_organization_api_controller')
 const DeleteOrganizationApiController = () =>
-  import('#modules/organizations/directory/controllers/delete_organization_api_controller')
+  import('#modules/organizations/controllers/directory/delete_organization_api_controller')
 const GetOrganizationMembersApiController = () =>
-  import('#modules/http/controllers/get_organization_members_api_controller')
+  import('#modules/http/controllers/organization/get_organization_members_api_controller')
 const GetUsersInOrganizationApiController = () =>
-  import('#modules/http/controllers/get_users_in_organization_api_controller')
+  import('#modules/http/controllers/organization/get_users_in_organization_api_controller')
+const PublishAccomplishmentPublicationController = () =>
+  import('#modules/accomplishments/controllers/publication/publish_accomplishment_publication_controller')
+const UnpublishAccomplishmentPublicationController = () =>
+  import('#modules/accomplishments/controllers/publication/unpublish_accomplishment_publication_controller')
+const FilterContextsController = () =>
+  import('#modules/filtering/controllers/filter_contexts_controller')
+const FilterQueryController = () => import('#modules/filtering/controllers/filter_query_controller')
+const FilterSavedViewsController = () =>
+  import('#modules/filtering/controllers/filter_saved_views_controller')
+const TaskAssignmentInteractionController = () =>
+  import('#modules/tasks/controllers/task-assignment/task_assignment_interaction_controller')
+const TaskSubmissionController = () => import('#modules/tasks/controllers/task_submission_controller')
 
 // Read-only routes — any authenticated user
+router
+  .group(() => {
+    router
+      .post('/task-assignments/:assignmentId/acknowledgement', [
+        TaskAssignmentInteractionController,
+        'acknowledge',
+      ])
+      .as('task_assignments.acknowledgement.store')
+    router
+      .post('/task-assignments/:assignmentId/clarifications', [
+        TaskAssignmentInteractionController,
+        'requestClarification',
+      ])
+      .as('task_assignments.clarifications.store')
+    router
+      .get('/task-assignments/:assignmentId/completion-report', [
+        TaskSubmissionController,
+        'showCompletionReport',
+      ])
+      .as('task_assignments.completion_reports.show')
+    router
+      .get('/task-completion-reports/:reportId/review-package', [
+        TaskSubmissionController,
+        'showCompletionReviewPackage',
+      ])
+      .as('task_completion_reports.review_packages.show')
+    router
+      .post('/task-assignments/:assignmentId/completion-report/start', [
+        TaskSubmissionController,
+        'startCompletionReport',
+      ])
+      .as('task_assignments.completion_reports.start')
+    router
+      .post('/task-assignments/:assignmentId/completion-report', [
+        TaskSubmissionController,
+        'saveCompletionReportDraft',
+      ])
+      .as('task_assignments.completion_reports.store')
+    router
+      .post('/task-assignments/:assignmentId/completion-report/submit', [
+        TaskSubmissionController,
+        'submitCompletionReport',
+      ])
+      .as('task_assignments.completion_reports.submit')
+    router
+      .post('/accomplishments/:accomplishmentId/publication', [
+        PublishAccomplishmentPublicationController,
+        'handle',
+      ])
+      .as('accomplishments.publication.store')
+    router
+      .delete('/accomplishments/:accomplishmentId/publication', [
+        UnpublishAccomplishmentPublicationController,
+        'handle',
+      ])
+      .as('accomplishments.publication.destroy')
+    router
+      .get('/filter/contexts/:context', [FilterContextsController, 'handle'])
+      .as('filter.contexts.show')
+    router.post('/filter/query', [FilterQueryController, 'handle']).as('filter.query.store')
+    router.get('/filter-saved-views', [FilterSavedViewsController, 'index']).as('filter_saved_views.index')
+    router.post('/filter-saved-views', [FilterSavedViewsController, 'store']).as('filter_saved_views.store')
+    router.get('/filter-saved-views/:viewId', [FilterSavedViewsController, 'show']).as('filter_saved_views.show')
+    router.put('/filter-saved-views/:viewId', [FilterSavedViewsController, 'update']).as('filter_saved_views.update')
+    router.delete('/filter-saved-views/:viewId', [FilterSavedViewsController, 'destroy']).as('filter_saved_views.destroy')
+    router.post('/filter-saved-views/:viewId/duplicate', [FilterSavedViewsController, 'duplicate']).as('filter_saved_views.duplicate')
+    router.post('/filter-saved-views/:viewId/share', [FilterSavedViewsController, 'share']).as('filter_saved_views.share')
+    router.get('/filter-saved-views/:viewId/alert', [FilterSavedViewsController, 'showAlert']).as('filter_saved_views.alert.show')
+    router.post('/filter-saved-views/:viewId/alert', [FilterSavedViewsController, 'storeAlert']).as('filter_saved_views.alert.store')
+    router.put('/filter-saved-views/:viewId/alert', [FilterSavedViewsController, 'updateAlert']).as('filter_saved_views.alert.update')
+    router.delete('/filter-saved-views/:viewId/alert', [FilterSavedViewsController, 'updateAlert']).as('filter_saved_views.alert.destroy')
+  })
+  .prefix('/api/v1')
+  .as('api.v1')
+  .use([
+    middleware.bindHttpTransport('api-canonical'),
+    middleware.bindApiAuthContract('bearer-or-session'),
+    middleware.auth(),
+    apiThrottle,
+  ])
+
+// Mutation routes — admin/owner only
 router
   .group(() => {
     router.get('/me', [ShowMeController, 'handle']).as('me.show')
@@ -85,6 +183,32 @@ router
     apiThrottle,
   ])
 
+// Project Context and Work Package authoring mutations.
+router
+  .group(() => {
+    router
+      .post('/projects/:projectId/context-versions', [
+        PublishProjectContextController,
+        'publishContext',
+      ])
+      .as('projects.context_versions.store')
+    router
+      .post('/projects/:projectId/work-packages', [
+        PublishProjectContextController,
+        'publishWorkPackage',
+      ])
+      .as('projects.work_packages.store')
+  })
+  .prefix('/api/v1')
+  .as('api.v1')
+  .use([
+    middleware.bindHttpTransport('api-canonical'),
+    middleware.bindApiAuthContract('bearer-or-session'),
+    middleware.auth(),
+    middleware.requireOrg(),
+    apiThrottle,
+  ])
+
 // Org-scoped read routes
 router
   .group(() => {
@@ -98,6 +222,9 @@ router
     router
       .get('/projects/:projectId', [GetProjectDetailApiController, 'handle'])
       .as('projects.show')
+    router
+      .get('/projects/:projectId/task-authoring-context', [GetProjectTaskAuthoringContextController, 'handle'])
+      .as('projects.task_authoring_context.show')
     router
       .get('/organizations/:organizationId', [ShowOrganizationApiController, 'handle'])
       .as('organizations.show')
