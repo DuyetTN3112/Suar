@@ -3,7 +3,7 @@ import { test } from '@japa/runner'
 import {
   pollAiDisputeEvaluation,
   type AiDisputeEvaluationStatusRow,
-} from '#modules/reviews/infra/runtime/ai_dispute_evaluation_polling'
+} from '#modules/reviews/infra/adapters/disputes/ai_dispute_evaluation_polling'
 
 test.group('AI dispute evaluation polling', () => {
   test('polls sequentially and returns the completed row', async ({ assert }) => {

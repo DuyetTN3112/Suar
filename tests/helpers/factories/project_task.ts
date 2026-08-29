@@ -5,12 +5,12 @@ import { testId } from '../test_utils.js'
 import { toFactoryDateTime, type FactoryDateValue } from './core.js'
 import { OrganizationFactory, UserFactory } from './user_org.js'
 
-import Project from '#modules/projects/infra/models/project'
-import ProjectMember from '#modules/projects/infra/models/project_member'
-import Task from '#modules/tasks/infra/models/task'
-import TaskApplication from '#modules/tasks/infra/models/task_application'
-import TaskAssignment from '#modules/tasks/infra/models/task_assignment'
-import TaskStatusModel from '#modules/tasks/infra/models/task_status'
+import Project from '#modules/projects/infra/models/project-context/project'
+import ProjectMember from '#modules/projects/infra/models/project-members/project_member'
+import Task from '#modules/tasks/infra/models/task-authoring/task'
+import TaskApplication from '#modules/tasks/infra/models/task-applications/task_application'
+import TaskAssignment from '#modules/tasks/infra/models/task-assignment/task_assignment'
+import TaskStatusModel from '#modules/tasks/infra/models/task-status/task_status'
 import { DEFAULT_TASK_STATUSES, TaskStatusCategory } from '#modules/tasks/public_contracts/task_constants'
 
 const taskStatusCategoryBySlug: Record<string, TaskStatusCategory> = {

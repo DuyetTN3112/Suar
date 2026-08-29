@@ -2,7 +2,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import { areRedisEndpointAddressesEqual } from '#modules/cache/domain/redis_endpoint_identity'
+import { areRedisEndpointAddressesEqual } from '#modules/cache/domain/cache-runtime/redis_endpoint_identity'
 
 const TEST_NAME_PATTERN = /(^test$|(^|[-_])test($|[-_])|_test$|-test$)/i
 
