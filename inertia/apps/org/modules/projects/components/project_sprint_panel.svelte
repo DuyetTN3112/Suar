@@ -37,6 +37,7 @@
     projectSprintId: string | null
     sortOrder: number
     updatedAt: string
+    addedAfterStart?: boolean
   }
 
   interface SprintBoard {
@@ -69,6 +70,11 @@
   let expiringSprintId = $state<string | null>(null)
   let selectedSprintId = $state<string | null>(null)
   let movingTaskId = $state<string | null>(null)
+  let endingSprintId = $state<string | null>(null)
+  let endDeliveryError = $state<string | null>(null)
+  let endDestinations = $state<Record<string, string>>({})
+  let historyTaskId = $state<string | null>(null)
+  let taskHistory = $state<Array<{ id: string; sprintId: string | null; entryReason: string; exitReason: string | null; current: boolean }>>([])
   let pagination = $state<OffsetPagePagination | null>(null)
   let hydratedProjectId = $state<string | null>(null)
   let form = $state({
@@ -164,7 +170,7 @@
           goal: form.goal.trim() || null,
           startsAt: new Date(form.startsAt).toISOString(),
           endsAt: new Date(form.endsAt).toISOString(),
-          status: 'active',
+          status: 'draft',
         }
       )
       await loadSprints(1)
@@ -177,16 +183,67 @@
     }
   }
 
-  async function closeSprint(sprintId: string) {
+  async function startSprint(sprintId: string) {
     openingSprintId = sprintId
     try {
-      await axios.post(`/api/v1/projects/${projectId}/sprints/${sprintId}/open-review`, {})
+      await axios.post(`/api/v1/projects/${projectId}/sprints/${sprintId}/start`, {})
       await loadSprints()
-      notificationStore.success(t('project.sprint_panel.close_sprint_success', {}, 'Sprint ended and post-sprint review opened'))
+      notificationStore.success(t('project.sprint_panel.start_success', {}, 'Sprint started'))
     } catch (error) {
-      notificationStore.error(requestErrorMessage(error, t('project.sprint_panel.close_sprint_error', {}, 'Unable to end sprint')))
+      notificationStore.error(requestErrorMessage(error, t('project.sprint_panel.start_error', {}, 'Unable to start sprint')))
     } finally {
       openingSprintId = null
+    }
+  }
+
+  function incompleteTasksForEnd(sprintId: string): SprintBoardTask[] {
+    if (selectedSprintId !== sprintId) return []
+    return (board?.sprintTasks ?? []).filter((task) => !['done', 'cancelled', 'rejected'].includes(task.status))
+  }
+
+  async function openEndDelivery(sprintId: string) {
+    if (selectedSprintId !== sprintId) await loadSprintBoard(sprintId)
+    endingSprintId = sprintId
+    endDeliveryError = null
+    endDestinations = Object.fromEntries(incompleteTasksForEnd(sprintId).map((task) => [task.id, '']))
+  }
+
+  async function endDelivery(sprintId: string) {
+    const incompleteTasks = incompleteTasksForEnd(sprintId)
+    const missing = incompleteTasks.some((task) => !endDestinations[task.id])
+    if (missing) {
+      endDeliveryError = t('project.sprint_panel.end_delivery_destination_required', {}, 'Choose a destination for every incomplete task.')
+      return
+    }
+    try {
+      await axios.post(`/api/v1/projects/${projectId}/sprints/${sprintId}/end-delivery`, {
+        incompleteTasks: incompleteTasks.map((task) => {
+          const destination = endDestinations[task.id]
+          return {
+            taskId: task.id,
+            destination: destination === 'backlog' ? { kind: 'backlog' } : { kind: 'sprint', sprintId: destination },
+          }
+        }),
+      })
+      endingSprintId = null
+      await loadSprints()
+      notificationStore.success(t('project.sprint_panel.end_delivery_success', {}, 'Sprint delivery ended'))
+    } catch (error) {
+      endDeliveryError = requestErrorMessage(error, t('project.sprint_panel.close_sprint_error', {}, 'Unable to end sprint'))
+    }
+  }
+
+  function confirmEndDelivery() {
+    if (endingSprintId) void endDelivery(endingSprintId)
+  }
+
+  async function showTaskHistory(taskId: string) {
+    try {
+      const response = await axios.get<{ data: typeof taskHistory }>(`/api/v1/projects/${projectId}/tasks/${taskId}/sprint-history`)
+      taskHistory = response.data.data
+      historyTaskId = taskId
+    } catch (error) {
+      notificationStore.error(requestErrorMessage(error, t('project.sprint_panel.history_error', {}, 'Unable to load assignment history')))
     }
   }
 
@@ -210,7 +267,7 @@
     try {
       await axios.post(`/api/v1/project-sprints/${sprintId}/close-review-period`, {})
       await loadSprints()
-      notificationStore.success(t('project.sprint_panel.close_review_success', {}, 'Sprint review period closed'))
+      notificationStore.success(t('project.sprint_panel.close_sprint_success', {}, 'Sprint ended and post-sprint review opened'))
     } catch (error) {
       notificationStore.error(
         requestErrorMessage(error, t('project.sprint_panel.close_review_error', {}, 'Unable to close review period. Some reviews may still be unfinished.'))
@@ -399,12 +456,22 @@
                 </Button>
                 {#if canManage && sprint.status === 'active'}
                   <Button
-                    onclick={() => { void closeSprint(sprint.id) }}
+                    onclick={() => { void openEndDelivery(sprint.id) }}
                     disabled={openingSprintId === sprint.id || previousDebt > 0}
                   >
                     {openingSprintId === sprint.id
                       ? t('project.sprint_panel.ending_button', {}, 'Ending...')
                       : t('project.sprint_panel.end_sprint', {}, 'End sprint')}
+                  </Button>
+                {/if}
+                {#if canManage && sprint.status === 'draft'}
+                  <Button
+                    onclick={() => { void startSprint(sprint.id) }}
+                    disabled={openingSprintId === sprint.id}
+                  >
+                    {openingSprintId === sprint.id
+                      ? t('project.sprint_panel.starting_button', {}, 'Starting...')
+                      : t('project.sprint_panel.start_sprint', {}, 'Start sprint')}
                   </Button>
                 {/if}
                 {#if sprint.status === 'review_open'}
@@ -491,6 +558,9 @@
                       <div class="text-sm font-black text-foreground">{task.title}</div>
                       <div class="mt-1 text-xs text-muted-foreground">
                         {task.status} · {task.priority}
+                        {#if task.addedAfterStart}
+                          <span class="ml-2 font-bold text-amber-700 dark:text-amber-300">{t('project.sprint_panel.scope_change', {}, 'Added after start')}</span>
+                        {/if}
                       </div>
                     </div>
                     {#if canEditSelectedSprint()}
@@ -506,6 +576,9 @@
                           : t('project.sprint_panel.move_to_sprint', {}, 'Move to sprint')}
                       </Button>
                     {/if}
+                    <Button variant="ghost" onclick={() => { void showTaskHistory(task.id) }}>
+                      {t('project.sprint_panel.history', {}, 'History')}
+                    </Button>
                   </div>
                 </div>
               {/each}
@@ -548,6 +621,9 @@
                           : t('project.sprint_panel.move_to_backlog', {}, 'Move to backlog')}
                       </Button>
                     {/if}
+                    <Button variant="ghost" onclick={() => { void showTaskHistory(task.id) }}>
+                      {t('project.sprint_panel.history', {}, 'History')}
+                    </Button>
                   </div>
                 </div>
               {/each}
@@ -560,5 +636,56 @@
         </div>
       </div>
     </section>
+
+    {#if endingSprintId}
+      <div class="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" role="presentation">
+        <div class="w-full max-w-2xl rounded-xl border border-border bg-background p-5 shadow-xl" role="dialog" aria-modal="true" aria-labelledby="end-delivery-title" tabindex="-1">
+          <h2 id="end-delivery-title" class="text-lg font-black">{t('project.sprint_panel.end_delivery_title', {}, 'End Sprint delivery')}</h2>
+          <p class="mt-1 text-sm text-muted-foreground">{t('project.sprint_panel.end_delivery_help', {}, 'Incomplete work must be explicitly planned before delivery ends.')}</p>
+          <div class="mt-4 grid gap-2">
+            {#each incompleteTasksForEnd(endingSprintId) as task (task.id)}
+              <label class="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-sm">
+                <span class="font-bold">{task.title}</span>
+                <select class="mt-2 block h-9 w-full rounded-md border border-border bg-background px-2" aria-label={`${task.title} destination`} value={endDestinations[task.id]} onchange={(event) => { endDestinations = { ...endDestinations, [task.id]: (event.currentTarget as HTMLSelectElement).value } }}>
+                  <option value="">{t('project.sprint_panel.choose_destination', {}, 'Choose destination')}</option>
+                  <option value="backlog">{t('project.sprint_panel.backlog_title', {}, 'Product Backlog')}</option>
+                  {#each sprints.filter((candidate) => candidate.status === 'draft' && candidate.id !== endingSprintId) as destination}
+                    <option value={destination.id}>{destination.name}</option>
+                  {/each}
+                </select>
+              </label>
+            {/each}
+            {#each (board?.sprintTasks ?? []).filter((task) => ['done', 'cancelled', 'rejected'].includes(task.status)) as task (task.id)}
+              <div class="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-3 text-sm">
+                <div class="font-bold">{task.title}</div>
+                <div class="text-xs text-muted-foreground">{task.status} · {t('project.sprint_panel.historical_result', {}, 'Kept in historical Sprint')}</div>
+              </div>
+            {/each}
+          </div>
+          {#if endDeliveryError}<p class="mt-3 text-sm font-semibold text-red-600" role="alert">{endDeliveryError}</p>{/if}
+          <div class="mt-5 flex justify-end gap-2">
+            <Button variant="outline" onclick={() => { endingSprintId = null }}>{t('project.sprint_panel.cancel', {}, 'Cancel')}</Button>
+            <Button onclick={confirmEndDelivery}>{t('project.sprint_panel.confirm_end_delivery', {}, 'End delivery')}</Button>
+          </div>
+        </div>
+      </div>
+    {/if}
+
+    {#if historyTaskId}
+      <div class="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" role="presentation">
+        <div class="w-full max-w-xl rounded-xl border border-border bg-background p-5 shadow-xl" role="dialog" aria-modal="true" aria-labelledby="history-title" tabindex="-1">
+          <h2 id="history-title" class="text-lg font-black">{t('project.sprint_panel.history_title', {}, 'Assignment history')}</h2>
+          <div class="mt-4 grid gap-2">
+            {#each taskHistory as entry (entry.id)}
+              <div class="rounded-lg border border-border p-3 text-sm">
+                <div class="font-bold">{entry.sprintId ?? t('project.sprint_panel.backlog_title', {}, 'Product Backlog')}</div>
+                <div class="text-xs text-muted-foreground">{entry.entryReason} → {entry.exitReason ?? t('project.sprint_panel.current', {}, 'current')}</div>
+              </div>
+            {/each}
+          </div>
+          <div class="mt-5 flex justify-end"><Button variant="outline" onclick={() => { historyTaskId = null }}>{t('project.sprint_panel.close', {}, 'Close')}</Button></div>
+        </div>
+      </div>
+    {/if}
   </CardContent>
 </Card>

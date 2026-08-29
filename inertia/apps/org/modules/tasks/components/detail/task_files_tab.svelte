@@ -57,8 +57,6 @@
     fileName: '',
     filePath: '',
     attachmentType: 'reference',
-    mimeType: '',
-    fileSize: '',
   })
 
   function formatBytes(size?: number | null): string {
@@ -112,16 +110,12 @@
           fileName: attachmentForm.fileName.trim(),
           filePath: attachmentForm.filePath.trim(),
           attachmentType: attachmentForm.attachmentType,
-          mimeType: attachmentForm.mimeType.trim() || null,
-          fileSize: attachmentForm.fileSize.trim() ? Number(attachmentForm.fileSize) : null,
         })
       }
       attachmentForm = {
         fileName: '',
         filePath: '',
         attachmentType: 'reference',
-        mimeType: '',
-        fileSize: '',
       }
       selectedFile = null
       await loadAttachments(1)
@@ -199,7 +193,7 @@
         />
         {#if selectedFile}
           <p class="text-xs text-muted-foreground">
-            {selectedFile.name} · {formatBytes(selectedFile.size)}
+            {selectedFile.name} · {selectedFile.type || t('task.files_tab.type_unknown', {}, 'Unknown type')} · {formatBytes(selectedFile.size)}
           </p>
         {/if}
       </div>
@@ -209,23 +203,6 @@
           id="attachment-path"
           bind:value={attachmentForm.filePath}
           placeholder={t('task.files_tab.path_placeholder', {}, '/uploads/tasks/spec.pdf or https://...')}
-        />
-      </div>
-      <div class="space-y-2">
-        <Label for="attachment-mime">{t('task.files_tab.mime_type', {}, 'MIME type')}</Label>
-        <Input
-          id="attachment-mime"
-          bind:value={attachmentForm.mimeType}
-          placeholder="application/pdf"
-        />
-      </div>
-      <div class="space-y-2">
-        <Label for="attachment-size">{t('task.files_tab.file_size', {}, 'Size in bytes')}</Label>
-        <Input
-          id="attachment-size"
-          bind:value={attachmentForm.fileSize}
-          placeholder="4096"
-          type="number"
         />
       </div>
     </div>

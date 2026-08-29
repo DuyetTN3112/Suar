@@ -11,7 +11,7 @@ export interface TaskStatusUpdateInput {
   sortOrder?: number
 }
 
-export async function createTaskStatusDefinition(input: TaskStatusCreateInput) {
+export async function createTaskStatusDefinition(input: TaskStatusCreateInput, projectId: string) {
   const description = input.description?.trim()
 
   await axios.post('/api/v1/task-statuses', {
@@ -21,14 +21,19 @@ export async function createTaskStatusDefinition(input: TaskStatusCreateInput) {
     color: input.color ?? '#6B7280',
     description: description === '' ? undefined : description,
     sortOrder: input.sortOrder,
+    project_id: projectId,
   })
 }
 
-export async function deleteTaskStatusDefinition(statusId: string) {
+export async function deleteTaskStatusDefinition(statusId: string, projectId: string) {
   // APPROVED: GroupC - workflow-status-management
-  await axios.delete(`/api/v1/task-statuses/${statusId}`)
+  await axios.delete(`/api/v1/task-statuses/${statusId}`, { params: { project_id: projectId } })
 }
 
-export async function updateTaskStatusDefinition(statusId: string, input: TaskStatusUpdateInput) {
-  await axios.patch(`/api/v1/task-statuses/${statusId}`, input)
+export async function updateTaskStatusDefinition(
+  statusId: string,
+  input: TaskStatusUpdateInput,
+  projectId: string
+) {
+  await axios.patch(`/api/v1/task-statuses/${statusId}`, { ...input, project_id: projectId })
 }
