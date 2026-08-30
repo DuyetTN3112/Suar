@@ -11,7 +11,6 @@
     type AssigneeGroups,
   } from '@/apps/org/modules/tasks/lib/task_assignee_scope'
   import {
-    BUSINESS_DOMAIN_OPTIONS,
     PROBLEM_CATEGORY_OPTIONS,
     ROLE_IN_TASK_OPTIONS,
     TASK_TYPE_OPTIONS,
@@ -19,6 +18,7 @@
   import {
     TASK_VISIBILITY_OPTIONS,
   } from '@/apps/org/modules/tasks/lib/rules/task_visibility'
+  import { isDocumentationTaskStatusId } from '@/apps/shared/tasks/documentation_task_status'
   import { useTranslation } from '@/apps/org/shared/stores/translation.svelte'
 
   interface Props {
@@ -31,20 +31,21 @@
       project_id: string
       priority: string
       label: string
-      task_visibility: 'internal' | 'external' | 'all'
+      task_visibility: 'project' | 'internal' | 'external' | 'all'
       assigned_to: string
       parent_task_id: string
       estimated_time: string
     }
     handleSelectChange: (name: string, value: string) => void
     errors: Record<string, string>
-    statuses: { value: string; label: string }[]
+    statuses: { value: string; label: string; slug?: string; category?: string }[]
     priorities: { value: string; label: string }[]
     labels: { value: string; label: string }[]
     users: { id: string; username: string; email: string }[]
     assigneeGroups: AssigneeGroups
     parentTasks: { id: string; title: string; task_status_id: string | null }[]
-    projects: { id: string; name: string }[]
+    isPublish?: boolean
+    isDocumentationItem?: boolean
   }
 
   const {
@@ -57,7 +58,8 @@
     users,
     assigneeGroups,
     parentTasks,
-    projects,
+    isPublish = true,
+    isDocumentationItem = false,
   }: Props = $props()
 
   const { t } = useTranslation()
@@ -81,25 +83,33 @@
     return option ? taxonomyLabel(group, option) : fallback
   }
 
-  const selectedProject = $derived(projects.find((project) => project.id === formData.project_id) ?? null)
   const projectMemberIds = $derived(new Set(assigneeGroups.projectMembers.map((member) => member.id)))
   const orgOutsideProjectIds = $derived(new Set(assigneeGroups.orgMembersOutsideProject.map((member) => member.id)))
   const fallbackUsers = $derived(
     users.filter((user) => !projectMemberIds.has(user.id) && !orgOutsideProjectIds.has(user.id))
   )
 
-  function taskVisibilityLabel(value: Props['formData']['task_visibility']): string {
-    switch (value) {
-      case 'internal':
-        return t('task.create.visibility.internal', {}, 'Organization only')
-      case 'external':
-        return t('task.create.visibility.external', {}, 'Marketplace')
-      case 'all':
-        return t('task.create.visibility.all', {}, 'Hybrid: internal + marketplace')
-    }
-  }
+  const taskVisibilityOption = $derived(
+    TASK_VISIBILITY_OPTIONS.find((option) => option.value === formData.task_visibility)
+  )
+  const isOrganizationVisibility = $derived(
+    formData.task_visibility === 'project' || formData.task_visibility === 'internal'
+  )
+  const taskVisibilityDescription = $derived(
+    taskVisibilityOption
+      ? t(taskVisibilityOption.descriptionKey, {}, taskVisibilityOption.description)
+      : ''
+  )
+  const canDirectAssign = $derived(formData.task_visibility === 'project')
 
   $effect(() => {
+    if (isDocumentationItem && formData.assigned_to) {
+      handleSelectChange('assigned_to', '')
+      return
+    }
+    if (formData.assigned_to && !canDirectAssign) {
+      handleSelectChange('assigned_to', '')
+    }
     if (
       shouldResetAssignedToForVisibility(
         formData.assigned_to,
@@ -113,25 +123,27 @@
   })
 </script>
 
-<div class="grid grid-cols-1 gap-4 md:grid-cols-3">
-  <div class="grid gap-2">
-    <Label>{t('task.create.project', {}, 'Project')}</Label>
-    <div class="rounded-md border bg-muted/20 px-3 py-2 text-sm">
-      {selectedProject?.name ?? t('task.create.no_current_project', {}, 'No current project')}
-    </div>
-  </div>
-
+<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
   <div class="grid gap-2">
     <Label for="task_status_id">
-      {t('task.status', {}, 'Status')}<span class="ml-1 text-destructive">*</span>
+      {t('task.status', {}, 'Status')}<span class="ml-1 text-[#ef4444]">*</span>
     </Label>
     <Select
       value={formData.task_status_id}
       onValueChange={(value: string) => {
         handleSelectChange('task_status_id', value)
+        if (isDocumentationTaskStatusId(value, statuses)) {
+          handleSelectChange('assigned_to', '')
+        }
       }}
     >
-      <SelectTrigger>
+      <SelectTrigger
+        id="task_status_id"
+        aria-required="true"
+        aria-invalid={errors.task_status_id ? 'true' : undefined}
+        aria-describedby={errors.task_status_id ? 'task_status_id-error' : undefined}
+        class={errors.task_status_id ? 'border-destructive' : ''}
+      >
         <span>{statuses.find((status) => status.value === formData.task_status_id)?.label ?? t('task.select_status', {}, 'Select status')}</span>
       </SelectTrigger>
       <SelectContent>
@@ -143,11 +155,11 @@
       </SelectContent>
     </Select>
     {#if errors.task_status_id}
-      <p class="text-xs text-destructive">{errors.task_status_id}</p>
+      <p id="task_status_id-error" class="text-xs font-medium text-destructive" role="alert">{errors.task_status_id}</p>
     {/if}
   </div>
 
-  <div class="grid gap-2">
+  {#if !isDocumentationItem}<div class="grid gap-2">
     <Label for="task_type">{t('task.create.task_type', {}, 'Task type')}</Label>
     <Select
       value={formData.task_type}
@@ -169,37 +181,13 @@
     {#if errors.task_type}
       <p class="text-xs text-destructive">{errors.task_type}</p>
     {/if}
-  </div>
+  </div>{/if}
 </div>
 
-<div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+{#if !isDocumentationItem}
+<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
   <div class="grid gap-2">
-    <Label for="business_domain">{t('task.create.business_domain', {}, 'Business domain')}</Label>
-    <Select
-      value={formData.business_domain}
-      onValueChange={(value: string) => {
-        handleSelectChange('business_domain', value === '__none' ? '' : value)
-      }}
-    >
-      <SelectTrigger>
-        <span>{selectedTaxonomyLabel('business_domain', BUSINESS_DOMAIN_OPTIONS, formData.business_domain, t('task.create.select_business_domain', {}, 'Select business domain'))}</span>
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value="__none" label={t('task.create.no_selection', {}, 'No selection')}>{t('task.create.no_selection', {}, 'No selection')}</SelectItem>
-        {#each BUSINESS_DOMAIN_OPTIONS as option (option.value)}
-          <SelectItem value={option.value} label={taxonomyLabel('business_domain', option)}>
-            {taxonomyLabel('business_domain', option)}
-          </SelectItem>
-        {/each}
-      </SelectContent>
-    </Select>
-    {#if errors.business_domain}
-      <p class="text-xs text-destructive">{errors.business_domain}</p>
-    {/if}
-  </div>
-
-  <div class="grid gap-2">
-    <Label for="problem_category">{t('task.create.problem_category', {}, 'Problem category')}</Label>
+    <Label for="problem_category">{t('task.create.problem_category', {}, 'Problem to solve')}</Label>
     <Select
       value={formData.problem_category}
       onValueChange={(value: string) => {
@@ -224,14 +212,23 @@
   </div>
 
   <div class="grid gap-2">
-    <Label for="role_in_task">{t('task.create.role_in_task', {}, 'Role in task')}</Label>
+    <Label for="role_in_task">
+      {t('task.create.role_in_task', {}, 'Role needed for task')}
+      {#if isPublish}<span class="ml-1 text-[#ef4444]" aria-hidden="true">*</span>{/if}
+    </Label>
     <Select
       value={formData.role_in_task}
       onValueChange={(value: string) => {
         handleSelectChange('role_in_task', value === '__none' ? '' : value)
       }}
     >
-      <SelectTrigger>
+      <SelectTrigger
+        id="role_in_task"
+        aria-required={isPublish ? 'true' : undefined}
+        aria-invalid={errors.role_in_task ? 'true' : undefined}
+        aria-describedby={errors.role_in_task ? 'role_in_task-error' : undefined}
+        class={errors.role_in_task ? 'border-destructive' : ''}
+      >
         <span>{selectedTaxonomyLabel('role_in_task', ROLE_IN_TASK_OPTIONS, formData.role_in_task, t('task.create.select_role', {}, 'Select role'))}</span>
       </SelectTrigger>
       <SelectContent>
@@ -244,8 +241,11 @@
       </SelectContent>
     </Select>
     {#if errors.role_in_task}
-      <p class="text-xs text-destructive">{errors.role_in_task}</p>
+      <p id="role_in_task-error" class="text-xs font-medium text-destructive" role="alert">{errors.role_in_task}</p>
     {/if}
+    <p class="text-xs text-muted-foreground">
+      {t('task.create.role_in_task_help', {}, 'Prioritizes project members with the right role; it is not the task creator or assignee.')}
+    </p>
   </div>
 </div>
 
@@ -298,48 +298,119 @@
     {/if}
   </div>
 </div>
+{/if}
 
 <div class="grid gap-4 md:grid-cols-2">
-  <div class="grid gap-2">
-    <Label for="assigned_to">{t('task.assigned_to', {}, 'Assigned to')}</Label>
-    <TaskAssigneeScopeSelects
-      visibility={formData.task_visibility}
-      assignedTo={formData.assigned_to}
-      {assigneeGroups}
-      {fallbackUsers}
-      onSelect={(value: string) => {
-        handleSelectChange('assigned_to', value)
-      }}
-    />
-    {#if selectedProject}
+  <fieldset class="order-1 grid gap-2">
+    <legend class="text-sm font-medium leading-none">
+      {t('task.create.task_visibility', {}, 'Visibility scope')}
+    </legend>
+    <div class="grid gap-3 rounded-md border bg-muted/20 p-3">
+      <label class="flex cursor-pointer items-start gap-2 text-sm">
+        <input
+          type="radio"
+          name="task_visibility_mode"
+          value="internal"
+          checked={isOrganizationVisibility}
+          onchange={() => handleSelectChange('task_visibility', formData.task_visibility === 'project' ? 'project' : 'internal')}
+          class="mt-0.5"
+        />
+        <span>{t('task.create.visibility.internal_root', {}, 'Chỉ trong tổ chức')}</span>
+      </label>
+      {#if isOrganizationVisibility}
+        <fieldset class="ml-6 grid gap-2 border-l border-border pl-3">
+          <legend class="sr-only">{t('task.create.visibility.organization_subscope', {}, 'Phạm vi trong tổ chức')}</legend>
+          <label class="flex cursor-pointer items-start gap-2 text-sm">
+            <input
+              type="radio"
+              name="task_visibility"
+              value="project"
+              checked={formData.task_visibility === 'project'}
+              onchange={() => handleSelectChange('task_visibility', 'project')}
+              class="mt-0.5"
+            />
+            <span>{t('task.create.visibility.project', {}, 'Chỉ trong project')}</span>
+          </label>
+          <label class="flex cursor-pointer items-start gap-2 text-sm">
+            <input
+              type="radio"
+              name="task_visibility"
+              value="internal"
+              checked={formData.task_visibility === 'internal'}
+              onchange={() => handleSelectChange('task_visibility', 'internal')}
+              class="mt-0.5"
+            />
+            <span>{t('task.create.visibility.internal', {}, 'Toàn tổ chức')}</span>
+          </label>
+        </fieldset>
+      {/if}
+      <label class="flex cursor-pointer items-start gap-2 text-sm">
+        <input
+          type="radio"
+          name="task_visibility_mode"
+          value="all"
+          checked={formData.task_visibility === 'all'}
+          onchange={() => handleSelectChange('task_visibility', 'all')}
+          class="mt-0.5"
+        />
+        <span>{t('task.create.visibility.all_root', {}, 'Mở thêm cho người ngoài tổ chức qua Marketplace')}</span>
+      </label>
+      {#if formData.task_visibility === 'external'}
+        <label class="flex cursor-pointer items-start gap-2 text-sm text-muted-foreground">
+          <input
+            type="radio"
+            name="task_visibility_mode"
+            value="external"
+            checked
+            onchange={() => handleSelectChange('task_visibility', 'external')}
+            class="mt-0.5"
+          />
+          <span>{t('task.create.visibility.external_legacy', {}, 'Marketplace (legacy)')}</span>
+        </label>
+      {/if}
+    </div>
+    <p class="rounded-md bg-muted/30 px-3 py-2 text-xs text-muted-foreground" data-testid="task-visibility-description">
+      {taskVisibilityDescription}
+    </p>
+    {#if !isDocumentationItem}
       <p class="text-xs text-muted-foreground">
-        {t('task.create.project', {}, 'Project')}: <span class="font-medium text-foreground">{selectedProject.name}</span>
+        {t('task.create.visibility_then_assignee_help', {}, 'Chọn phạm vi hiển thị trước, sau đó chọn đúng một người thực hiện.')}
       </p>
     {/if}
-  </div>
+  </fieldset>
 
-  <div class="grid gap-2">
-    <Label for="task_visibility">{t('task.create.task_visibility', {}, 'Task visibility')}</Label>
-    <Select
-      value={formData.task_visibility}
-      onValueChange={(value: string) => {
-        handleSelectChange('task_visibility', value)
-      }}
-    >
-      <SelectTrigger>
-        <span>{taskVisibilityLabel(formData.task_visibility)}</span>
-      </SelectTrigger>
-      <SelectContent class="max-h-80">
-        {#each TASK_VISIBILITY_OPTIONS as option (option.value)}
-          <SelectItem value={option.value} label={taskVisibilityLabel(option.value)}>
-            {taskVisibilityLabel(option.value)}
-          </SelectItem>
-        {/each}
-      </SelectContent>
-    </Select>
+  {#if isDocumentationItem}
+    <div class="order-2 rounded-md border border-sky-500/25 bg-sky-500/5 px-3 py-3 text-xs leading-5 text-muted-foreground">
+      {t('task.create.docs_no_assignee', {}, 'Docs là mục thông tin chung của dự án nên không có người thực hiện.')}
+    </div>
+  {:else if canDirectAssign}
+  <div class="order-2 grid gap-2">
+    <Label for="assigned-to-field">
+      {t('task.assigned_to', {}, 'Assigned to')}
+      {#if isPublish}<span class="ml-1 text-[#ef4444]" aria-hidden="true">*</span>{/if}
+    </Label>
+    <div id="assigned-to-field" tabindex="-1" aria-invalid={errors.assigned_to ? 'true' : undefined} aria-describedby={errors.assigned_to ? 'assigned_to-error' : undefined} class={errors.assigned_to ? 'rounded-lg ring-2 ring-destructive/30' : ''}>
+      <TaskAssigneeScopeSelects
+        visibility={formData.task_visibility}
+        assignedTo={formData.assigned_to}
+        {assigneeGroups}
+        {fallbackUsers}
+        onSelect={(value: string) => {
+          handleSelectChange('assigned_to', value)
+        }}
+      />
+    </div>
+    {#if errors.assigned_to}<p id="assigned_to-error" class="text-xs font-medium text-destructive" role="alert">{errors.assigned_to}</p>{/if}
   </div>
+  {:else}
+    <div class="order-2 rounded-md border border-dashed border-border bg-muted/20 p-3 text-sm text-muted-foreground">
+      {t('task.create.application_scope_note', {}, 'Scope này mở luồng ứng tuyển; chỉ task trong project mới có thể giao trực tiếp.')}
+    </div>
+  {/if}
+
 </div>
 
+{#if !isDocumentationItem}
 <div class="grid grid-cols-2 gap-4">
   <div class="grid gap-2">
     <Label for="parent_task_id">{t('task.create.parent_task', {}, 'Task cha')}</Label>
@@ -375,9 +446,13 @@
         handleSelectChange('estimated_time', target.value)
       }}
       placeholder="0"
+      aria-invalid={errors.estimated_time ? 'true' : undefined}
+      aria-describedby={errors.estimated_time ? 'estimated_time-error' : undefined}
+      class={errors.estimated_time ? 'border-destructive' : ''}
     />
     {#if errors.estimated_time}
-      <p class="text-xs text-destructive">{errors.estimated_time}</p>
+      <p id="estimated_time-error" class="text-xs font-medium text-destructive" role="alert">{errors.estimated_time}</p>
     {/if}
   </div>
 </div>
+{/if}
