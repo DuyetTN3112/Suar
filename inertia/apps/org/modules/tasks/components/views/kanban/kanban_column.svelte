@@ -2,6 +2,7 @@
   import { Pencil, Plus, Trash2, GripVertical } from 'lucide-svelte'
 
   import type { TaskDisplayProperties } from '@/apps/org/modules/tasks/stores/tasks.svelte'
+  import { isDocumentationTaskStatusId } from '@/apps/shared/tasks/documentation_task_status'
 
   import type { TaskDetail } from '@/apps/org/modules/tasks/types/index.svelte'
 
@@ -75,6 +76,10 @@
     const laneKey = statusOption?.category ?? statusOption?.slug ?? status
     return statusLaneClasses[laneKey] ?? statusLaneClasses[status] ?? 'border-t-primary'
   })
+  const statusColor = $derived(
+    metadata.statuses.find((statusOption) => statusOption.value === status)?.color ?? null
+  )
+  const isDocumentationColumn = $derived(isDocumentationTaskStatusId(status, metadata.statuses))
 
   function isKanbanDebugEnabled(): boolean {
     if (import.meta.env.DEV) return true
@@ -92,9 +97,10 @@
   function handleDragStart(e: DragEvent, task: TaskDetail) {
     e.stopPropagation()
 
-    if (isTaskMutating(task.id) || isBoardMutationLocked) {
+    if (isDocumentationColumn || isTaskMutating(task.id) || isBoardMutationLocked) {
       debugKanbanDnD('drag-start blocked', {
         taskId: task.id,
+        isDocumentationColumn,
         isTaskMutating: isTaskMutating(task.id),
         isBoardMutationLocked,
       })
@@ -129,7 +135,7 @@
 
     e.stopPropagation()
 
-    if (isBoardMutationLocked) {
+    if (isDocumentationColumn || isBoardMutationLocked) {
       debugKanbanDnD('drag-over blocked by board lock')
       return
     }
@@ -179,7 +185,7 @@
       }
 
       const { taskId, fromStatus } = data
-      if (isTaskMutating(taskId) || isBoardMutationLocked) {
+      if (isDocumentationColumn || isTaskMutating(taskId) || isBoardMutationLocked) {
         debugKanbanDnD('drop blocked', {
           taskId,
           fromStatus,
@@ -231,6 +237,7 @@
   class={`flex min-h-[420px] w-full flex-col overflow-hidden rounded-2xl border border-t-4 bg-muted/30 shadow-sm ${laneClass} ${
     isDragOver ? 'border-primary bg-primary/10' : 'border-border'
   }`}
+  style:border-top-color={isDragOver ? 'var(--primary)' : statusColor ?? undefined}
   aria-label={t('ui_misc.tasks.kanban.column_aria', { label }, ':label column')}
   ondragover={handleDragOver}
   ondragleave={handleDragLeave}

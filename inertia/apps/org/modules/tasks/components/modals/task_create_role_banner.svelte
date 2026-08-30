@@ -20,8 +20,6 @@
       deliveryRoleName?: string | null
     }>
     assignedTo: string
-    prefilling: boolean
-    prefilledSkillCount?: number
     onRoleChange: (roleId: string) => void
     onAssignMember: (userId: string) => void
   }
@@ -32,8 +30,6 @@
     availableRoles,
     roleMatchedProjectMembers,
     assignedTo = $bindable(),
-    prefilling,
-    prefilledSkillCount = 0,
     onRoleChange,
     onAssignMember,
   }: Props = $props()
@@ -48,17 +44,11 @@
           for="modal-professional-role-prefill"
           class="block text-sm font-bold text-foreground"
         >
-          {t('task.role_prefill.apply_by_role', {}, 'Apply by role')}
+          Lọc người thực hiện theo vai trò
         </label>
         {#if selectedRoleId}
           <p class="mt-2 text-xs text-muted-foreground">
-            {#if prefilledSkillCount > 0}
-              {t('task.role_prefill.prefilled_skill_count', { count: prefilledSkillCount }, ':count skills loaded from the selected role')}
-            {:else if prefilling}
-              {t('task.role_prefill.loading', {}, 'Loading...')}
-            {:else}
-              {t('ui_misc.tasks.role_prefill.baseline', {}, 'Role baseline')}
-            {/if}
+            Chỉ lọc danh sách người thực hiện; kỹ năng yêu cầu được chọn riêng tại task.
           </p>
           <div class="mt-3 min-w-0 rounded-xl border border-border bg-background p-3">
             <div class="flex items-center justify-between gap-3">
@@ -112,9 +102,6 @@
             <option value={role.id}>{role.name} ({role.code})</option>
           {/each}
         </select>
-        {#if prefilling}
-          <span class="text-xs text-muted-foreground">{t('task.role_prefill.loading', {}, 'Loading...')}</span>
-        {/if}
       </div>
     </div>
   </div>

@@ -1,5 +1,5 @@
 export type TaskStatus = string
-export type TaskStatusCategory = 'todo' | 'in_progress' | 'done' | 'cancelled'
+export type TaskStatusCategory = 'docs' | 'todo' | 'in_progress' | 'done' | 'cancelled'
 export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent'
 export type TaskLabel = 'bug' | 'feature' | 'enhancement' | 'documentation'
 export type TaskDifficulty = string
@@ -39,6 +39,100 @@ export interface TaskReviewZoneSummary {
   required_peer_reviews: number | null
   required_pending_assignments: number
   optional_pending_assignments: number
+}
+
+export interface TaskResolvedBriefProjection {
+  schemaVersion: string
+  state: 'legacy' | 'draft' | 'published' | 'restricted'
+  audience: string
+  resolutionSource: string
+  assignmentSnapshotId?: string | null
+  assignmentSnapshotHash?: string | null
+  headRevision?: number | null
+  assignmentId?: string | null
+  acknowledgementRequired?: boolean
+  acknowledgementState?:
+    | 'not_required'
+    | 'pending'
+    | 'acknowledged'
+    | 'clarification_requested'
+    | null
+  specificationVersionId?: string | null
+  contractVersionId?: string | null
+  resolvedContentHash?: string | null
+  changeSummary?: {
+    changeClass?: string | null
+    changedPaths?: string[]
+    requiresReack?: boolean
+    isSuccessor?: boolean
+  } | null
+  restrictionCode?: string | null
+  resolvedContract?: {
+    title: string
+    specification?: {
+      plainText?: string | null
+      sections?: Array<{ id: string; title: string; plainText?: string | null }>
+    } | null
+    work?: {
+      action?: string | null
+      object?: string | null
+      problemStatement?: string | null
+      desiredOutcome?: string | null
+      scope?: Array<{ id: string; title: string; description?: string | null }>
+      outOfScope?: Array<{ id: string; title: string; description?: string | null }>
+      roleInTask?: string | null
+      ownershipLevel?: string | null
+      autonomyLevel?: string | null
+      deliverables?: Array<{ id: string; title: string; description?: string | null }>
+      acceptanceCriteria?: Array<{ id: string; statement: string; critical?: boolean }>
+      qualityRequirements?: Array<{ id: string; title: string; description?: string | null }>
+      constraints?: Array<{ id: string; title: string; description?: string | null }>
+      dependencies?: Array<{ id: string; title: string; description?: string | null; state?: string | null }>
+      impactScope?: Record<string, unknown> | null
+      estimatedUsersAffected?: number | null
+    } | null
+    evidence?: {
+      requirements?: Array<{
+        id: string
+        type?: string
+        title: string
+        description?: string | null
+        criterionIds?: string[]
+        deliverableIds?: string[]
+        required?: boolean
+        privacyClassification?: string
+      }>
+    } | null
+    supportingReferences?: Array<{
+      id: string
+      type: string
+      uri: string
+      title: string
+      relevantSection?: string
+      relation?: string
+      accessState: 'available' | 'authenticated' | 'restricted' | 'unavailable' | 'unknown'
+      privacyClassification?: string
+    }>
+    inheritedFrom?: {
+      projectContextVersionId?: string | null
+      workPackageVersionId?: string | null
+    } | null
+  } | null
+  authoring?: {
+    specification: { plainText?: string | null }
+    supportingReferences?: Array<{
+      id: string
+      type: string
+      uri: string
+      title: string
+      accessState: 'available' | 'authenticated' | 'restricted' | 'unavailable' | 'unknown'
+    }>
+    readiness: {
+      assignmentReady: boolean
+      blockers: Array<{ code: string; message: string; remediationHint: string }>
+      warnings: Array<{ code: string; message: string; remediationHint: string }>
+    }
+  } | null
 }
 
 export interface TaskDetail {
@@ -87,7 +181,7 @@ export interface TaskDetail {
   projectSprintName?: string | null
   estimated_time?: number
   actual_time?: number
-  task_visibility?: 'internal' | 'external' | 'all'
+  task_visibility?: 'project' | 'internal' | 'external' | 'all'
   application_deadline?: string | null
   task_type?: string
   acceptance_criteria?: string
@@ -104,6 +198,7 @@ export interface TaskDetail {
   problem_category?: string | null
   business_domain?: string | null
   review_zone?: TaskReviewZoneSummary | null
+  resolved_brief?: TaskResolvedBriefProjection | null
   estimated_users_affected?: number | null
   required_skills_rel?: TaskRequiredSkill[]
   sort_order?: number

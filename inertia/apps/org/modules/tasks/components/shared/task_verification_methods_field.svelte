@@ -13,6 +13,7 @@
     error?: string
     label?: string
     customLabel?: string
+    required?: boolean
     onChange: (value: string) => void
   }
 
@@ -21,6 +22,7 @@
     error,
     label,
     customLabel,
+    required = false,
     onChange,
   }: Props = $props()
   const { t } = useTranslation()
@@ -64,10 +66,13 @@
   }
 </script>
 
-<div class="grid gap-3">
+<div id="verification-method-field" tabindex="-1" class={`grid gap-3 rounded-xl ${error ? 'ring-2 ring-destructive/30' : ''}`} aria-invalid={error ? 'true' : undefined} aria-describedby={error ? 'verification_method-error' : undefined}>
   <div class="grid gap-2">
-    <Label>{resolvedLabel}</Label>
-    <div class="grid gap-2 rounded-xl border border-border bg-muted/20 p-3 md:grid-cols-2">
+    <Label>
+      {resolvedLabel}
+      {#if required}<span class="ml-1 text-[#ef4444]" aria-hidden="true">*</span>{/if}
+    </Label>
+    <div class="grid gap-2 rounded-xl border border-border bg-muted/20 p-3 md:grid-cols-2" role="group" data-required={required ? 'true' : undefined}>
       {#each TASK_VERIFICATION_METHOD_OPTIONS as option (option.value)}
         <label class="flex items-center gap-2 text-sm text-foreground">
           <input
@@ -95,6 +100,6 @@
   </div>
 
   {#if error}
-    <p class="text-xs text-destructive">{error}</p>
+    <p id="verification_method-error" class="text-xs font-medium text-destructive" role="alert">{error}</p>
   {/if}
 </div>

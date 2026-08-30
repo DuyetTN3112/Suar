@@ -37,19 +37,20 @@
   }: Props = $props()
   const { t } = useTranslation()
   const currentOrganizationRole = $derived(auth?.user?.current_organization_role ?? null)
-  const isOrgTaskSurface = $derived(shellMode === 'organization')
   const isListWorkspace = $derived(workspaceView === 'list')
   const isOrgOwnerOrAdmin = $derived(
     currentOrganizationRole === 'org_owner' || currentOrganizationRole === 'org_admin'
-  )
-  // TODO: remove role fallback after backend provides permissions.canManageWorkflow consistently.
-  const canManageWorkflow = $derived(
-    isOrgTaskSurface && (permissions?.canManageWorkflow ?? isOrgOwnerOrAdmin)
   )
   const currentQuery = $derived(new URLSearchParams(page.url.split('?')[1] ?? ''))
   const requestedRoleId = $derived(currentQuery.get('roleId') ?? currentQuery.get('role_id') ?? '')
   const requestedCreate = $derived(currentQuery.get('create') ?? '')
   const requestedStatus = $derived(currentQuery.get('status') ?? '')
+  const selectedProjectId = $derived(projectContext?.selectedProject?.id ?? filters.project_id ?? '')
+  // Workflow is project-owned. An org owner/admin governs every project in the
+  // org, while the selected project determines which status catalogue is shown.
+  const canManageWorkflow = $derived(
+    Boolean(selectedProjectId) && (permissions?.canManageWorkflow ?? isOrgOwnerOrAdmin)
+  )
   let didAutoOpenCreateModal = $state(false)
 
   function getCurrentTaskScope() {
@@ -77,14 +78,18 @@
   let detailModalOpen = $state(false)
   let detailTaskLoading = $state(false)
   let selectedTaskId = $state<string | null>(null)
+  let selectedTaskSnapshot = $state<TaskDetail | null>(null)
   let detailFetchSequence = 0
-  const selectedTask = $derived(selectedTaskId ? (store.getTaskById(selectedTaskId) ?? null) : null)
+  const selectedTask = $derived(
+    selectedTaskId ? (store.getTaskById(selectedTaskId) ?? selectedTaskSnapshot) : null
+  )
   const createTaskPermission = $derived({
     allowed: permissions?.canCreateTask ?? false,
     reason: permissions?.createTaskReason ?? null,
   })
   const statusManager = createStatusManagementController({
     getStatuses: () => metadata.statuses,
+    getProjectId: () => selectedProjectId || null,
     canManageWorkflow: () => canManageWorkflow,
     isBoardMutationLocked: () => isBoardMutationLocked,
   })
@@ -99,10 +104,10 @@
       return
     }
 
-    if (projectOptions.length === 0) {
+    if (!selectedProjectId) {
       notificationStore.error(
-        t('task.create.no_project_title', {}, 'No project'),
-        t('task.kanban.no_projects', {}, 'Create a project before creating tasks.')
+        t('task.create.no_project_title', {}, 'No project selected'),
+        t('task.create.project_context_help', {}, 'Select a project from the sidebar before creating a task.')
       )
       return
     }
@@ -115,7 +120,7 @@
       !didAutoOpenCreateModal &&
       requestedCreate === '1' &&
       createTaskPermission.allowed &&
-      projectOptions.length > 0
+      selectedProjectId
     ) {
       didAutoOpenCreateModal = true
       selectedCreateStatus = requestedStatus || ''
@@ -125,6 +130,7 @@
 
   function handleViewTaskDetail(task: TaskDetail) {
     selectedTaskId = task.id
+    selectedTaskSnapshot = task
     detailModalOpen = true
   }
 
@@ -153,7 +159,7 @@
       reason: {
         boardSyncing: t('task.workflow.board_sync_retry_error', {}, 'Board is syncing. Please try again in a few seconds.'),
         permissionDenied: t('task.workflow.status_permission_denied', {}, 'You do not have permission to update this task status.'),
-        missingSubmission: t('task.workflow.missing_submission_done_gate', {}, 'Submit work before moving this task into a done column. The task stayed in its original status.'),
+        missingAssignee: t('task.workflow.assignee_required_for_done', {}, 'Assign a person to the task before moving it to Done.'),
       },
     })
   }
@@ -161,13 +167,37 @@
   function handleDetailClose() {
     detailModalOpen = false
     selectedTaskId = null
+    selectedTaskSnapshot = null
   }
 
-  $effect(() => {
-    if (detailModalOpen && selectedTaskId && !selectedTask && !store.isOptimisticActive) {
-      handleDetailClose()
-    }
-  })
+  function reloadSelectedTaskBrief(): void {
+    const taskId = selectedTaskId
+    if (!taskId) return
+
+    const requestId = ++detailFetchSequence
+    detailTaskLoading = true
+
+    void loadTaskDetail(taskId)
+      .then((task) => {
+        if (!task || requestId !== detailFetchSequence || selectedTaskId !== task.id) {
+          return
+        }
+
+        store.upsertTask(task)
+        selectedTaskSnapshot = task
+      })
+      .catch((error: unknown) => {
+        if (requestId !== detailFetchSequence) return
+
+        const message = error instanceof Error ? error.message : 'Could not reload task detail.'
+        notificationStore.error('Could not reload task detail.', message)
+      })
+      .finally(() => {
+        if (requestId === detailFetchSequence) {
+          detailTaskLoading = false
+        }
+      })
+  }
 
   $effect(() => {
     if (!detailModalOpen || !selectedTaskId) {
@@ -175,22 +205,7 @@
       return
     }
 
-    const requestId = ++detailFetchSequence
-    detailTaskLoading = true
-
-    void loadTaskDetail(selectedTaskId)
-      .then((task) => {
-        if (!task || requestId !== detailFetchSequence || selectedTaskId !== task.id) {
-          return
-        }
-
-        store.upsertTask(task)
-      })
-      .finally(() => {
-        if (requestId === detailFetchSequence) {
-          detailTaskLoading = false
-        }
-      })
+    reloadSelectedTaskBrief()
   })
 
   const pageTitle = $derived(
@@ -232,7 +247,7 @@
           onDeleteStatus={statusManager.handleDeleteStatusClick}
           onRenameStatus={statusManager.handleRenameStatusClick}
           onReorderStatuses={statusManager.handleReorderStatuses}
-          canCreateTask={createTaskPermission.allowed && projectOptions.length > 0}
+          canCreateTask={createTaskPermission.allowed && Boolean(selectedProjectId)}
           canManageStatuses={canManageWorkflow}
           canDeleteStatus={statusManager.canDeleteStatus}
           createTaskDisabledReason={createTaskPermission.reason}
@@ -259,6 +274,7 @@
     {selectedTask}
     {detailTaskLoading}
     onDetailClose={handleDetailClose}
+    onReloadBrief={reloadSelectedTaskBrief}
     onDetailStatusChange={handleDetailStatusChange}
     getDetailStatusChangeDecision={getDetailStatusChangeDecision}
     {shellMode}
@@ -288,6 +304,7 @@
     }}
     renameStatusModalOpen={statusManager.renameStatusModalOpen}
     renameStatusName={statusManager.renameStatusName}
+    renameStatusColor={statusManager.renameStatusColor}
     renameStatusError={statusManager.renameStatusError}
     renameStatusSubmitting={statusManager.renameStatusSubmitting}
     statusRenameTarget={statusManager.statusRenameTarget}
@@ -298,6 +315,9 @@
     }}
     onRenameStatusNameChange={(value: string) => {
       statusManager.renameStatusName = value
+    }}
+    onRenameStatusColorChange={(value: string) => {
+      statusManager.renameStatusColor = value
     }}
     deleteStatusModalOpen={statusManager.deleteStatusModalOpen}
     deleteStatusError={statusManager.deleteStatusError}

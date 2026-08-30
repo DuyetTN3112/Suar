@@ -56,7 +56,7 @@
     label: string
     project_id: string
     assigned_to: string
-    task_visibility: 'internal' | 'external' | 'all'
+    task_visibility: 'project' | 'internal' | 'external' | 'all'
     due_date: string
     estimated_time: string
     actual_time: string
@@ -64,9 +64,9 @@
     task_type: string
     verification_method: string
     acceptance_criteria: string
+    expected_deliverables_text: string
     context_background: string
     tech_stack_text: string
-    learning_objectives_text: string
     domain_tags_text: string
     environment: string
     collaboration_type: string
@@ -81,7 +81,7 @@
   const { task, metadata, permissions }: Props = $props()
   
   const { t } = useTranslation()
-  const taskVisibilityOptions = ['internal', 'external', 'all'] as const
+  const taskVisibilityOptions = ['project', 'internal', 'external', 'all'] as const
 
   type TaskTaxonomyGroup = 'task_type' | 'business_domain' | 'problem_category' | 'role_in_task'
 
@@ -107,9 +107,12 @@
     task_type: task.task_type ?? 'feature_development',
     verification_method: task.verification_method ?? '',
     acceptance_criteria: task.acceptance_criteria ?? '',
+    expected_deliverables_text:
+      task.resolved_brief?.resolvedContract?.work?.deliverables
+        ?.map((deliverable) => deliverable.title)
+        .join('\n') ?? '',
     context_background: task.context_background ?? '',
     tech_stack_text: task.tech_stack ? task.tech_stack.join(', ') : '',
-    learning_objectives_text: task.learning_objectives ? task.learning_objectives.join('\n') : '',
     domain_tags_text: task.domain_tags ? task.domain_tags.join(', ') : '',
     environment: task.environment ?? '',
     collaboration_type: task.collaboration_type ?? '',
@@ -146,12 +149,14 @@
 
   function taskVisibilityLabel(value: TaskEditFormData['task_visibility']): string {
     switch (value) {
+      case 'project':
+        return t('task.edit.visibility_project', {}, 'Project only')
       case 'internal':
-        return t('task.edit.visibility_internal', {}, 'Organization only')
+        return t('task.edit.visibility_internal', {}, 'Entire organization')
       case 'external':
         return t('task.edit.visibility_external', {}, 'Marketplace')
       case 'all':
-        return t('task.edit.visibility_all', {}, 'Hybrid: internal + marketplace')
+        return t('task.edit.visibility_all', {}, 'Organization + outside contributors via Marketplace')
     }
   }
 
@@ -160,10 +165,6 @@
 
     if (!formData.title.trim()) {
       newErrors.title = t('task.edit.title_required', {}, 'Title is required')
-    }
-
-    if (!formData.project_id) {
-      newErrors.project_id = t('task.edit.project_required', {}, 'Project is required')
     }
 
     if (Object.keys(newErrors).length > 0) {
@@ -179,19 +180,26 @@
 
     const {
       tech_stack_text: techStackText,
-      learning_objectives_text: learningObjectivesText,
       domain_tags_text: domainTagsText,
+      business_domain: businessDomain,
       ...payloadBase
     } = formData
+    // This retained screen belongs to a retired organization-only Task route.
+    // Its request still omits these local taxonomy fields because Task now
+    // inherits Project context; the visible fields remain untouched here only
+    // while compatibility source is retired separately.
+    void domainTagsText
+    void businessDomain
 
     const payload = {
       ...payloadBase,
       role_in_task: formData.role_in_task || undefined,
-      business_domain: formData.business_domain || undefined,
       problem_category: formData.problem_category || undefined,
       tech_stack: parseListInput(techStackText),
-      learning_objectives: parseListInput(learningObjectivesText),
-      domain_tags: parseListInput(domainTagsText),
+      expected_deliverables: parseListInput(formData.expected_deliverables_text).map((title) => ({
+        title,
+        description: title,
+      })),
       estimated_users_affected: formData.estimated_users_affected ? Number(formData.estimated_users_affected) : undefined,
     }
 
@@ -272,13 +280,13 @@
           <TabsContent value="basic" class="space-y-6">
             <div class="grid gap-2">
               <Label for="title" class="font-bold">
-                {t('task.title', {}, 'Title')} <span class="text-destructive">*</span>
+                {t('task.title', {}, 'Title')} <span class="text-[#ef4444]">*</span>
               </Label>
               <Input
                 id="title"
                 name="title"
                 value={formData.title}
-                onchange={handleChange}
+                oninput={handleChange}
                 placeholder={t('task.enter_title', {}, 'Enter task title')}
                 class={errors.title ? 'border-destructive' : ''}
                 autofocus
@@ -294,7 +302,7 @@
                 id="description"
                 name="description"
                 value={formData.description}
-                onchange={handleChange}
+                oninput={handleChange}
                 placeholder={t('task.enter_description', {}, 'Enter detailed description for this task')}
                 rows={8}
               />
@@ -322,14 +330,14 @@
               parentTasks={metadata.parentTasks ?? []}
               taskId={task.id}
               canAssign={permissions.canAssign}
-              projectError={errors.project_id}
+              showProjectContext={false}
               onSelectChange={handleSelectChange}
             />
 
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
               <div class="grid gap-2">
                 <Label for="due_date" class="font-bold">{t('task.due_date', {}, 'Due date')}</Label>
-                <Input id="due_date" name="due_date" type="date" value={formData.due_date} onchange={handleChange} />
+                <Input id="due_date" name="due_date" type="date" value={formData.due_date} oninput={handleChange} />
               </div>
 
               <div class="grid gap-2">
@@ -339,7 +347,7 @@
                   name="estimated_time"
                   type="number"
                   value={formData.estimated_time}
-                  onchange={handleChange}
+                  oninput={handleChange}
                   placeholder="0"
                   min="0"
                   step="0.5"
@@ -353,7 +361,7 @@
                   name="actual_time"
                   type="number"
                   value={formData.actual_time}
-                  onchange={handleChange}
+                  oninput={handleChange}
                   placeholder="0"
                   min="0"
                   step="0.5"
@@ -402,9 +410,22 @@
                   id="acceptance_criteria"
                   name="acceptance_criteria"
                   value={formData.acceptance_criteria}
-                  onchange={handleChange}
+                  oninput={handleChange}
                   rows={3}
                   placeholder={t('task.edit.acceptance_criteria_placeholder', {}, 'Task acceptance criteria...')}
+                />
+              </div>
+
+              <div class="grid gap-2 col-span-full rounded-lg border border-primary/20 bg-primary/5 p-3">
+                <Label for="expected_deliverables_text" class="font-bold">{t('task.edit.expected_outputs', {}, 'Expected outputs')}</Label>
+                <p class="text-xs text-muted-foreground">{t('task.edit.expected_outputs_help', {}, 'Define what the assignee is expected to produce. This is the work contract, not a proof request.')}</p>
+                <Textarea
+                  id="expected_deliverables_text"
+                  name="expected_deliverables_text"
+                  value={formData.expected_deliverables_text}
+                  oninput={handleChange}
+                  rows={3}
+                  placeholder={t('task.edit.expected_outputs_placeholder', {}, 'One expected output per line...')}
                 />
               </div>
 
@@ -414,7 +435,7 @@
                   id="context_background"
                   name="context_background"
                   value={formData.context_background}
-                  onchange={handleChange}
+                  oninput={handleChange}
                   rows={3}
                   placeholder={t('task.edit.context_background_placeholder', {}, 'Why this task exists...')}
                 />
@@ -423,38 +444,26 @@
               <div class="grid gap-4 md:grid-cols-2 col-span-full">
                 <div class="grid gap-2">
                   <Label for="tech_stack_text" class="font-bold">{t('task.edit.tech_stack', {}, 'Tech stack')}</Label>
-                  <Input id="tech_stack_text" name="tech_stack_text" value={formData.tech_stack_text} onchange={handleChange} placeholder={t('task.edit.tech_stack_placeholder', {}, 'e.g. React, AdonisJS...')} />
+                  <Input id="tech_stack_text" name="tech_stack_text" value={formData.tech_stack_text} oninput={handleChange} placeholder={t('task.edit.tech_stack_placeholder', {}, 'e.g. React, AdonisJS...')} />
                 </div>
                 <div class="grid gap-2">
                   <Label for="domain_tags_text" class="font-bold">{t('task.edit.domain_tags', {}, 'Domain tags')}</Label>
-                  <Input id="domain_tags_text" name="domain_tags_text" value={formData.domain_tags_text} onchange={handleChange} placeholder={t('task.edit.domain_tags_placeholder', {}, 'e.g. auth, payment...')} />
+                  <Input id="domain_tags_text" name="domain_tags_text" value={formData.domain_tags_text} oninput={handleChange} placeholder={t('task.edit.domain_tags_placeholder', {}, 'e.g. auth, payment...')} />
                 </div>
-              </div>
-
-              <div class="grid gap-2 col-span-full">
-                <Label for="learning_objectives_text" class="font-bold">{t('task.edit.learning_objectives', {}, 'Learning objectives')}</Label>
-                <Textarea
-                  id="learning_objectives_text"
-                  name="learning_objectives_text"
-                  value={formData.learning_objectives_text}
-                  onchange={handleChange}
-                  rows={2}
-                  placeholder={t('task.edit.learning_objectives_placeholder', {}, 'One objective per line...')}
-                />
               </div>
 
               <div class="grid gap-4 md:grid-cols-3 col-span-full">
                 <div class="grid gap-2">
                   <Label for="environment" class="font-bold">{t('task.edit.environment', {}, 'Environment')}</Label>
-                  <Input id="environment" name="environment" value={formData.environment} onchange={handleChange} placeholder={t('task.edit.environment_placeholder', {}, 'e.g. staging, production...')} />
+                  <Input id="environment" name="environment" value={formData.environment} oninput={handleChange} placeholder={t('task.edit.environment_placeholder', {}, 'e.g. staging, production...')} />
                 </div>
                 <div class="grid gap-2">
                   <Label for="collaboration_type" class="font-bold">{t('task.edit.collaboration_type', {}, 'Collaboration type')}</Label>
-                  <Input id="collaboration_type" name="collaboration_type" value={formData.collaboration_type} onchange={handleChange} placeholder={t('task.edit.collaboration_type_placeholder', {}, 'e.g. solo, pair...')} />
+                  <Input id="collaboration_type" name="collaboration_type" value={formData.collaboration_type} oninput={handleChange} placeholder={t('task.edit.collaboration_type_placeholder', {}, 'e.g. solo, pair...')} />
                 </div>
                 <div class="grid gap-2">
                   <Label for="complexity_notes" class="font-bold">{t('task.edit.complexity_notes', {}, 'Complexity notes')}</Label>
-                  <Input id="complexity_notes" name="complexity_notes" value={formData.complexity_notes} onchange={handleChange} placeholder={t('task.edit.complexity_notes_placeholder', {}, 'Additional notes...')} />
+                  <Input id="complexity_notes" name="complexity_notes" value={formData.complexity_notes} oninput={handleChange} placeholder={t('task.edit.complexity_notes_placeholder', {}, 'Additional notes...')} />
                 </div>
               </div>
 
@@ -478,7 +487,7 @@
                 </div>
                 <div class="grid gap-2">
                   <Label for="autonomy_level" class="font-bold">{t('task.edit.autonomy_level', {}, 'Autonomy level')}</Label>
-                  <Input id="autonomy_level" name="autonomy_level" value={formData.autonomy_level} onchange={handleChange} placeholder={t('task.edit.autonomy_level_placeholder', {}, 'e.g. high, medium...')} />
+                  <Input id="autonomy_level" name="autonomy_level" value={formData.autonomy_level} oninput={handleChange} placeholder={t('task.edit.autonomy_level_placeholder', {}, 'e.g. high, medium...')} />
                 </div>
                 <div class="grid gap-2">
                   <Label for="problem_category" class="font-bold">{t('task.edit.problem_category', {}, 'Problem category')}</Label>
@@ -519,7 +528,7 @@
                 </div>
                 <div class="grid gap-2">
                   <Label for="estimated_users_affected" class="font-bold">{t('task.edit.estimated_users_affected', {}, 'Estimated affected users')}</Label>
-                  <Input id="estimated_users_affected" name="estimated_users_affected" type="number" value={formData.estimated_users_affected} onchange={handleChange} placeholder="0" />
+                  <Input id="estimated_users_affected" name="estimated_users_affected" type="number" value={formData.estimated_users_affected} oninput={handleChange} placeholder="0" />
                 </div>
               </div>
             </div>

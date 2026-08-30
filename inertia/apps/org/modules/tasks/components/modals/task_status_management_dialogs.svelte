@@ -51,6 +51,7 @@
 
     renameOpen: boolean
     renameStatusName: string
+    renameStatusColor: string
     renameStatusError: string
     renameStatusSubmitting: boolean
     statusRenameTarget: RenameStatusTarget | null
@@ -58,6 +59,7 @@
     onRenameClose: () => void
     onRenameOpenChange: (open: boolean) => void
     onRenameStatusNameChange: (value: string) => void
+    onRenameStatusColorChange: (value: string) => void
 
     deleteOpen: boolean
     deleteStatusError: string
@@ -87,6 +89,7 @@
     onCreateStatusColorChange,
     renameOpen = $bindable(),
     renameStatusName = $bindable(),
+    renameStatusColor = $bindable(),
     renameStatusError = $bindable(),
     renameStatusSubmitting = $bindable(),
     statusRenameTarget = $bindable(),
@@ -94,6 +97,7 @@
     onRenameClose,
     onRenameOpenChange,
     onRenameStatusNameChange,
+    onRenameStatusColorChange,
     deleteOpen = $bindable(),
     deleteStatusError = $bindable(),
     deleteStatusSubmitting = $bindable(),
@@ -223,6 +227,20 @@
           }}
         />
       </div>
+      <div class="space-y-2">
+        <Label for="rename-status-color">{t('task.workflow.color_label', {}, 'Color')}</Label>
+        <Input
+          id="rename-status-color"
+          type="color"
+          class="h-9 p-1"
+          value={renameStatusColor}
+          disabled={renameStatusSubmitting || isStatusMutationLocked}
+          oninput={(event: Event) => {
+            const target = event.target as HTMLInputElement
+            onRenameStatusColorChange(target.value)
+          }}
+        />
+      </div>
 
       {#if renameStatusError}
         <p class="text-sm text-destructive">{renameStatusError}</p>
@@ -293,7 +311,7 @@
       </div>
 
       <div class="space-y-2">
-        <Label>{t('task.workflow.status_group_label', {}, 'Status group')}</Label>
+        <Label>{t('task.workflow.workflow_role_label', {}, 'Vai trò trong quy trình')}</Label>
         <Select
           value={createStatusCategory}
           onValueChange={(value: string) => {
@@ -302,15 +320,29 @@
           }}
         >
           <SelectTrigger class="w-full {createStatusSubmitting || isStatusMutationLocked ? 'pointer-events-none opacity-60' : ''}">
-            <SelectValue placeholder={t('task.workflow.status_group_placeholder', {}, 'Choose status group')} />
+            <SelectValue placeholder={t('task.workflow.workflow_role_placeholder', {}, 'Chọn vai trò trong quy trình')} />
           </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="todo" label={t('task.workflow.group_todo_label', {}, 'Todo: Not started')} />
-            <SelectItem value="in_progress" label={t('task.workflow.group_in_progress_label', {}, 'In progress: In progress')} />
-            <SelectItem value="done" label={t('task.workflow.group_done_label', {}, 'Done: Completed')} />
-            <SelectItem value="cancelled" label={t('task.workflow.group_cancelled_label', {}, 'Cancelled: Cancelled')} />
+          <SelectContent class="text-foreground">
+            <SelectItem class="text-foreground" value="docs" label={t('task.workflow.group_docs_label', {}, 'Tài liệu — thông tin dùng chung')}>
+              {t('task.workflow.group_docs_label', {}, 'Tài liệu — thông tin dùng chung')}
+            </SelectItem>
+            <SelectItem class="text-foreground" value="todo" label={t('task.workflow.group_todo_label', {}, 'Chưa bắt đầu')}>
+              {t('task.workflow.group_todo_label', {}, 'Chưa bắt đầu')}
+            </SelectItem>
+            <SelectItem class="text-foreground" value="in_progress" label={t('task.workflow.group_in_progress_label', {}, 'Đang thực hiện')}>
+              {t('task.workflow.group_in_progress_label', {}, 'Đang thực hiện')}
+            </SelectItem>
+            <SelectItem class="text-foreground" value="done" label={t('task.workflow.group_done_label', {}, 'Hoàn tất')}>
+              {t('task.workflow.group_done_label', {}, 'Hoàn tất')}
+            </SelectItem>
+            <SelectItem class="text-foreground" value="cancelled" label={t('task.workflow.group_cancelled_label', {}, 'Đã hủy hoặc từ chối')}>
+              {t('task.workflow.group_cancelled_label', {}, 'Đã hủy hoặc từ chối')}
+            </SelectItem>
           </SelectContent>
         </Select>
+        <p class="text-xs leading-5 text-muted-foreground">
+          Chọn Tài liệu cho các cột thông tin chung như API hoặc kiến trúc. Các mục trong nhóm này không được giao người và không đi vào đánh giá hay hồ sơ năng lực.
+        </p>
       </div>
 
       <div class="grid gap-3 sm:grid-cols-[1fr_96px]">

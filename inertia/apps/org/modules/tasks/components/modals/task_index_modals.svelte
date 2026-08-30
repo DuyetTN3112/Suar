@@ -40,6 +40,7 @@
     selectedTask: TaskDetail | null
     detailTaskLoading?: boolean
     onDetailClose: () => void
+    onReloadBrief?: () => void | Promise<void>
     onDetailStatusChange?: (task: TaskDetail, toStatusId: string) => void
     getDetailStatusChangeDecision?: (task: TaskDetail, toStatusId: string) => CapabilityDecision
     shellMode?: 'app' | 'organization'
@@ -61,6 +62,7 @@
 
     renameStatusModalOpen: boolean
     renameStatusName: string
+    renameStatusColor: string
     renameStatusError: string
     renameStatusSubmitting: boolean
     statusRenameTarget: StatusRenameTarget | null
@@ -68,6 +70,7 @@
     onRenameStatusDialogClose: () => void
     onRenameStatusModalOpenChange: (open: boolean) => void
     onRenameStatusNameChange: (value: string) => void
+    onRenameStatusColorChange: (value: string) => void
 
     deleteStatusModalOpen: boolean
     deleteStatusError: string
@@ -92,7 +95,7 @@
   priorities={props.metadata.priorities}
   labels={props.metadata.labels}
   projects={props.projectOptions}
-  initialProjectId={(props.projectContext?.selectedProject?.id ?? props.projectOptions[0]?.id) || ''}
+  initialProjectId={props.projectContext?.selectedProject?.id ?? ''}
   initialRoleId={props.initialRoleId ?? ''}
   users={props.metadata.users}
   parentTasks={props.metadata.parentTasks ?? []}
@@ -111,6 +114,7 @@
   task={props.selectedTask}
   metadata={props.metadata}
   isHydratingDetail={props.detailTaskLoading ?? false}
+  onReloadBrief={props.onReloadBrief}
   onChangeStatus={props.onDetailStatusChange}
   getStatusChangeDecision={props.getDetailStatusChangeDecision}
   shellMode={props.shellMode ?? 'organization'}
@@ -133,6 +137,7 @@
   onCreateStatusColorChange={props.onCreateStatusColorChange}
   renameOpen={props.renameStatusModalOpen}
   renameStatusName={props.renameStatusName}
+  renameStatusColor={props.renameStatusColor}
   renameStatusError={props.renameStatusError}
   renameStatusSubmitting={props.renameStatusSubmitting}
   statusRenameTarget={props.statusRenameTarget}
@@ -140,6 +145,7 @@
   onRenameClose={props.onRenameStatusDialogClose}
   onRenameOpenChange={props.onRenameStatusModalOpenChange}
   onRenameStatusNameChange={props.onRenameStatusNameChange}
+  onRenameStatusColorChange={props.onRenameStatusColorChange}
   deleteOpen={props.deleteStatusModalOpen}
   deleteStatusError={props.deleteStatusError}
   deleteStatusSubmitting={props.deleteStatusSubmitting}

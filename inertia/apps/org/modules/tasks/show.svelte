@@ -52,7 +52,7 @@
     (page as { props: { auth?: { user?: { id?: string } } } }).props.auth?.user?.id ?? null
   )
 
-  type TaskShowTab = 'overview' | 'skills' | 'submission' | 'discussion' | 'files' | 'history'
+  type TaskShowTab = 'overview' | 'skills' | 'review' | 'submission' | 'discussion' | 'files' | 'history'
 
   let deleteDialogOpen = $state(false)
   let deleting = $state(false)
@@ -75,11 +75,16 @@
         isCurrentUserAssigned
     )
   )
+  const canOpenDiscussion = $derived(Boolean(canOpenWorkTabs && (permissions.canComment ?? true)))
   const taskDetailUrl = $derived(`/org/tasks/${task.id}`)
   const isTaskReviewMode = $derived(Boolean(taskReviewDetail))
   const sprintSurfaceUrl = $derived(
     task.project_id ? `${shellMode === 'organization' ? '/org/projects' : '/projects'}/${task.project_id}?tab=sprints` : ''
   )
+
+  $effect(() => {
+    if (taskReviewDetail && activeTab === 'overview') activeTab = 'review'
+  })
 
   function handleEdit() {
     router.visit(`${getTaskDetailRoute(task.id)}/edit`)
@@ -102,7 +107,9 @@
         }
       )
       toast.success(t('task.apply_success', {}, 'Application submitted'))
-      router.reload()
+      router.reload({
+        only: ['task', 'permissions', 'auditLogs', 'taskReviewDetail', 'flash'],
+      })
     } catch (caughtError) {
       const responseData = (caughtError as {
         response?: {
@@ -202,10 +209,15 @@
             <TabsTrigger value="skills">
               {t('ui_misc.tasks.show.skills_tab', {}, 'Skills')}
             </TabsTrigger>
+            {#if taskReviewDetail}
+              <TabsTrigger value="review">{t('task.review_workflow.tab_title', {}, 'Reviews & disputes')}</TabsTrigger>
+            {/if}
             {#if canOpenWorkTabs}
-              <TabsTrigger value="submission">{t('task.tabs.submission', {}, 'Submission')}</TabsTrigger>
-              <TabsTrigger value="discussion">{t('task.tabs.discussion', {}, 'Discussion')}</TabsTrigger>
+              <TabsTrigger value="submission">{t('task.tabs.governance', {}, 'Optional governance')}</TabsTrigger>
               <TabsTrigger value="files">{t('task.tabs.files', {}, 'Files')}</TabsTrigger>
+            {/if}
+            {#if canOpenDiscussion}
+              <TabsTrigger value="discussion">{t('task.tabs.discussion', {}, 'Discussion')}</TabsTrigger>
             {/if}
             {#if auditLogs.length > 0}
               <TabsTrigger value="history">{t('task.history', {}, 'History')}</TabsTrigger>
@@ -213,16 +225,6 @@
           </TabsList>
 
           <TabsContent value="overview" class="mt-4 space-y-6">
-            {#if taskReviewDetail}
-              <TaskReviewWorkflowPanel
-                taskId={task.id}
-                projectId={task.project_id}
-                {currentUserId}
-                {taskDetailUrl}
-                detail={taskReviewDetail}
-              />
-            {/if}
-
             <Card>
               <CardHeader>
                 <CardTitle>{t('task.description', {}, 'Description')}</CardTitle>
@@ -317,6 +319,19 @@
             {/if}
           </TabsContent>
 
+          {#if taskReviewDetail}
+            <TabsContent value="review" class="mt-4">
+              <TaskReviewWorkflowPanel
+                taskId={task.id}
+                projectId={task.project_id}
+                {currentUserId}
+                {taskDetailUrl}
+                detail={taskReviewDetail}
+                translate={t}
+              />
+            </TabsContent>
+          {/if}
+
           <TabsContent value="skills" class="mt-4">
             <Card>
               <CardHeader>
@@ -342,16 +357,20 @@
                 task={{
                   verification_method: task.verification_method,
                   acceptance_criteria: task.acceptance_criteria,
+                  assigneeId: task.assigned_to ?? task.assignee?.id ?? null,
+                  resolved_brief: task.resolved_brief,
                 }}
               />
             </TabsContent>
 
-            <TabsContent value="discussion" class="mt-4">
-              <TaskDiscussionTab taskId={task.id} {currentUserId} />
-            </TabsContent>
-
             <TabsContent value="files" class="mt-4">
               <TaskFilesTab taskId={task.id} {currentUserId} />
+            </TabsContent>
+          {/if}
+
+          {#if canOpenDiscussion}
+            <TabsContent value="discussion" class="mt-4">
+              <TaskDiscussionTab taskId={task.id} {currentUserId} />
             </TabsContent>
           {/if}
 
