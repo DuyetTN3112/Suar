@@ -33,18 +33,27 @@
 </script>
 
 <div class="grid gap-2">
-  <Label>{t('task.due_date', {}, 'Due date')}</Label>
+  <Label for="due-date-field">
+    {t('task.due_date', {}, 'Due date')}
+    <span class="ml-1 text-[#ef4444]" aria-hidden="true">*</span>
+  </Label>
   <Popover>
     <PopoverTrigger
+      id="due-date-field"
+      data-testid="due-date-trigger"
+      aria-invalid={error ? 'true' : undefined}
+      aria-required="true"
+      aria-describedby={error ? 'due_date-error' : undefined}
       class={cn(
         'border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring inline-flex h-10 w-full items-center justify-start rounded-md border px-3 py-2 text-left text-sm font-normal focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50',
-        !date && 'text-muted-foreground'
+        !date && 'text-muted-foreground',
+        error && 'border-destructive'
       )}
     >
       <CalendarIcon class="mr-2 h-4 w-4" />
       {date ? format(date, 'PPP', { locale: dateFnsLocale() }) : t('task.select_due_date', {}, 'Select date')}
     </PopoverTrigger>
-    <PopoverContent class="w-auto p-0">
+    <PopoverContent side="top" sideOffset={8} class="z-[100] w-auto p-0" data-testid="due-date-popover">
       <Calendar
         selected={date}
         onSelect={handleSelect}
@@ -52,6 +61,6 @@
     </PopoverContent>
   </Popover>
   {#if error}
-    <p class="text-xs text-destructive">{error}</p>
+    <p id="due_date-error" class="text-xs font-medium text-destructive" role="alert">{error}</p>
   {/if}
 </div>

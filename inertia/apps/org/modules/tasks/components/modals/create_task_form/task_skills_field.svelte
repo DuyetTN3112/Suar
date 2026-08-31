@@ -1,11 +1,10 @@
 <script lang="ts">
-  import { Plus, Search, X } from 'lucide-svelte'
+  import { Search, X } from 'lucide-svelte'
 
   import Button from '@/apps/org/shared/ui/button.svelte'
   import Input from '@/apps/org/shared/ui/input.svelte'
   import {
     getFrontendCanonicalProficiencyLevelLabel,
-    getFrontendPreferredTaskRequirementLevelValue,
     listFrontendCanonicalProficiencyLevelOptions,
   } from '@/apps/org/modules/profile/lib/proficiency_level_catalog'
   import {
@@ -44,10 +43,15 @@
 
   interface AvailableSkill {
     id: string
+    projectSkillId?: string | null
     name: string
     categoryCode?: string | null
     rubricVersionId?: string | null
     rubric_version_id?: string | null
+    minimumTaskRequirementLevelId?: string | null
+    maximumTaskRequirementLevelId?: string | null
+    minimumTaskRequirementLevelCode?: string | null
+    maximumTaskRequirementLevelCode?: string | null
   }
 
   interface Props {
@@ -55,8 +59,10 @@
     onAddSkill: (skill: Skill) => void
     onRemoveSkill: (skillId: string) => void
     availableSkills?: AvailableSkill[]
-    proficiencyLevels?: { value: string; label: string }[]
+    proficiencyLevels?: { id?: string; value: string; label: string }[]
     error?: string
+    required?: boolean
+    requireRubric?: boolean
   }
 
   const {
@@ -65,6 +71,8 @@
     onRemoveSkill,
     availableSkills = [],
     error,
+    required = false,
+    requireRubric = false,
     proficiencyLevels = listFrontendCanonicalProficiencyLevelOptions().map(({ value, label }) => ({
       value,
       label,
@@ -120,31 +128,6 @@
       getFrontendCanonicalProficiencyLevelLabel(levelValue, levelValue)
 
     return t(`user.proficiency_levels.labels.${levelValue}`, {}, fallback)
-  }
-
-  function getSkillRangeLabel(skill: Skill): string | null {
-    const min = getRequirementLevelLabel(skill.minimum_level_code, skill.minimum_level_id)
-    const target = getRequirementLevelLabel(skill.target_level_code, skill.target_level_id)
-    const ceiling = getRequirementLevelLabel(
-      skill.assessment_ceiling_level_code,
-      skill.assessment_ceiling_level_id
-    )
-
-    if (min && target) return `${min} - ${target}`
-    if (min && ceiling) return `${min} - ${ceiling}`
-    if (target) return target
-    if (min) return min
-    if (ceiling) return `<= ${ceiling}`
-    return null
-  }
-
-  function getRequirementLevelLabel(
-    code: string | null | undefined,
-    id: string | null | undefined
-  ): string | null {
-    if (code) return code.toUpperCase()
-    if (id) return id
-    return null
   }
 
   function getRequirementSourceLabel(source: string | undefined): string | null {
@@ -221,19 +204,6 @@
     return value.trim().replace(/\s+/g, ' ').toLowerCase()
   }
 
-  function createCustomSkillId(category: TaskSkillCategoryCode, name: string): string {
-    const slug =
-      name
-        .trim()
-        .toLowerCase()
-        .normalize('NFKD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-+|-+$/g, '') || 'custom-skill'
-
-    return `custom:${category}:${slug}`
-  }
-
   function getFilteredAvailableSkills(category: TaskSkillCategoryCode): AvailableSkill[] {
     const query = normalizeSkillSearchValue(skillSearchByCategory[category])
     const skills = groupedAvailableSkills()[category]
@@ -277,27 +247,27 @@
   }
 
   function getSelectedLevel(category: TaskSkillCategoryCode): string {
-    return (
-      selectedLevelByCategory[category] ||
-      getFrontendPreferredTaskRequirementLevelValue(proficiencyLevels)
-    )
+    const allowedLevels = getAllowedProficiencyLevels(category)
+    const selectedLevel = selectedLevelByCategory[category]
+    if (allowedLevels.some((level) => level.value === selectedLevel)) return selectedLevel
+    return allowedLevels[0]?.value ?? ''
   }
 
-  function getCustomSkillName(category: TaskSkillCategoryCode): string {
-    const name = skillSearchByCategory[category].trim().replace(/\s+/g, ' ')
-    const normalizedName = normalizeSkillSearchValue(name)
-
-    if (!normalizedName) return ''
-    if (getAddableAvailableSkill(category)) return ''
-
-    const catalogHasExactMatch = groupedAvailableSkills()[category].some(
-      (skill) => normalizeSkillSearchValue(skill.name) === normalizedName
+  function getAllowedProficiencyLevels(
+    category: TaskSkillCategoryCode
+  ): { id?: string; value: string; label: string }[] {
+    const skill = getAddableAvailableSkill(category)
+    if (!skill?.minimumTaskRequirementLevelId || !skill.maximumTaskRequirementLevelId) {
+      return []
+    }
+    const minimumIndex = proficiencyLevels.findIndex(
+      (level) => level.id === skill.minimumTaskRequirementLevelId
     )
-    const selectedHasExactMatch = requiredSkills.some(
-      (skill) => normalizeSkillSearchValue(skill.name) === normalizedName
+    const maximumIndex = proficiencyLevels.findIndex(
+      (level) => level.id === skill.maximumTaskRequirementLevelId
     )
-
-    return catalogHasExactMatch || selectedHasExactMatch ? '' : name
+    if (minimumIndex < 0 || maximumIndex < minimumIndex) return []
+    return proficiencyLevels.slice(minimumIndex, maximumIndex + 1)
   }
 
   function resetCategoryInput(category: TaskSkillCategoryCode) {
@@ -307,7 +277,7 @@
     }
     selectedLevelByCategory = {
       ...selectedLevelByCategory,
-      [category]: getFrontendPreferredTaskRequirementLevelValue(proficiencyLevels),
+      [category]: '',
     }
     skillSearchByCategory = {
       ...skillSearchByCategory,
@@ -316,20 +286,29 @@
   }
 
   function canAddSkill(category: TaskSkillCategoryCode): boolean {
-    return Boolean(getAddableAvailableSkill(category) || getCustomSkillName(category))
+    const availableSkill = getAddableAvailableSkill(category)
+    const availableSkillHasRubric = Boolean(
+      availableSkill?.rubricVersionId ?? availableSkill?.rubric_version_id
+    )
+
+    return Boolean(
+      availableSkill &&
+        availableSkill.projectSkillId &&
+        getAllowedProficiencyLevels(category).length > 0 &&
+        (!requireRubric || availableSkillHasRubric)
+    )
   }
 
   $effect(() => {
-    const preferredLevel = getFrontendPreferredTaskRequirementLevelValue(proficiencyLevels)
-
     for (const category of TASK_SKILL_CATEGORY_ORDER) {
+      const allowedLevels = getAllowedProficiencyLevels(category)
       if (
-        proficiencyLevels.length > 0 &&
-        !proficiencyLevels.some((level) => level.value === selectedLevelByCategory[category])
+        allowedLevels.length > 0 &&
+        !allowedLevels.some((level) => level.value === selectedLevelByCategory[category])
       ) {
         selectedLevelByCategory = {
           ...selectedLevelByCategory,
-          [category]: preferredLevel,
+          [category]: allowedLevels[0]?.value ?? '',
         }
       }
     }
@@ -339,7 +318,6 @@
     const skill = getAddableAvailableSkill(category)
 
     if (!skill) {
-      handleAddCustomSkill(category)
       return
     }
 
@@ -348,12 +326,26 @@
       return
     }
 
+    const selectedLevel = getSelectedLevel(category)
+    const selectedLevelOption = proficiencyLevels.find((level) => level.value === selectedLevel)
+    const maximumLevelOption = proficiencyLevels.find(
+      (level) => level.id === skill.maximumTaskRequirementLevelId
+    )
+
     onAddSkill({
       id: skill.id,
       name: skill.name,
-      level: getSelectedLevel(category),
+      level: selectedLevel,
       categoryCode: category,
+      project_skill_id: skill.projectSkillId ?? undefined,
       rubric_version_id: skill.rubricVersionId ?? skill.rubric_version_id ?? null,
+      minimum_level_id: selectedLevelOption?.id,
+      target_level_id: selectedLevelOption?.id,
+      assessment_ceiling_level_id: skill.maximumTaskRequirementLevelId ?? undefined,
+      minimum_level_code: selectedLevel,
+      target_level_code: selectedLevel,
+      assessment_ceiling_level_code:
+        skill.maximumTaskRequirementLevelCode ?? maximumLevelOption?.value ?? null,
     })
 
     resetCategoryInput(category)
@@ -373,6 +365,11 @@
       ...skillSearchByCategory,
       [category]: selectedSkill.name,
     }
+    const allowedLevels = getAllowedProficiencyLevels(category)
+    selectedLevelByCategory = {
+      ...selectedLevelByCategory,
+      [category]: allowedLevels[0]?.value ?? '',
+    }
   }
 
   function handleSearchInput(category: TaskSkillCategoryCode, value: string) {
@@ -390,35 +387,19 @@
     }
   }
 
-  function handleAddCustomSkill(category: TaskSkillCategoryCode) {
-    const customName = getCustomSkillName(category)
-    if (!customName) return
-
-    const customSkillId = createCustomSkillId(category, customName)
-    if (requiredSkills.some((skill) => skill.id === customSkillId)) {
-      resetCategoryInput(category)
-      return
-    }
-
-    onAddSkill({
-      id: customSkillId,
-      name: customName,
-      level: getSelectedLevel(category),
-      categoryCode: category,
-      custom_name: customName,
-      category_code: category,
-      requirement_source: 'manual',
-    })
-
-    resetCategoryInput(category)
-  }
 </script>
 
-<div class="space-y-5" data-demo-section="task-skills-field">
+<div id="required-skills-field" tabindex="-1" class={`space-y-5 rounded-xl ${error ? 'ring-2 ring-destructive/30' : ''}`} data-demo-section="task-skills-field" aria-invalid={error ? 'true' : undefined} aria-describedby={error ? 'required_skills-error' : undefined}>
   <div class="flex items-center justify-between gap-3">
     <div>
       <p class="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground">{t('task.skill_requirements.eyebrow', {}, 'Task requirements')}</p>
-      <h3 class="mt-1 text-lg font-black text-foreground">{t('task.skill_requirements.inherited_skills', {}, 'Inherited skills')}</h3>
+      <h3 class="mt-1 text-lg font-black text-foreground">
+        Kỹ năng tối thiểu để nhận task
+        {#if required}<span class="ml-1 text-[#ef4444]" aria-hidden="true">*</span>{/if}
+      </h3>
+      <p class="mt-1 text-xs text-muted-foreground">
+        Chỉ chọn kỹ năng và level đã được cấu hình tại Project. Đây là điều kiện nhận task, không phải mức đánh giá hồ sơ.
+      </p>
     </div>
     <span class="rounded-full border border-border bg-secondary px-3 py-1 text-xs font-bold text-muted-foreground">
       {t('task.skill_requirements.skill_count', { count: requiredSkills.length }, ':count skills')}
@@ -434,7 +415,11 @@
               {getCategoryLabel(category)}
             </div>
             <span class="rounded-full border border-border px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
-              {categoryCounts()[category]}/{TASK_SKILL_CATEGORY_MINIMUMS[category]}+
+              {#if TASK_SKILL_CATEGORY_MINIMUMS[category] === 0}
+                Optional
+              {:else}
+                {categoryCounts()[category]}/{TASK_SKILL_CATEGORY_MINIMUMS[category]}+
+              {/if}
             </span>
           </div>
         </div>
@@ -478,7 +463,17 @@
               >
                 <option value="">{t('task.skill_requirements.choose_skill', {}, 'Choose skill...')}</option>
                 {#each getFilteredAvailableSkills(category) as skill (skill.id)}
-                  <option value={skill.id}>{skill.name}</option>
+                  <option
+                    value={skill.id}
+                    disabled={
+                      !skill.projectSkillId ||
+                      !skill.minimumTaskRequirementLevelId ||
+                      !skill.maximumTaskRequirementLevelId ||
+                      (requireRubric && !(skill.rubricVersionId ?? skill.rubric_version_id))
+                    }
+                  >
+                    {skill.name}{!skill.minimumTaskRequirementLevelId || !skill.maximumTaskRequirementLevelId ? ' · Chưa cấu hình khoảng level tại Project' : ''}{requireRubric && !(skill.rubricVersionId ?? skill.rubric_version_id) ? ` · ${t('task.skill_requirements.no_published_rubric', {}, 'No published rubric')}` : ''}
+                  </option>
                 {/each}
               </select>
             </div>
@@ -501,26 +496,17 @@
                   }
                 }}
               >
-                {#each proficiencyLevels as level (level.value)}
+                {#each getAllowedProficiencyLevels(category) as level (level.value)}
                   <option value={level.value}>{getLevelLabel(level.value)}</option>
                 {/each}
               </select>
             </div>
           </div>
 
-          {#if getCustomSkillName(category)}
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              class="w-full justify-start"
-              onclick={() => {
-                handleAddCustomSkill(category)
-              }}
-            >
-              <Plus class="h-4 w-4" />
-              {t('task.skill_requirements.add_custom_skill', { skillName: getCustomSkillName(category) }, 'Add custom skill: :skillName')}
-            </Button>
+          {#if getAddableAvailableSkill(category) && getAllowedProficiencyLevels(category).length === 0}
+            <p class="text-xs text-amber-700 dark:text-amber-300">
+              Kỹ năng này chưa có khoảng level tại Project nên chưa thể dùng cho task.
+            </p>
           {/if}
 
           <Button
@@ -542,7 +528,7 @@
   </div>
 
   {#if error}
-    <p class="text-xs text-destructive">{error}</p>
+    <p id="required_skills-error" class="text-xs font-medium text-destructive" role="alert">{error}</p>
   {/if}
 
   <div class="space-y-4">
@@ -585,11 +571,6 @@
                           {t(`ui_misc.tasks.importance.${skill.importance}`, {}, skill.importance)}
                         </span>
                       {/if}
-                      {#if getSkillRangeLabel(skill)}
-                        <span class="rounded-full border border-primary/20 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-foreground">
-                          {t('task.skill_requirements.range_label', { range: getSkillRangeLabel(skill) }, 'Range :range')}
-                        </span>
-                      {/if}
                       {#if typeof skill.weight === 'number'}
                         <span class="rounded-full border border-border bg-card px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
                           {t('task.skill_requirements.weight_value', { weight: skill.weight }, 'Weight :weight')}
@@ -602,17 +583,9 @@
                         {skill.requirement_notes}
                       </p>
                     {/if}
-                    {#if skill.minimum_level_id || skill.minimum_level_code || skill.target_level_id || skill.target_level_code || skill.assessment_ceiling_level_id || skill.assessment_ceiling_level_code}
+                    {#if skill.minimum_level_id || skill.minimum_level_code}
                       <div class="mt-2 flex flex-wrap gap-2 text-xs text-muted-foreground">
-                        {#if getRequirementLevelLabel(skill.minimum_level_code, skill.minimum_level_id)}
-                          <span>{t('task.skill_requirements.min_label', {}, 'Min')}: {getRequirementLevelLabel(skill.minimum_level_code, skill.minimum_level_id)}</span>
-                        {/if}
-                        {#if getRequirementLevelLabel(skill.target_level_code, skill.target_level_id)}
-                          <span>{t('task.skill_requirements.target_label', {}, 'Target')}: {getRequirementLevelLabel(skill.target_level_code, skill.target_level_id)}</span>
-                        {/if}
-                        {#if getRequirementLevelLabel(skill.assessment_ceiling_level_code, skill.assessment_ceiling_level_id)}
-                          <span>{t('task.skill_requirements.ceiling_label', {}, 'Ceiling')}: {getRequirementLevelLabel(skill.assessment_ceiling_level_code, skill.assessment_ceiling_level_id)}</span>
-                        {/if}
+                        <span>Mức tối thiểu: {getLevelLabel(skill.level)}</span>
                       </div>
                     {/if}
                   </div>

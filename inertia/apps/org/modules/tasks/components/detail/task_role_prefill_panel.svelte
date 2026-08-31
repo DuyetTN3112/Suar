@@ -1,16 +1,8 @@
 <script lang="ts">
   import Button from '@/apps/org/shared/ui/button.svelte'
   import { useTranslation } from '@/apps/org/shared/stores/translation.svelte'
-  import {
-    buildPrefilledTaskSkills,
-    findRoleMatchedProjectMembers,
-  } from '@/apps/org/modules/tasks/lib/create_prefill'
+  import { findRoleMatchedProjectMembers } from '@/apps/org/modules/tasks/lib/create_prefill'
   import type { TaskCreateAssigneeGroups, TaskCreateFormData } from '@/apps/org/modules/tasks/types/create_form_types'
-  import {
-    getTaskContractPreset,
-    inferTaskTypeFromRoleCode,
-    mergeTaskContractPreset,
-  } from '@/apps/org/modules/tasks/lib/rules/task_contract_presets'
 
   interface ProjectProfessionalRoleOption {
     id: string
@@ -22,36 +14,9 @@
     data?: ProjectProfessionalRoleOption[]
   }
 
-  interface RoleRequirementRecord {
-    skillId: string
-    skillName: string
-    categoryCode?: string | null
-    projectSkillId?: string
-    sourceProjectProfessionalRoleId?: string
-    sourceRoleSkillId?: string
-    minimumLevelId?: string
-    targetLevelId?: string
-    assessmentCeilingLevelId?: string
-    requiredLevelCode?: string
-    isMandatory?: boolean
-    importance?: string
-    weight?: number
-    requirementSource?: string
-    requirementNotes?: string
-  }
-
-  interface RoleRequirementsResponse {
-    data?: {
-      roleId?: string
-      roleName?: string
-      requirements?: RoleRequirementRecord[]
-    }
-  }
-
   interface Props {
     projectId: string
     assignedTo: string
-    requestedTaskType: string
     requestedRoleId: string
     assigneeGroups: TaskCreateAssigneeGroups
     setFormData: (updater: (prev: TaskCreateFormData) => TaskCreateFormData) => void
@@ -61,7 +26,6 @@
   let {
     projectId,
     assignedTo,
-    requestedTaskType,
     requestedRoleId,
     assigneeGroups,
     setFormData,
@@ -70,7 +34,6 @@
 
   let selectedRoleId = $state('')
   let availableRoles = $state<ProjectProfessionalRoleOption[]>([])
-  let prefilling = $state(false)
   let didAutoPrefillFromQuery = $state(false)
   let prefilledSkillCount = $state(0)
   const { t } = useTranslation()
@@ -107,53 +70,20 @@
     }
   })
 
-  async function prefillRoleRequirements(roleId: string) {
+  function selectRoleForAssigneeFilter(roleId: string) {
     if (!projectId) return
     if (!roleId) {
       projectProfessionalRoleId = ''
       prefilledSkillCount = 0
       return
     }
-    prefilling = true
-    try {
-      const resp = await fetch(
-        `/api/v1/projects/${projectId}/professional-roles/${roleId}/requirements`
-      )
-      const data = (await resp.json()) as RoleRequirementsResponse
-      if (data.data?.requirements) {
-        const skills = buildPrefilledTaskSkills(data.data.requirements)
-        const roleForPrefill = availableRoles.find((role) => role.id === roleId) ?? null
-        const inferredTaskType =
-          requestedTaskType || inferTaskTypeFromRoleCode(roleForPrefill?.code ?? null)
-
-        setFormData((prev) => {
-          const withSkills = {
-            ...prev,
-            required_skills: skills,
-          }
-          const preset = getTaskContractPreset(inferredTaskType, t)
-          return preset ? mergeTaskContractPreset(withSkills, preset) : withSkills
-        })
-        projectProfessionalRoleId = roleId
-        prefilledSkillCount = skills.length
-        if (!assignedTo) {
-          const matchedMembers = findRoleMatchedProjectMembers(
-            roleId,
-            assigneeGroups.projectMembers
-          )
-          if (matchedMembers.length === 1) {
-            setFormData((prev) => ({ ...prev, assigned_to: matchedMembers[0]?.id ?? '' }))
-          }
-        }
-      }
-    } finally {
-      prefilling = false
-    }
+    projectProfessionalRoleId = roleId
+    prefilledSkillCount = 0
   }
 
-  async function handleRoleChange(nextRoleId: string) {
+  function handleRoleChange(nextRoleId: string) {
     selectedRoleId = nextRoleId
-    await prefillRoleRequirements(nextRoleId)
+    selectRoleForAssigneeFilter(nextRoleId)
   }
 
   $effect(() => {
@@ -165,7 +95,7 @@
     ) {
       selectedRoleId = requestedRoleId
       didAutoPrefillFromQuery = true
-      void prefillRoleRequirements(requestedRoleId)
+      selectRoleForAssigneeFilter(requestedRoleId)
     }
   })
 
@@ -182,14 +112,12 @@
           for="professional-role-prefill"
           class="block text-sm font-bold text-foreground"
         >
-          {t('task.role_prefill.apply_by_role', {}, 'Apply by role')}
+          Lọc người thực hiện theo vai trò
         </label>
         {#if selectedRole}
           <div class="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
             <span class="rounded-full border border-border bg-background px-2 py-0.5 font-semibold text-foreground">{selectedRole.name}</span>
-            {#if prefilledSkillCount > 0}
-              <span>{t('task.role_prefill.skill_count', { count: prefilledSkillCount }, ':count skills')}</span>
-            {/if}
+            <span>Chỉ lọc người thực hiện; kỹ năng yêu cầu được chọn riêng tại task.</span>
           </div>
         {/if}
         {#if selectedRoleId}
@@ -240,7 +168,7 @@
           id="professional-role-prefill"
           bind:value={selectedRoleId}
           onchange={(event) => {
-            void handleRoleChange((event.currentTarget as HTMLSelectElement).value)
+            handleRoleChange((event.currentTarget as HTMLSelectElement).value)
           }}
           class="h-9 w-full min-w-0 rounded-md border border-border bg-background px-3 text-sm"
         >
@@ -249,9 +177,6 @@
             <option value={role.id}>{role.name} ({role.code})</option>
           {/each}
         </select>
-        {#if prefilling}
-          <span class="text-xs text-muted-foreground">{t('task.role_prefill.loading', {}, 'Loading...')}</span>
-        {/if}
       </div>
     </div>
   </div>

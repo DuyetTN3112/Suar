@@ -8,98 +8,23 @@
     formData: {
       title: string
       description: string
+      context_background: string
     }
-    handleChange: (e: Event) => void
+    handleChange: (event: Event) => void
     errors: Record<string, string>
+    isPublish?: boolean
+    isDocumentationItem?: boolean
   }
 
-  const { formData, handleChange, errors }: Props = $props()
+  const { formData, handleChange, errors, isPublish = true, isDocumentationItem = false }: Props = $props()
   const { t } = useTranslation()
-
-  let contextDescription = $state('')
-  let concreteRequirements = $state('')
-  let expectedOutcome = $state('')
-  let extraNotes = $state('')
-
-  function buildDescriptionFromSections() {
-    const sections: string[] = []
-
-    if (contextDescription.trim()) {
-      sections.push(`## ${t('task.create.description_context_heading', {}, 'Context description')}\n${contextDescription.trim()}`)
-    }
-
-    if (concreteRequirements.trim()) {
-      sections.push(`## ${t('task.create.concrete_requirements', {}, 'Concrete requirements')}\n${concreteRequirements.trim()}`)
-    }
-
-    if (expectedOutcome.trim()) {
-      sections.push(`## ${t('task.create.expected_outcome', {}, 'Expected outcome')}\n${expectedOutcome.trim()}`)
-    }
-
-    if (extraNotes.trim()) {
-      sections.push(`## ${t('task.create.extra_notes', {}, 'Extra notes')}\n${extraNotes.trim()}`)
-    }
-
-    return sections.join('\n\n')
-  }
-
-  function syncDescriptionFromSections() {
-    const nextValue = buildDescriptionFromSections()
-
-    handleChange({
-      target: {
-        name: 'description',
-        value: nextValue,
-      },
-    } as unknown as Event)
-  }
-
-  function clearSectionInputs() {
-    contextDescription = ''
-    concreteRequirements = ''
-    expectedOutcome = ''
-    extraNotes = ''
-
-    handleChange({
-      target: {
-        name: 'description',
-        value: '',
-      },
-    } as unknown as Event)
-  }
-
-  function handleSectionInput(
-    setter: (value: string) => void
-  ) {
-    return (event: Event) => {
-      const target = event.currentTarget as HTMLTextAreaElement | null
-
-      if (!target) return
-
-      setter(target.value)
-    }
-  }
-
-  const handleContextDescriptionInput = handleSectionInput((value) => {
-    contextDescription = value
-  })
-
-  const handleConcreteRequirementsInput = handleSectionInput((value) => {
-    concreteRequirements = value
-  })
-
-  const handleExpectedOutcomeInput = handleSectionInput((value) => {
-    expectedOutcome = value
-  })
-
-  const handleExtraNotesInput = handleSectionInput((value) => {
-    extraNotes = value
-  })
+  const descriptionError = $derived(errors.description)
+  const contextError = $derived(errors.context_background)
 </script>
 
 <div class="grid gap-2">
   <Label for="title">
-    {t('task.title', {}, 'Title')}<span class="ml-1 text-destructive">*</span>
+    {t('task.title', {}, 'Title')}<span class="ml-1 text-[#ef4444]">*</span>
   </Label>
   <Input
     id="title"
@@ -108,65 +33,72 @@
     oninput={handleChange}
     placeholder={t('task.enter_title', {}, 'Enter task title')}
     class={errors.title ? 'border-destructive' : ''}
+    required
+    minlength="3"
+    maxlength="255"
+    aria-invalid={errors.title ? 'true' : undefined}
+    aria-describedby={errors.title ? 'title-error' : undefined}
     autofocus
   />
   {#if errors.title}
-    <p class="text-xs text-destructive">{errors.title}</p>
+    <p id="title-error" class="text-xs font-medium text-destructive" role="alert">{errors.title}</p>
   {/if}
 </div>
 
 <div class="grid gap-2">
-  <Label for="description">{t('task.description', {}, 'Description')}</Label>
-  <div class="rounded-md border p-3 space-y-3 bg-muted/20">
-    <div class="flex flex-wrap items-center justify-between gap-2">
-      <div class="flex items-center gap-2">
-        <button
-          type="button"
-          class="rounded border px-2 py-1 text-xs hover:bg-muted"
-          onclick={syncDescriptionFromSections}
-        >
-          {t('task.create.merge_description', {}, 'Merge into description')}
-        </button>
-        <button
-          type="button"
-          class="rounded border px-2 py-1 text-xs hover:bg-muted"
-          onclick={clearSectionInputs}
-        >
-          {t('task.create.clear_suggestion_content', {}, 'Clear suggestion content')}
-        </button>
-      </div>
-    </div>
-
-    <div class="grid gap-3 sm:grid-cols-2">
-      <div class="space-y-1">
-        <Label for="desc_context" class="text-xs">{t('task.create.context_description', {}, 'Context description')}</Label>
-        <Textarea id="desc_context" value={contextDescription} rows={3} oninput={handleContextDescriptionInput} placeholder={t('task.create.context_description_placeholder', {}, 'Current problem, reason this task is needed...')} class="text-sm" />
-      </div>
-
-      <div class="space-y-1">
-        <Label for="desc_requirements" class="text-xs">{t('task.create.concrete_requirements', {}, 'Concrete requirements')}</Label>
-        <Textarea id="desc_requirements" value={concreteRequirements} rows={3} oninput={handleConcreteRequirementsInput} placeholder={t('task.create.concrete_requirements_placeholder', {}, 'Requirement checklist, technical constraints, scope...')} class="text-sm" />
-      </div>
-
-      <div class="space-y-1">
-        <Label for="desc_outcome" class="text-xs">{t('task.create.expected_outcome', {}, 'Expected outcome')}</Label>
-        <Textarea id="desc_outcome" value={expectedOutcome} rows={3} oninput={handleExpectedOutcomeInput} placeholder={t('task.create.expected_outcome_placeholder', {}, 'Definition of done, acceptance criteria, expected output...')} class="text-sm" />
-      </div>
-
-      <div class="space-y-1">
-        <Label for="desc_notes" class="text-xs">{t('task.create.extra_notes', {}, 'Extra notes')}</Label>
-        <Textarea id="desc_notes" value={extraNotes} rows={3} oninput={handleExtraNotesInput} placeholder={t('task.create.extra_notes_placeholder', {}, 'Related docs, implementation notes, dependencies...')} class="text-sm" />
-      </div>
-    </div>
-  </div>
-
+  <Label for="description">
+    {isDocumentationItem
+      ? t('task.create.docs_content', {}, 'Nội dung hoặc đường dẫn tài liệu')
+      : t('task.description', {}, 'Description')}<span class="ml-1 text-[#ef4444]">*</span>
+  </Label>
+  <p class="text-xs leading-5 text-muted-foreground">
+    {isDocumentationItem
+      ? t('task.create.docs_content_help', {}, 'Ghi nội dung cần lưu hoặc dán đường dẫn tới tài liệu. Mục này sẽ ở lại cột Docs.')
+      : t('task.create.description_help', {}, 'Describe the work to be done. Expected outputs and acceptance checks are defined in the next tab.')}
+  </p>
   <Textarea
     id="description"
     name="description"
     value={formData.description}
     oninput={handleChange}
-    placeholder={t('task.create.description_placeholder', {}, 'Task description')}
-    rows={10}
-    class="min-h-[220px] resize-y"
+    placeholder={isDocumentationItem
+      ? t('task.create.docs_content_placeholder', {}, 'Nội dung, đường dẫn, hoặc ghi chú cần giữ lại cho dự án')
+      : t('task.enter_description', {}, 'Describe the task clearly')}
+    rows={6}
+    maxlength={5000}
+    required={isPublish || isDocumentationItem}
+    aria-invalid={descriptionError ? 'true' : undefined}
+    aria-describedby={descriptionError ? 'description-error' : undefined}
+    class={`min-h-[150px] resize-y ${descriptionError ? 'border-destructive' : ''}`}
   />
+  {#if descriptionError}
+    <p id="description-error" class="text-xs font-medium text-destructive" role="alert">{descriptionError}</p>
+  {/if}
 </div>
+
+{#if !isDocumentationItem}
+<div class="grid gap-2 border-t border-border/70 pt-4">
+  <Label for="context_background">
+    {t('task.edit.context_background', {}, 'Business context')}<span class="ml-1 text-[#ef4444]">*</span>
+  </Label>
+  <p class="text-xs leading-5 text-muted-foreground">
+    {t('task.create.context_background_help', {}, 'Explain why this task matters, who it affects, and any background the assignee needs before starting.')}
+  </p>
+  <Textarea
+    id="context_background"
+    name="context_background"
+    value={formData.context_background}
+    oninput={handleChange}
+    placeholder={t('task.edit.context_background_placeholder', {}, 'Why this task exists and what context matters')}
+    rows={5}
+    maxlength={5000}
+    required={isPublish}
+    aria-invalid={contextError ? 'true' : undefined}
+    aria-describedby={contextError ? 'context-background-error' : undefined}
+    class={`min-h-[130px] resize-y ${contextError ? 'border-destructive' : ''}`}
+  />
+  {#if contextError}
+    <p id="context-background-error" class="text-xs font-medium text-destructive" role="alert">{contextError}</p>
+  {/if}
+</div>
+{/if}

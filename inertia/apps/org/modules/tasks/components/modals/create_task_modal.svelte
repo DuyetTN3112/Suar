@@ -1,88 +1,47 @@
 <script lang="ts">
-  import Button from '@/apps/org/shared/ui/button.svelte'
-  import Dialog from '@/apps/org/shared/ui/dialog.svelte'
-  import DialogContent from '@/apps/org/shared/ui/dialog_content.svelte'
-  import DialogDescription from '@/apps/org/shared/ui/dialog_description.svelte'
-  import DialogFooter from '@/apps/org/shared/ui/dialog_footer.svelte'
-  import DialogHeader from '@/apps/org/shared/ui/dialog_header.svelte'
-  import DialogTitle from '@/apps/org/shared/ui/dialog_title.svelte'
-  import { useTranslation } from '@/apps/org/shared/stores/translation.svelte'
+  /**
+   * The board route `/projects/:projectId/tasks` is rendered by the `org` app
+   * shell, but Task authoring is one product workflow.  Keeping a second
+   * modal here caused the Project board to retain the old, free-text form
+   * while the user workspace had the structured contract form.
+   *
+   * This adapter deliberately delegates the board entry point to the single
+   * authoring modal.  Its data source is still the Project board passed below;
+   * only the presentation and authoring store are shared.
+  */
+  import UnifiedCreateTaskModal from '@/apps/user/modules/tasks/components/modals/create_task_modal.svelte'
+  import type { TaskDetail } from '@/apps/user/modules/tasks/types/index.svelte'
 
-  import CreateTaskForm from '@/apps/org/modules/tasks/components/modals/create_task_form.svelte'
-  import TaskCreateRoleBanner from '@/apps/org/modules/tasks/components/modals/task_create_role_banner.svelte'
-  import { useCreateTaskStore, type CreateTaskStoreProps } from './create_task_store.svelte'
-
-  interface Props extends Omit<CreateTaskStoreProps, 'open' | 'onOpenChange'> {
+  interface Props {
     open: boolean
     onOpenChange: (open: boolean) => void
+    initialStatus?: string
+    initialProjectId?: string
+    initialRoleId?: string
+    statuses?: { value: string; label: string; slug?: string; category?: string }[]
+    projects?: { id: string; name: string }[]
+    users?: { id: string; username: string; email: string }[]
+    onCreated?: (task: TaskDetail) => void
     parentTasks?: { id: string; title: string; task_status_id: string | null }[]
-    availableSkills?: { id: string; name: string; categoryCode?: string | null }[]
+    availableSkills?: {
+      id: string
+      name: string
+      categoryCode?: string | null
+      rubricVersionId?: string | null
+      rubric_version_id?: string | null
+      projectSkillId?: string | null
+      project_skill_id?: string | null
+      minimumTaskRequirementLevelId?: string | null
+      minimum_task_requirement_level_id?: string | null
+      maximumTaskRequirementLevelId?: string | null
+      maximum_task_requirement_level_id?: string | null
+    }[]
     proficiencyLevels?: { value: string; label: string }[]
     priorities?: { value: string; label: string }[]
     labels?: { value: string; label: string }[]
   }
 
   const props: Props = $props()
-  const { t } = useTranslation()
-  const store = useCreateTaskStore(() => props)
 </script>
 
-<Dialog open={props.open} onOpenChange={props.onOpenChange}>
-  <DialogContent class="w-[96vw] sm:max-w-6xl max-h-[92vh] overflow-y-auto">
-    <DialogHeader>
-      <DialogTitle>{t('task.new_task', {}, 'New task')}</DialogTitle>
-      <DialogDescription>
-        {t('task.new_task_description', {}, 'Fill in the details to create a new task.')}
-      </DialogDescription>
-    </DialogHeader>
-
-    {#if store.formError}
-      <div class="mb-4 rounded border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
-        {store.formError}
-      </div>
-    {/if}
-
-    {#if store.availableRoles.length > 0}
-      <div class="mb-6">
-        <TaskCreateRoleBanner
-          projectId={store.formData.project_id}
-          availableRoles={store.availableRoles}
-          selectedRoleId={store.selectedRoleId}
-          onRoleChange={store.handleRoleChange}
-          prefilling={store.prefilling}
-          prefilledSkillCount={store.prefilledSkillCount}
-          roleMatchedProjectMembers={store.roleMatchedProjectMembers}
-          onAssignMember={store.handleAssignRoleMatchedMember}
-          assignedTo={store.formData.assigned_to}
-        />
-      </div>
-    {/if}
-
-    <CreateTaskForm
-      formData={store.formData}
-      setFormData={store.setFormData}
-      errors={store.errors}
-      statuses={props.statuses ?? []}
-      priorities={props.priorities ?? []}
-      labels={props.labels ?? []}
-      projects={props.projects}
-      users={store.scopedAssigneeUsers}
-      assigneeGroups={store.assigneeGroups}
-      parentTasks={props.parentTasks ?? []}
-      availableSkills={props.availableSkills}
-      proficiencyLevels={props.proficiencyLevels}
-      selectedProjectVisibility={store.selectedProjectVisibility}
-    />
-
-    <DialogFooter class="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-end">
-      <Button variant="outline" onclick={store.handleClose} disabled={store.submitting}>
-        {t('common.cancel', {}, 'Cancel')}
-      </Button>
-      <Button onclick={store.handleSubmit} disabled={store.submitting}>
-        {store.submitting
-          ? t('common.creating', {}, 'Creating...')
-          : t('common.create', {}, 'Create')}
-      </Button>
-    </DialogFooter>
-  </DialogContent>
-</Dialog>
+<UnifiedCreateTaskModal {...props} />
