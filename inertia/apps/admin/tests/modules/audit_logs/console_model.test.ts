@@ -123,9 +123,9 @@ describe('buildAdminAuditLogConsoleModel', () => {
     expect(model.workflows).toEqual(['review_dispute_resolution', 'notification_feed_load'])
     expect(model.topModules[0]).toEqual({ label: 'Reviews', count: 1 })
     expect(model.topActors[0]).toEqual({ label: 'duyet', count: 1 })
-    expect(model.filteredRows[1]?.severityLabel).toBe('Warn')
-    expect(model.filteredRows[1]?.integrityLabel).toBe('Hash mismatch')
-    expect(model.filteredRows[0]?.targetLabel).toBe('Release policy dispute')
+    expect(model.localPivotRows[1]?.severityLabel).toBe('Warn')
+    expect(model.localPivotRows[1]?.integrityLabel).toBe('Hash mismatch')
+    expect(model.localPivotRows[0]?.targetLabel).toBe('Release policy dispute')
     expect(model.failingWorkflows[0]).toEqual({ label: 'Notification Feed Load', count: 1 })
     expect(model.traceHotspots[0]).toEqual({ label: 'trace-1', count: 1 })
     expect(model.slowestEvents[0]).toMatchObject({

@@ -1,7 +1,5 @@
 <script lang="ts">
   import { Link, router } from '@inertiajs/svelte'
-  import Skeleton from 'boneyard-js/svelte'
-
   import Badge from '@/apps/admin/shared/ui/badge.svelte'
   import Button from '@/apps/admin/shared/ui/button.svelte'
   import Card from '@/apps/admin/shared/ui/card.svelte'
@@ -47,7 +45,6 @@
   let searchValue = $state('')
   let systemRoleValue = $state('')
   let statusValue = $state('')
-  let tableLoading = $state(false)
 
   const documentLocale = $derived(currentDocumentLocale() === 'vi' ? 'vi-VN' : 'en-US')
   const totalLabel = $derived(pagination.total.toLocaleString(documentLocale))
@@ -78,12 +75,6 @@
       {
         preserveState: true,
         preserveScroll: true,
-        onStart: () => {
-          tableLoading = true
-        },
-        onFinish: () => {
-          tableLoading = false
-        },
       }
     )
   }
@@ -195,31 +186,7 @@
     onFilterChange={handleFilterChange}
   />
 
-  <Skeleton name="admin-users-table" loading={tableLoading} animate="shimmer" transition={180}>
-    {#snippet fallback()}
-      <Card aria-hidden="true">
-        <CardHeader>
-          <div class="h-6 w-64 rounded-md bg-muted"></div>
-        </CardHeader>
-        <CardContent class="space-y-4">
-          <div class="space-y-3">
-            {#each Array.from({ length: 6 }) as _}
-              <div class="grid grid-cols-[1.2fr_1.5fr_1fr_1fr_1fr_0.8fr] gap-4">
-                <div class="h-5 rounded bg-muted"></div>
-                <div class="h-5 rounded bg-muted"></div>
-                <div class="h-5 rounded bg-muted"></div>
-                <div class="h-5 rounded bg-muted"></div>
-                <div class="h-5 rounded bg-muted"></div>
-                <div class="h-5 rounded bg-muted"></div>
-              </div>
-            {/each}
-          </div>
-          <div class="h-10 rounded bg-muted"></div>
-        </CardContent>
-      </Card>
-    {/snippet}
-
-    <Card>
+  <Card>
       <CardHeader>
         <CardTitle>{t('user.admin_users.index.list_title', { count: totalLabel }, 'Account list (:count)')}</CardTitle>
       </CardHeader>
@@ -285,6 +252,5 @@
           />
         </div>
       </CardContent>
-    </Card>
-  </Skeleton>
+  </Card>
 </div>
