@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/svelte'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import TasksIndexPage from '@/apps/org/modules/tasks/index.svelte'
 
@@ -47,6 +47,33 @@ vi.mock('@/apps/org/modules/tasks/components/views/kanban/kanban_board.svelte', 
 })
 
 describe('TasksIndexPage', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('hosts the real member saved-view lifecycle surface', () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve({ views: [] }),
+    }))
+
+    render(TasksIndexPage, {
+      props: {
+        workspaceView: 'board',
+        baseRoute: '/tasks',
+        tasks: { data: [], meta: { total: 0, per_page: 10, current_page: 1, last_page: 1 } },
+        filters: {},
+        metadata: { statuses: [], labels: [], priorities: [], users: [] },
+        permissions: { canCreateTask: true, createTaskReason: null, canManageWorkflow: false },
+        projectOptions: [],
+        projectContext: { selectedProject: null },
+      },
+    })
+
+    expect(screen.getByRole('button', { name: 'Saved views menu' })).toBeInTheDocument()
+  })
+
   it('does not render sprint controls when board workspace has no project scope', () => {
     render(TasksIndexPage, {
       props: {

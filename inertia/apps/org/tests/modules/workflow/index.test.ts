@@ -12,18 +12,27 @@ vi.mock('@inertiajs/svelte', () => ({
   router: {},
 }))
 
+vi.mock('@/apps/org/modules/tasks/api/workflow_api', () => ({
+  loadWorkflowConfiguration: vi.fn().mockResolvedValue({
+    statuses: [
+      { id: 'done-dev', name: 'DONE_DEV', category: 'in_progress', color: '#8B5CF6' },
+      { id: 'done', name: 'DONE', category: 'done', color: '#10B981' },
+    ],
+    transitions: [],
+  }),
+  replaceWorkflowTransitions: vi.fn(),
+}))
+
 describe('Workflow task page', () => {
-  it('renders a temporarily unavailable surface without workflow mutation controls', () => {
+  it('lets workflow managers add and save organization-specific transitions', async () => {
     render(WorkflowPage)
 
-    expect(
-      screen.getByRole('heading', { name: /workflow configuration is temporarily unavailable/i })
-    ).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /return to task board/i })).toHaveAttribute(
+    expect(screen.getByRole('heading', { name: /task workflow/i })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /manage task statuses on the board/i })).toHaveAttribute(
       'href',
       '/org/tasks/board'
     )
-    expect(screen.queryByRole('button')).not.toBeInTheDocument()
-    expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: /add transition/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /save workflow/i })).toBeInTheDocument()
   })
 })

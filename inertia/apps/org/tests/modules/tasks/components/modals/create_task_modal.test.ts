@@ -1,111 +1,19 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/svelte'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { inertiaPage } = vi.hoisted(() => ({
-  inertiaPage: {
-    props: {
-      auth: {
-        user: {
-          current_project: {
-            id: 'project-1',
-          },
-        },
-      },
-    },
-  },
+const { inertiaPage, axiosPost } = vi.hoisted(() => ({
+  axiosPost: vi.fn(),
+  inertiaPage: { props: { auth: { user: { current_project: { id: 'project-1' } } } } },
 }))
 
-vi.mock('@inertiajs/svelte', () => ({
-  page: inertiaPage,
-}))
+vi.mock('@inertiajs/svelte', () => ({ page: inertiaPage }))
+vi.mock('axios', () => ({ default: { post: axiosPost } }))
 
 import CreateTaskModal from '@/apps/org/modules/tasks/components/modals/create_task_modal.svelte'
 
-vi.mock('axios', () => ({
-  default: {
-    post: vi.fn(),
-  },
-}))
-
-describe('CreateTaskModal', () => {
-  type JsonResponse = { json: () => Promise<unknown> }
-  const fetchMock = vi.fn<(input: string | URL) => Promise<JsonResponse>>()
-
-  function getRequestUrl(input: string | URL): string {
-    return typeof input === 'string' ? input : input.toString()
-  }
-
+describe('CreateTaskModal on the Project Board', () => {
   beforeEach(() => {
-    fetchMock.mockImplementation((input) => {
-      const url = getRequestUrl(input)
-
-      if (url === '/api/v1/projects/project-1/professional-roles') {
-        return Promise.resolve({
-          json: () =>
-            Promise.resolve({
-              data: [{ id: 'role-1', name: 'Backend', code: 'backend_engineer' }],
-            }),
-        })
-      }
-
-      if (url === '/api/v1/projects/project-1') {
-        return Promise.resolve({
-          json: () =>
-            Promise.resolve({
-              data: {
-                members: [
-                  {
-                    userId: 'user-1',
-                    username: 'duyet',
-                    email: 'duyet@example.com',
-                    role: 'project_manager',
-                    projectProfessionalRoleId: 'role-1',
-                    professionalRoleName: 'Backend',
-                  },
-                ],
-              },
-            }),
-        })
-      }
-
-      if (url === '/projects/project-1/member-candidates') {
-        return Promise.resolve({
-          json: () =>
-            Promise.resolve({
-              data: [
-                {
-                  userId: 'user-2',
-                  username: 'alex',
-                  email: 'alex@example.com',
-                  orgRole: 'org_member',
-                },
-              ],
-            }),
-        })
-      }
-
-      if (url === '/api/v1/projects/project-1/professional-roles/role-1/requirements') {
-        return Promise.resolve({
-          json: () =>
-            Promise.resolve({
-              data: {
-                requirements: [
-                  {
-                    skillId: 'skill-1',
-                    skillName: 'TypeScript',
-                    categoryCode: 'technology',
-                    requiredLevelCode: 'l7',
-                  },
-                ],
-              },
-            }),
-        })
-      }
-
-      return Promise.reject(new Error(`Unhandled fetch ${url}`))
-    })
-
-    vi.stubGlobal('fetch', fetchMock)
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ json: () => ({ data: [] }) }))
   })
 
   afterEach(() => {
@@ -113,8 +21,8 @@ describe('CreateTaskModal', () => {
     vi.clearAllMocks()
   })
 
-  it('loads modal project data once when opened', async () => {
-    render(CreateTaskModal, {
+  function renderModal() {
+    return render(CreateTaskModal, {
       props: {
         open: true,
         onOpenChange: vi.fn(),
@@ -129,71 +37,33 @@ describe('CreateTaskModal', () => {
         initialProjectId: 'project-1',
       },
     })
+  }
 
-    await waitFor(() => {
-      expect(fetchMock).toHaveBeenCalledTimes(3)
-    })
+  it('shows the structured task contract instead of the former free-text form', async () => {
+    renderModal()
 
-    await Promise.resolve()
-    await Promise.resolve()
+    expect(screen.queryByText('Tạo Task rõ ràng, có thể nghiệm thu')).not.toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'Nội dung Task' })).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getByText('Tên và phần việc')).toBeInTheDocument()
+    expect(screen.getByText('Hiện trạng và ảnh hưởng')).toBeInTheDocument()
+    expect(screen.queryByLabelText(/^Mô tả/i)).not.toBeInTheDocument()
+    expect(screen.queryByLabelText(/Bối cảnh nghiệp vụ/i)).not.toBeInTheDocument()
 
-    expect(fetchMock).toHaveBeenCalledTimes(3)
-    expect(fetchMock).toHaveBeenNthCalledWith(1, '/api/v1/projects/project-1/professional-roles')
-    expect(fetchMock).toHaveBeenNthCalledWith(2, '/api/v1/projects/project-1')
-    expect(fetchMock).toHaveBeenNthCalledWith(3, '/projects/project-1/member-candidates')
+    await fireEvent.click(screen.getByRole('button', { name: /Tạo và giao|Đăng và giao/i }))
+    expect(screen.getByTestId('task-create-validation-summary')).toBeInTheDocument()
+    await waitFor(() => expect(screen.getByLabelText(/Tiêu đề/i)).toHaveFocus())
   })
 
-  it('falls back to current project context when initialProjectId is omitted', async () => {
-    render(CreateTaskModal, {
-      props: {
-        open: true,
-        onOpenChange: vi.fn(),
-        statuses: [{ value: 'todo', label: 'To do' }],
-        priorities: [{ value: 'high', label: 'High' }],
-        labels: [{ value: 'backend', label: 'Backend' }],
-        projects: [{ id: 'project-1', name: 'Project One' }],
-        users: [{ id: 'user-1', username: 'duyet', email: 'duyet@example.com' }],
-        parentTasks: [],
-        availableSkills: [{ id: 'skill-1', name: 'TypeScript' }],
-        proficiencyLevels: [{ value: 'l7', label: 'L7 · Middle Solid' }],
-      },
-    })
+  it('keeps a structured draft locally without sending a Task request', async () => {
+    const { rerender } = renderModal()
 
-    await waitFor(() => {
-      expect(fetchMock).toHaveBeenNthCalledWith(1, '/api/v1/projects/project-1/professional-roles')
-    })
-  })
+    await fireEvent.input(screen.getByLabelText(/Tiêu đề/i), { target: { value: 'Làm rõ luồng tạo Task' } })
+    await fireEvent.input(screen.getByLabelText(/Phần bị tác động/i), { target: { value: 'Board dự án' } })
+    await fireEvent.click(screen.getByRole('button', { name: /Lưu nháp/i }))
 
-  it('auto-prefills required skills when a role is selected', async () => {
-    render(CreateTaskModal, {
-      props: {
-        open: true,
-        onOpenChange: vi.fn(),
-        statuses: [{ value: 'todo', label: 'To do' }],
-        priorities: [{ value: 'high', label: 'High' }],
-        labels: [{ value: 'backend', label: 'Backend' }],
-        projects: [{ id: 'project-1', name: 'Project One' }],
-        users: [{ id: 'user-1', username: 'duyet', email: 'duyet@example.com' }],
-        parentTasks: [],
-        availableSkills: [{ id: 'skill-1', name: 'TypeScript' }],
-        proficiencyLevels: [{ value: 'l7', label: 'L7 · Middle Solid' }],
-        initialProjectId: 'project-1',
-      },
-    })
-
-    await waitFor(() => {
-      expect(screen.getByLabelText('Áp theo role')).toBeInTheDocument()
-    })
-
-    await fireEvent.change(screen.getByLabelText('Áp theo role'), {
-      target: { value: 'role-1' },
-    })
-
-    await waitFor(() => {
-      expect(fetchMock).toHaveBeenCalledWith(
-        '/api/v1/projects/project-1/professional-roles/role-1/requirements'
-      )
-      expect(screen.getByText(/Đã nạp 1 skill từ role đang chọn/i)).toBeInTheDocument()
-    })
+    expect(axiosPost).not.toHaveBeenCalled()
+    await rerender({ open: false })
+    await rerender({ open: true })
+    expect(screen.getByLabelText(/Phần bị tác động/i)).toHaveValue('Board dự án')
   })
 })

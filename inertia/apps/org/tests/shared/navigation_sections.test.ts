@@ -149,12 +149,13 @@ describe('organization workspace navigation sections', () => {
         FRONTEND_ROUTES.ORG_INVITATION_REQUESTS,
         FRONTEND_ROUTES.ORG_ROLES,
         FRONTEND_ROUTES.ORG_PERMISSIONS,
+        FRONTEND_ROUTES.ORG_MARKETPLACE_TASKS,
         FRONTEND_ROUTES.ORG_TALENTS,
         FRONTEND_ROUTES.ORG_BOOKMARKS,
-        FRONTEND_ROUTES.ORG_SETTINGS,
         FRONTEND_ROUTES.ORG_AUDIT_LOGS,
       ])
     )
+    expect(urlsForSection('Organization management')).not.toContain(FRONTEND_ROUTES.ORG_SETTINGS)
     expect(urlsForSection('Organization management')).not.toContain('/org/reverse-reviews')
     expect(urlsForSection('Organization management')).not.toContain('/org/disputes')
     expect(urlsForSection('Organization management')).not.toContain(FRONTEND_ROUTES.ORG_DEPARTMENTS)
@@ -181,7 +182,8 @@ describe('organization workspace navigation sections', () => {
     expect(duplicateUrls).toEqual([])
     expect(urls.some((url) => url.startsWith('/projects/project-1'))).toBe(false)
     expect(urls.some((url) => url.includes('/reviews/'))).toBe(false)
-    expect(urls.some((url) => url.includes('/tasks'))).toBe(false)
+    expect(urls).not.toContain('/org/tasks/board')
+    expect(urls).not.toContain('/org/tasks/list')
     expect(urlsForGroups(getOrganizationNavigationForRole('org_owner'))).toEqual(urls)
   })
 })
@@ -209,7 +211,7 @@ describe('organization project navigation section', () => {
 
 describe('project workspace navigation', () => {
   it('exposes exactly the four shared project boards', () => {
-    const groups = buildProjectNavigationSections({ id: 'project-1', name: 'Apollo' }, false)
+    const groups = buildProjectNavigationSections({ id: 'project-1', name: 'Apollo' })
     const boards = requiredGroup(groups, 'Project boards')
 
     expect(urlsForGroups([boards])).toEqual([
@@ -220,15 +222,12 @@ describe('project workspace navigation', () => {
     ])
   })
 
-  it('shows the organization-management exit only when workspace capability allows it', () => {
-    const memberUrls = urlsForGroups(
-      buildProjectNavigationSections({ id: 'project-1', name: 'Apollo' }, false)
-    )
-    const managerUrls = urlsForGroups(
-      buildProjectNavigationSections({ id: 'project-1', name: 'Apollo' }, true)
-    )
+  it('does not expose personal or organization workspace navigation', () => {
+    const groups = buildProjectNavigationSections({ id: 'project-1', name: 'Apollo' })
+    const urls = urlsForGroups(groups)
 
-    expect(memberUrls).not.toContain('/org')
-    expect(managerUrls).toContain('/org')
+    expect(groups.map((group) => group.title)).toEqual(['Apollo', 'Project boards'])
+    expect(urls).not.toContain('/org/projects')
+    expect(urls).not.toContain('/org')
   })
 })

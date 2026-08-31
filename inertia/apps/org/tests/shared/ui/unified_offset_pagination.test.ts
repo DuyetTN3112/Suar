@@ -4,6 +4,25 @@ import { describe, expect, it, vi } from 'vitest'
 import UnifiedOffsetPagination from '@/apps/org/shared/ui/unified_offset_pagination.svelte'
 
 describe('UnifiedOffsetPagination', () => {
+  it('hides pagination controls when there are no results', () => {
+    render(UnifiedOffsetPagination, {
+      props: {
+        pagination: {
+          mode: 'offset',
+          page: 1,
+          perPage: 10,
+          total: 0,
+          lastPage: 1,
+          hasNextPage: false,
+          hasPreviousPage: false,
+        },
+      },
+    })
+
+    expect(screen.queryByText('0-0 / 0')).not.toBeInTheDocument()
+    expect(screen.queryByText('1 / 1')).not.toBeInTheDocument()
+  })
+
   it('renders normalized range and page summary', () => {
     render(UnifiedOffsetPagination, {
       props: {
