@@ -27,6 +27,8 @@
   import Badge from '@/apps/admin/shared/ui/badge.svelte'
   import Button from '@/apps/admin/shared/ui/button.svelte'
   import UnifiedCursorPagination from '@/apps/admin/shared/ui/unified_cursor_pagination.svelte'
+  import SavedViewMenu from '@/apps/shared/filtering/components/saved_views/saved_view_menu.svelte'
+  import type { FilterCriteria } from '@/apps/shared/filtering/contracts'
 
   interface AuditLogFilters {
     search?: string
@@ -270,6 +272,21 @@
     }
     return 'border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300'
   }
+
+  const currentCriteria = $derived<FilterCriteria>({
+    context: 'audit.admin.investigation',
+    schemaVersion: 1,
+    text: searchValue ? { value: searchValue } : undefined,
+    sort: [{ field: 'createdAt', direction: 'desc' }],
+    page: { size: pagination.total },
+  })
+
+  function onApplySavedView(criteria: FilterCriteria) {
+    if (criteria.text?.value) {
+      searchValue = criteria.text.value
+    }
+    applyFilters()
+  }
 </script>
 
 <svelte:head>
@@ -295,13 +312,21 @@
           )}
         </p>
       </div>
-      <div class="shrink-0 rounded-lg border border-border bg-card px-4 py-3 text-sm">
-        <span class="text-muted-foreground">
-          {t('admin_ui.audit_logs.matched_total', {}, 'Matched total')}
-        </span>
-        <strong class="ml-2 font-mono text-lg text-foreground">
-          {pagination.total.toLocaleString()}
-        </strong>
+      <div class="flex items-center gap-3">
+        <SavedViewMenu
+          contextKey="audit.admin.investigation"
+          {currentCriteria}
+          capabilities={{ sharedViews: false, alerts: false }}
+          onApplyView={onApplySavedView}
+        />
+        <div class="shrink-0 rounded-lg border border-border bg-card px-4 py-3 text-sm">
+          <span class="text-muted-foreground">
+            {t('admin_ui.audit_logs.matched_total', {}, 'Matched total')}
+          </span>
+          <strong class="ml-2 font-mono text-lg text-foreground">
+            {pagination.total.toLocaleString()}
+          </strong>
+        </div>
       </div>
     </div>
   </header>
@@ -614,7 +639,7 @@
           <p class="mt-1 text-xs text-muted-foreground">
             {t(
               'admin_ui.audit_logs.window_result_count',
-              { count: consoleModel.filteredRows.length, total: pagination.total },
+              { count: consoleModel.localPivotRows.length, total: pagination.total },
               ':count loaded · :total matched',
             )}
           </p>
@@ -642,7 +667,7 @@
         <div>{t('admin_ui.audit_logs.time', {}, 'Time')}</div>
       </div>
 
-      {#if consoleModel.filteredRows.length === 0}
+      {#if consoleModel.localPivotRows.length === 0}
         <div class="px-4 py-16 text-center">
           <ShieldCheck class="mx-auto size-8 text-muted-foreground/60" aria-hidden="true" />
           <h3 class="mt-3 font-semibold text-foreground">
@@ -658,7 +683,7 @@
         </div>
       {:else}
         <div class="divide-y divide-border">
-          {#each consoleModel.filteredRows as log}
+          {#each consoleModel.localPivotRows as log}
             <button
               type="button"
               data-testid="audit-log-row"

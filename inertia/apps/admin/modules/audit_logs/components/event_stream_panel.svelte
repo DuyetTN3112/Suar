@@ -35,7 +35,7 @@
   let grouping = $state<StreamGrouping>('none')
 
   const groups = $derived.by<StreamGroup[]>(() => {
-    const rows = consoleModel.filteredRows
+    const rows = consoleModel.localPivotRows
 
     if (grouping === 'none') {
       return [
@@ -197,7 +197,7 @@
       </div>
     {/if}
 
-    {#if consoleModel.filteredRows.length === 0}
+    {#if consoleModel.localPivotRows.length === 0}
       <div class="rounded-2xl border border-dashed border-border bg-muted/40 px-4 py-8 text-center text-sm text-muted-foreground">
         {t('task.admin_audit_logs.no_matching_local_pivots', {}, 'No events match the current local pivots.')}
       </div>

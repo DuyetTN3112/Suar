@@ -22,6 +22,10 @@ const taskExternalDependenciesMock = vi.hoisted(() => ({
   },
   activeAssignmentReader: {
     findActiveAssignment: vi.fn(),
+    findActorAssignment: vi.fn(),
+  },
+  resolvedBrief: {
+    readCurrentBundle: vi.fn(),
   },
   audit: {
     listTaskAuditTrail: vi.fn(),
@@ -35,8 +39,15 @@ const taskExternalDependenciesMock = vi.hoisted(() => ({
   },
 }))
 
-vi.mock('#composition/task_external_dependencies_composition', () => ({
+vi.mock('#composition/tasks/task-external-dependencies/task_external_dependencies_composition', () => ({
   taskExternalDeps: taskExternalDependenciesMock,
+}))
+
+vi.mock('#modules/cache/public_contracts/cache_store', () => ({
+  cacheStore: {
+    get: vi.fn().mockResolvedValue(null),
+    setBestEffort: vi.fn().mockResolvedValue(true),
+  },
 }))
 
 afterEach(() => {
@@ -51,8 +62,8 @@ test('task detail query resolves sprint id and sprint name through the sprint po
     { makeSystemTaskActionContext },
   ] = await Promise.all([
     import('#modules/tasks/actions/dtos/request/get_task_detail_dto'),
-    import('#modules/tasks/actions/queries/get_task_detail_query'),
-    import('#composition/task_external_dependencies_composition'),
+    import('#modules/tasks/actions/queries/task-reading/get_task_detail_query'),
+    import('#composition/tasks/task-external-dependencies/task_external_dependencies_composition'),
     import('#modules/tasks/actions/task_action_context'),
   ])
 
@@ -94,6 +105,7 @@ test('task detail query resolves sprint id and sprint name through the sprint po
     throw new Error('Task active-assignment reader is required by the detail query')
   }
   vi.spyOn(taskExternalDeps.activeAssignmentReader, 'findActiveAssignment').mockResolvedValue(null)
+  vi.spyOn(taskExternalDeps.activeAssignmentReader, 'findActorAssignment').mockResolvedValue(null)
   vi.spyOn(taskExternalDeps.audit, 'listTaskAuditTrail').mockResolvedValue([])
   vi.spyOn(taskExternalDeps.review, 'getTaskReviewZoneSummary').mockResolvedValue(null)
   vi.spyOn(taskExternalDeps.review, 'getTaskReviewDetail').mockResolvedValue(null)

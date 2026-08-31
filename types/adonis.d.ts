@@ -99,11 +99,14 @@ declare module '@adonisjs/inertia/types' {
 
   interface InertiaPages {
     'admin/audit_logs/index': SvelteInertiaPageProps<typeof import('../inertia/apps/admin/modules/audit_logs/index.svelte').default>
+    'admin/taxonomy_governance/index': SvelteInertiaPageProps<typeof import('../inertia/apps/admin/modules/taxonomy_governance/index.svelte').default>
+    'admin/search_projections/index': SvelteInertiaPageProps<typeof import('../inertia/apps/admin/modules/search_projections/index.svelte').default>
     'admin/dashboard': SvelteInertiaPageProps<typeof import('../inertia/apps/admin/modules/dashboards/index.svelte').default>
     'admin/dashboards/operations': SvelteInertiaPageProps<typeof import('../inertia/apps/admin/modules/dashboards/operations.svelte').default>
     'admin/dashboards/subscriptions': SvelteInertiaPageProps<typeof import('../inertia/apps/admin/modules/dashboards/subscriptions.svelte').default>
     'admin/dashboards/users': SvelteInertiaPageProps<typeof import('../inertia/apps/admin/modules/dashboards/users.svelte').default>
     'admin/disputes/index': SvelteInertiaPageProps<typeof import('../inertia/apps/admin/modules/disputes/index.svelte').default>
+    'admin/disputes/ai_operator': SvelteInertiaPageProps<typeof import('../inertia/apps/admin/modules/disputes/ai_operator.svelte').default>
     'admin/disputes/show': SvelteInertiaPageProps<typeof import('../inertia/apps/admin/modules/disputes/show.svelte').default>
     'admin/proficiency/index': SvelteInertiaPageProps<typeof import('../inertia/apps/admin/modules/proficiency/index.svelte').default>
     'admin/proficiency/rubric': SvelteInertiaPageProps<typeof import('../inertia/apps/admin/modules/proficiency/rubric.svelte').default>

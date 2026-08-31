@@ -17,7 +17,7 @@
 
   const hottestWorkflow = $derived(
     Array.from(
-      consoleModel.filteredRows.reduce((acc, row) => {
+      consoleModel.localPivotRows.reduce((acc, row) => {
         const key = row.workflowLabel
         acc.set(key, (acc.get(key) ?? 0) + 1)
         return acc
