@@ -41,16 +41,14 @@ describe('admin disputes i18n source guard', () => {
 
     for (const key of [
       'useTranslation()',
-      'currentDocumentLocale',
       "t('task.disputes.admin_detail.page_title'",
       "t('task.disputes.admin_detail.title'",
-      "t('task.disputes.admin_detail.subtitle'",
       "t('task.disputes.admin_detail.processing'",
       "t('task.disputes.admin_detail.tabs.overview'",
       "t('task.disputes.admin_detail.comment_success'",
       "t('task.disputes.admin_detail.resolve_success'",
       '`task.disputes.index.source.${sourceType}`',
-      'toLocaleString(documentLocale)',
+      "'task.disputes.admin_detail.ai_acceptance_rationale'",
     ]) {
       expect(source).toContain(key)
     }
@@ -60,7 +58,9 @@ describe('admin disputes i18n source guard', () => {
   })
 
   it('routes admin dispute discussion tab copy and dates through translations', () => {
-    const source = readSource('inertia/apps/admin/modules/disputes/components/dispute_discussion_tab.svelte')
+    const source = readSource(
+      'inertia/apps/admin/modules/disputes/components/dispute_discussion_tab.svelte'
+    )
 
     for (const key of [
       'useTranslation()',

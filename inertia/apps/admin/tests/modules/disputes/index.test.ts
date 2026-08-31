@@ -29,6 +29,7 @@ type Dispute = {
   project_name?: string | null
   sprint_name?: string | null
   aiEvaluationsCount?: number
+  last_error_message?: string | null
 }
 
 function dispute(overrides: Partial<Dispute>): Dispute {
@@ -76,31 +77,37 @@ function renderBoard(
 }
 
 describe('AdminDisputesPage', () => {
-  it('renders the single System Admin dispute progress board with all workflow lanes', () => {
+  it('renders the single System Admin dispute progress board with the five operational lanes', () => {
     renderBoard()
 
     expect(screen.getByRole('heading', { name: 'AI dispute progress board' })).toBeInTheDocument()
 
     for (const lane of [
       'Pending',
-      'Collecting evidence',
-      'Reported',
-      'Admin reviewing',
       'AI reviewing',
+      'AI processing failed — retry required',
+      'Admin reviewing',
       'Resolved',
-      'Rejected',
-      'Cancelled',
     ]) {
       expect(screen.getByRole('heading', { name: lane })).toBeInTheDocument()
     }
+
+    for (const retiredLane of ['Collecting evidence', 'Reported', 'Rejected', 'Cancelled']) {
+      expect(screen.queryByRole('heading', { name: retiredLane })).not.toBeInTheDocument()
+    }
   })
 
-  it('places each case in its status lane and opens the case room from the card', () => {
+  it('maps submitted and legacy cases into the operational lanes and opens the case room', () => {
     renderBoard([
       dispute({
         id: 'reported-case',
         task_title: 'Reported task review',
         status: 'reported',
+      }),
+      dispute({
+        id: 'evidence-case',
+        task_title: 'Legacy evidence case',
+        status: 'collecting_evidence',
       }),
       dispute({
         id: 'ai-case',
@@ -109,26 +116,53 @@ describe('AdminDisputesPage', () => {
         aiEvaluationsCount: 2,
       }),
       dispute({
+        id: 'failed-ai-case',
+        task_title: 'AI arbitration failed',
+        status: 'ai_failed',
+        last_error_message: 'HTTP 429 quota exceeded',
+      }),
+      dispute({
         id: 'resolved-case',
         task_title: 'Closed review dispute',
         status: 'resolved',
       }),
+      dispute({
+        id: 'rejected-case',
+        task_title: 'Rejected review dispute',
+        status: 'rejected',
+      }),
+      dispute({
+        id: 'done-task-review-workflow',
+        task_title: 'Finalized task review workflow',
+        status: 'done',
+      }),
     ])
 
-    const reportedLane = screen.getByRole('heading', { name: 'Reported' }).closest('section')
+    const pendingLane = screen.getByRole('heading', { name: 'Pending' }).closest('section')
     const aiLane = screen.getByRole('heading', { name: 'AI reviewing' }).closest('section')
+    const aiFailedLane = screen
+      .getByRole('heading', { name: 'AI processing failed — retry required' })
+      .closest('section')
     const resolvedLane = screen.getByRole('heading', { name: 'Resolved' }).closest('section')
 
-    expect(reportedLane).not.toBeNull()
+    expect(pendingLane).not.toBeNull()
     expect(aiLane).not.toBeNull()
     expect(resolvedLane).not.toBeNull()
-    if (!reportedLane || !aiLane || !resolvedLane) {
+    if (!pendingLane || !aiLane || !aiFailedLane || !resolvedLane) {
       throw new Error('Expected every dispute case to have a matching Kanban lane')
     }
-    expect(within(reportedLane).getByText('Reported task review')).toBeInTheDocument()
+    expect(within(pendingLane).getByText('Reported task review')).toBeInTheDocument()
+    expect(within(pendingLane).getByText('Legacy evidence case')).toBeInTheDocument()
     expect(within(aiLane).getByText('AI arbitration in progress')).toBeInTheDocument()
     expect(within(aiLane).getByText('2')).toBeInTheDocument()
+    expect(within(aiFailedLane).getByText('AI arbitration failed')).toBeInTheDocument()
+    expect(within(aiFailedLane).getByText('Retry AI')).toBeInTheDocument()
+    expect(within(aiFailedLane).getByText(/quota was reached/i)).toBeInTheDocument()
     expect(within(resolvedLane).getByText('Closed review dispute')).toBeInTheDocument()
+    expect(within(resolvedLane).getByText('Rejected review dispute')).toBeInTheDocument()
+    expect(within(resolvedLane).getByText('Finalized task review workflow')).toBeInTheDocument()
+    expect(within(resolvedLane).getByText('Đã hoàn tất')).toBeInTheDocument()
+    expect(within(resolvedLane).getByText('Rejected')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /AI arbitration in progress/i })).toHaveAttribute(
       'href',
       '/admin/disputes/ai-case'
@@ -147,6 +181,23 @@ describe('AdminDisputesPage', () => {
     ])
 
     expect(screen.getByText('Project Mercury / Sprint 7')).toBeInTheDocument()
+  })
+
+  it('classifies a provider 503 as temporary model overload instead of an API-key failure', () => {
+    renderBoard([
+      dispute({
+        status: 'ai_failed',
+        last_error_message:
+          'LLM call failed with HTTP 503: {"error":{"status":"UNAVAILABLE","message":"This model is currently experiencing high demand."}}',
+      }),
+    ])
+
+    const failedLane = screen.getByRole('heading', { name: 'AI processing failed — retry required' }).closest('section')
+    expect(failedLane).not.toBeNull()
+    if (!failedLane) throw new Error('Expected failed lane')
+    expect(within(failedLane).getByText('Model AI đang quá tải tạm thời')).toBeInTheDocument()
+    expect(within(failedLane).getByText(/Không cần đổi SUAR_DISPUTE_API_KEY/i)).toBeInTheDocument()
+    expect(within(failedLane).getAllByText(/HTTP 503/).length).toBeGreaterThan(0)
   })
 
   it('preserves the selected status while paging through the board window', () => {

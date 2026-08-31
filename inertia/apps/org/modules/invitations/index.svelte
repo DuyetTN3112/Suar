@@ -111,7 +111,9 @@
         return
       }
 
-      router.reload()
+      router.reload({
+        only: ['invitations', 'pagination', 'filters', 'flash'],
+      })
     } catch {
       inviteError = withInviteEmail(inviteErrorFallback(email), email)
     } finally {

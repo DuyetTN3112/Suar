@@ -81,7 +81,7 @@ export interface MarketplaceTask {
   difficulty?: TaskDifficulty | null
   due_date?: string | null
   application_deadline?: string | null
-  task_visibility: 'internal' | 'external' | 'all'
+  task_visibility: 'project' | 'internal' | 'external' | 'all'
   priority_score?: number
   recommendation_reasons?: string[]
   evidence_warnings?: string[]

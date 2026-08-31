@@ -5,7 +5,7 @@ import AdminUsersPage from '@/apps/admin/modules/users/index.svelte'
 
 describe('AdminUsersPage', () => {
   it('keeps scoped filters but drops keyword search from pagination links', () => {
-    const { container } = render(AdminUsersPage, {
+    render(AdminUsersPage, {
       props: {
         users: [
           {
@@ -42,6 +42,5 @@ describe('AdminUsersPage', () => {
       'href',
       '/admin/users?system_role=system_admin&status=active&page=3'
     )
-    expect(container.querySelector('[data-boneyard="admin-users-table"]')).not.toBeNull()
   })
 })

@@ -3,366 +3,203 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import AdminDisputeShowPage from '@/apps/admin/modules/disputes/show.svelte'
 
-const { postSpy, reloadSpy } = vi.hoisted(() => ({
+const { getSpy, postSpy, reloadSpy } = vi.hoisted(() => ({
+  getSpy: vi.fn(),
   postSpy: vi.fn(),
   reloadSpy: vi.fn(),
 }))
 
 vi.mock('@inertiajs/svelte', () => ({
-  router: {
-    reload: reloadSpy,
-    get: vi.fn(),
-    visit: vi.fn(),
-  },
+  router: { reload: reloadSpy, get: vi.fn(), visit: vi.fn() },
 }))
-
-vi.mock('@/apps/admin/shared/layouts/app_layout.svelte', async () => {
-  const stubModule = await import('../../shared/test_stubs/layout_stub.svelte')
-  return { default: stubModule.default }
-})
 
 vi.mock('axios', () => ({
-  default: {
-    post: postSpy,
-  },
+  default: { get: getSpy, post: postSpy },
   AxiosError: class AxiosError extends Error {},
 }))
+
+function renderDetail(
+  aiEvaluations = [
+    {
+      id: 'ai-1',
+      provider: 'clawagent',
+      status: 'completed',
+      recommendation: 'adjust_score',
+      confidence_score: 0.82,
+      summary: 'AI supports a narrow score adjustment.',
+      completed_at: '2026-08-12T08:05:00.000Z',
+      response_payload: {
+        debate_trace: [
+          {
+            type: 'decision',
+            fromRole: 'Neutral Mediator',
+            evidence: JSON.stringify({
+              recommendation: 'adjust_score',
+              verdict: 'A narrow score adjustment is recommended.',
+              rationale: 'The submitted evidence supports a narrow adjustment.',
+              evidence_summary: 'The task history and attached evidence agree.',
+              action_items: ['Record the adjusted score.'],
+              unknowns_or_missing_evidence: 'No additional evidence is required.',
+              scores: { task_worker_score: 82 },
+            }),
+          },
+        ],
+      },
+    },
+  ]
+) {
+  return render(AdminDisputeShowPage, {
+    props: {
+      dispute: {
+        id: 'dispute-1',
+        review_session_id: null,
+        task_id: 'task-1',
+        task_title: 'Review governance task',
+        task_description: 'Task already escalated to admin.',
+        organization_id: 'org-1',
+        project_id: 'project-1',
+        reviewee_id: 'user-1',
+        reviewee_username: 'duyet',
+        reviewee_email: 'duyet@example.com',
+        status: 'admin_reviewing',
+        source_type: 'task_review_workflow',
+        dispute_review_type: 'task_review',
+        dispute_reason: 'The task review omitted submitted evidence.',
+        requested_outcome: 'adjust_score',
+        created_at: '2026-08-12T08:00:00.000Z',
+        disputed_dimensions: {},
+        disputed_skill_reviews: [],
+        final_decision: null,
+        final_rationale: null,
+        review_session_status: 'disputed',
+        runtime_context: {
+          organization: { name: 'Acme' },
+          project: { name: 'Mercury' },
+          task: { title: 'Review governance task' },
+        },
+        task_review_detail: {
+          task: {
+            id: 'task-1',
+            title: 'Review governance task',
+            description: 'Task already escalated to admin.',
+            status: 'in_review',
+            priority: 'medium',
+            assigned_to: 'user-1',
+            creator_id: 'manager-1',
+          },
+          assignment: null,
+          workflow: {
+            id: 'dispute-1',
+            status: 'admin_reviewing',
+            completed_review_count: 2,
+            required_review_count: 2,
+          },
+          reviewers: [],
+          comments: [],
+          reviewMessages: [],
+        },
+      },
+      comments: [],
+      evidences: [],
+      case_files: [],
+      ai_evaluations: aiEvaluations,
+      timeline: [],
+    },
+  })
+}
 
 describe('AdminDisputeShowPage', () => {
   beforeEach(() => {
     vi.resetAllMocks()
+    getSpy.mockResolvedValue({ data: { data: [] } })
     postSpy.mockResolvedValue({ data: {} })
   })
 
-  it('surfaces latest admin dossier across overview, evidence, and resolve tabs', async () => {
-    render(AdminDisputeShowPage, {
-      props: {
-        dispute: {
-          id: 'dispute-1',
-          review_session_id: 'session-1',
-          task_id: 'task-1',
-          task_title: 'Review governance task',
-          task_description: 'Task already escalated to admin.',
-          organization_id: 'org-1',
-          project_id: 'project-1',
-          reviewee_id: 'user-1',
-          reviewee_username: 'duyet',
-          reviewee_email: 'duyet@example.com',
-          status: 'admin_reviewing',
-          dispute_reason: 'Need full dossier before resolution.',
-          requested_outcome: 'adjust_score',
-          created_at: '2026-07-09T08:00:00.000Z',
-          disputed_dimensions: {},
-          disputed_skill_reviews: [],
-          final_decision: null,
-          final_rationale: null,
-          review_session_status: 'disputed',
-        },
-        comments: [
-          {
-            id: 'comment-1',
-            author_id: 'user-1',
-            body: 'Please re-check rubric weighting.',
-            created_at: '2026-07-09T08:10:00.000Z',
-            author_context: 'reviewee',
-            author_system_role: null,
-          },
-        ],
-        evidences: [
-          {
-            id: 'evidence-1',
-            evidenceType: 'link',
-            url: 'https://example.com/evidence',
-            title: 'Live demo',
-            description: 'Demo evidence',
-            uploaded_by: 'user-1',
-            created_at: '2026-07-09T08:05:00.000Z',
-          },
-        ],
-        case_files: [
-          {
-            id: 'case-file-2',
-            case_version: 3,
-            completeness_score: 92,
-            missing_data: ['none'],
-            created_at: '2026-07-09T09:00:00.000Z',
-            task_comments_snapshot: [
-              {
-                body: 'Task comment included in dossier.',
-                author_id: 'peer-1',
-                comment_type: 'comment',
-                review_relevance: true,
-                created_at: '2026-07-09T07:50:00.000Z',
-              },
-            ],
-            evidences_snapshot: [
-              {
-                title: 'Live demo',
-                evidence_type: 'link',
-              },
-            ],
-            dispute_claim_snapshot: {
-              dispute_reason: 'Need full dossier before resolution.',
-              requested_outcome: 'adjust_score',
-              dispute_comments: [
-                {
-                  body: 'Admin needs both sides.',
-                  author_context: 'admin',
-                },
-              ],
-            },
-          },
-        ],
-        ai_evaluations: [
-          {
-            id: 'ai-1',
-            provider: 'ai_council',
-            status: 'completed',
-            recommendation: 'adjust_score',
-            confidence_score: 0.82,
-            summary: 'AI suggests a narrow adjustment.',
-            completed_at: '2026-07-09T09:05:00.000Z',
-          },
-        ],
-        timeline: [
-          {
-            id: 'timeline-1',
-            kind: 'case_file',
-            action: 'build_review_dispute_case_file',
-            occurred_at: '2026-07-09T09:00:00.000Z',
-            actor_id: 'admin-1',
-            actor_label: 'admin',
-            summary: 'Built dossier snapshot.',
-            metadata: {},
-          },
-        ],
-      },
-    })
+  it('uses a task-detail layout and places the AI conclusion in its own tab', async () => {
+    renderDetail()
 
-    expect(screen.getByText('Admin dossier mới nhất')).toBeInTheDocument()
-    expect(screen.getByText('Hồ sơ vụ việc v3')).toBeInTheDocument()
-    expect(screen.getByText('Hoàn thiện 92%')).toBeInTheDocument()
-
-    await fireEvent.click(screen.getByRole('tab', { name: 'Minh chứng' }))
-    expect(screen.getByText('Snapshot evidence trong dossier')).toBeInTheDocument()
-    expect(screen.getAllByText('Live demo')).toHaveLength(2)
-
-    await fireEvent.click(screen.getByRole('tab', { name: 'Xử lý' }))
-    expect(screen.getAllByText('adjust_score').length).toBeGreaterThan(0)
-    expect(screen.getAllByText('AI suggests a narrow adjustment.').length).toBeGreaterThan(0)
-    expect(screen.getByText('Độ tin cậy: 82%')).toBeInTheDocument()
-    expect(screen.getByText('Comment task đưa vào hồ sơ')).toBeInTheDocument()
-    expect(screen.getByText('Task comment included in dossier.')).toBeInTheDocument()
-    expect(screen.getByText('Trao đổi tranh chấp trong hồ sơ')).toBeInTheDocument()
-    expect(screen.getByText('Admin needs both sides.')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Review governance task' })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'Nội dung Task' })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'Kỹ năng' })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'Phân công' })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: /Tệp/i })).toBeInTheDocument()
+    expect(screen.queryByText('Admin decision room')).not.toBeInTheDocument()
+    expect(screen.queryByRole('tab', { name: 'Xử lý' })).not.toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'Kết luận AI' })).toBeInTheDocument()
+    expect(screen.queryByText('A narrow score adjustment is recommended.')).not.toBeInTheDocument()
+    await fireEvent.click(screen.getByRole('tab', { name: 'Kết luận AI' }))
+    expect(screen.getByText('A narrow score adjustment is recommended.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Dùng kết luận AI để chốt tranh chấp' })).toBeInTheDocument()
   })
 
-  it('shows the stored AI failure message on the resolve tab', async () => {
-    render(AdminDisputeShowPage, {
-      props: {
-        dispute: {
-          id: 'dispute-1',
-          review_session_id: 'session-1',
-          task_id: 'task-1',
-          task_title: 'Review governance task',
-          task_description: 'Task already escalated to admin.',
-          organization_id: 'org-1',
-          project_id: 'project-1',
-          reviewee_id: 'user-1',
-          reviewee_username: 'duyet',
-          reviewee_email: 'duyet@example.com',
-          status: 'ai_reviewing',
-          dispute_reason: 'Need AI visibility.',
-          requested_outcome: 'adjust_score',
-          created_at: '2026-07-09T08:00:00.000Z',
-          disputed_dimensions: {},
-          disputed_skill_reviews: [],
-          final_decision: null,
-          final_rationale: null,
-          review_session_status: 'disputed',
-        },
-        comments: [],
-        evidences: [],
-        case_files: [
-          {
-            id: 'case-file-1',
-            case_version: 1,
-            completeness_score: 100,
-            missing_data: [],
-            created_at: '2026-07-09T09:00:00.000Z',
-          },
-        ],
-        ai_evaluations: [
-          {
-            id: 'ai-failed-1',
-            provider: 'clawagent',
-            status: 'failed',
-            recommendation: null,
-            confidence_score: null,
-            summary: null,
-            error_message: 'CLAWAGENT_UNAVAILABLE: connection refused',
-            completed_at: null,
-          },
-        ],
-        timeline: [],
-      },
-    })
+  it('accepts the AI conclusion as an auditable admin decision without opening a form', async () => {
+    renderDetail()
 
-    await fireEvent.click(screen.getByRole('tab', { name: 'Xử lý' }))
+    await fireEvent.click(screen.getByRole('tab', { name: 'Kết luận AI' }))
+    await fireEvent.click(screen.getByRole('button', { name: 'Dùng kết luận AI để chốt tranh chấp' }))
 
-    expect(screen.getByText('Lỗi AI')).toBeInTheDocument()
-    expect(screen.getByText('CLAWAGENT_UNAVAILABLE: connection refused')).toBeInTheDocument()
-  })
-
-  it('passes sourceType when starting AI and resolving sprint disputes without a case file', async () => {
-    render(AdminDisputeShowPage, {
-      props: {
-        dispute: {
-          id: 'sprint-dispute-1',
-          review_session_id: null,
-          task_id: null,
-          task_title: null,
-          task_description: null,
-          organization_id: 'org-1',
-          project_id: 'project-1',
-          reviewee_id: 'reviewer-1',
-          reviewee_username: 'manager',
-          reviewee_email: 'manager@example.com',
-          status: 'reported',
-          source_type: 'sprint_review_dispute',
-          dispute_review_type: 'manager_review',
-          dispute_reason: 'Manager review conflicts with sprint record.',
-          requested_outcome: 'request_admin_review',
-          created_at: '2026-07-09T08:00:00.000Z',
-          disputed_dimensions: {},
-          disputed_skill_reviews: [],
-          final_decision: null,
-          final_rationale: null,
-          review_session_status: null,
-          runtime_context: {
-            organization: { id: 'org-1', name: 'Acme Ops' },
-            project: { id: 'project-1', name: 'Project Mercury' },
-            sprint: { id: 'sprint-1', name: 'Sprint 7' },
-            sprint_peer_tasks: [{ id: 'task-peer-1', title: 'Peer task in same sprint' }],
-            manager_reviews: [{ reviewer_id: 'manager-1' }],
-            environment_reviews: [],
-          },
-        },
-        comments: [],
-        evidences: [],
-        case_files: [],
-        ai_evaluations: [],
-        timeline: [],
-      },
-    })
-
-    await fireEvent.click(screen.getByRole('tab', { name: 'Xử lý' }))
-    expect(screen.getAllByText('Ngữ cảnh thực thi').length).toBeGreaterThan(0)
-
-    await fireEvent.click(screen.getByRole('button', { name: 'Gọi AI' }))
     await waitFor(() => {
       expect(postSpy).toHaveBeenCalledWith(
-        '/api/admin/reviews/disputes/sprint-dispute-1/ai-evaluations',
-        {
-          provider: 'ai_council',
-          sourceType: 'sprint_review_dispute',
-        }
+        '/api/admin/reviews/disputes/dispute-1/resolve',
+        expect.objectContaining({
+          finalDecision: 'adjust_score',
+          finalRationale:
+            'Quản trị viên dùng kết luận AI để chốt tranh chấp. AI supports a narrow score adjustment.',
+          sourceType: 'task_review_workflow',
+        })
       )
     })
+  })
 
-    await fireEvent.input(screen.getByLabelText(/Giải trình quyết định/), {
-      target: { value: 'Sprint context supports partial acceptance.' },
+  it('allows an alternative ruling only after the admin opens it and writes a rationale', async () => {
+    renderDetail()
+
+    await fireEvent.click(screen.getByRole('tab', { name: 'Kết luận AI' }))
+    await fireEvent.click(screen.getByRole('button', { name: 'Ra quyết định khác' }))
+    await fireEvent.input(screen.getByLabelText(/Căn cứ quyết định/), {
+      target: { value: 'Admin requires a fresh review based on the complete task record.' },
     })
-    const resolveButton = screen.getByRole('button', { name: 'Ban hành quyết định' })
-    expect(resolveButton).not.toBeDisabled()
+    await fireEvent.click(
+      screen.getByRole('button', { name: /Issue decision|Ban hành quyết định/ })
+    )
 
-    await fireEvent.click(resolveButton)
     await waitFor(() => {
       expect(postSpy).toHaveBeenCalledWith(
-        '/api/admin/reviews/disputes/sprint-dispute-1/resolve',
+        '/api/admin/reviews/disputes/dispute-1/resolve',
         expect.objectContaining({
           finalDecision: 'dismiss_dispute',
-          finalRationale: 'Sprint context supports partial acceptance.',
-          sourceType: 'sprint_review_dispute',
+          finalRationale: 'Admin requires a fresh review based on the complete task record.',
         })
       )
     })
   })
 
-  it('passes taskReviewWorkflow sourceType when starting AI and resolving without a case file', async () => {
-    render(AdminDisputeShowPage, {
-      props: {
-        dispute: {
-          id: 'task-workflow-1',
-          review_session_id: null,
-          task_id: 'task-1',
-          task_title: 'Task under disputed review',
-          task_description: null,
-          organization_id: 'org-1',
-          project_id: 'project-1',
-          reviewee_id: 'worker-1',
-          reviewee_username: 'worker',
-          reviewee_email: 'worker@example.com',
-          status: 'reported',
-          source_type: 'task_review_workflow',
-          dispute_review_type: 'task_review',
-          dispute_reason: 'Task review missed peer task evidence.',
-          requested_outcome: 'request_admin_review',
-          created_at: '2026-07-09T08:00:00.000Z',
-          disputed_dimensions: {},
-          disputed_skill_reviews: [],
-          final_decision: null,
-          final_rationale: null,
-          review_session_status: null,
-          runtime_context: {
-            organization: { id: 'org-1', name: 'Acme Ops' },
-            project: { id: 'project-1', name: 'Project Mercury' },
-            sprint: { id: 'sprint-1', name: 'Sprint 7' },
-            task: { id: 'task-1', title: 'Task under disputed review' },
-            sprint_peer_tasks: [{ id: 'task-peer-1', title: 'Peer task in same project' }],
-            task_giver_context: { profile: { username: 'manager' } },
-            reviewee_context: { profile: { username: 'worker' } },
-          },
-        },
-        comments: [],
-        evidences: [],
-        case_files: [],
-        ai_evaluations: [],
-        timeline: [],
+  it('keeps AI acceptance disabled while a conclusion is unavailable', async () => {
+    renderDetail([])
+
+    await fireEvent.click(screen.getByRole('tab', { name: 'Kết luận AI' }))
+    expect(screen.getByRole('button', { name: 'Dùng kết luận AI để chốt tranh chấp' })).toBeDisabled()
+  })
+
+  it('shows the exact provider diagnostic when the latest AI evaluation failed', async () => {
+    renderDetail([
+      {
+        id: 'ai-failed-1',
+        provider: 'clawagent',
+        status: 'failed',
+        recommendation: null,
+        confidence_score: null,
+        summary: null,
+        error_message: 'LLM call failed with HTTP 503: model UNAVAILABLE due to high demand',
+        completed_at: '2026-08-14T02:11:38.354Z',
       },
-    })
+    ])
 
-    await fireEvent.click(screen.getByRole('tab', { name: 'Xử lý' }))
-    expect(screen.getAllByText('Ngữ cảnh thực thi').length).toBeGreaterThan(0)
-    expect(screen.getAllByText('Quy trình công việc').length).toBeGreaterThan(0)
-
-    await fireEvent.click(screen.getByRole('button', { name: 'Gọi AI' }))
-    await waitFor(() => {
-      expect(postSpy).toHaveBeenCalledWith(
-        '/api/admin/reviews/disputes/task-workflow-1/ai-evaluations',
-        {
-          provider: 'ai_council',
-          sourceType: 'task_review_workflow',
-        }
-      )
-    })
-
-    await fireEvent.input(screen.getByLabelText(/Giải trình quyết định/), {
-      target: { value: 'Task workflow context supports resolving this dispute.' },
-    })
-    const resolveButton = screen.getByRole('button', { name: 'Ban hành quyết định' })
-    expect(resolveButton).not.toBeDisabled()
-
-    await fireEvent.click(resolveButton)
-    await waitFor(() => {
-      expect(postSpy).toHaveBeenCalledWith(
-        '/api/admin/reviews/disputes/task-workflow-1/resolve',
-        expect.objectContaining({
-          finalDecision: 'dismiss_dispute',
-          finalRationale: 'Task workflow context supports resolving this dispute.',
-          sourceType: 'task_review_workflow',
-        })
-      )
-    })
+    await fireEvent.click(screen.getByRole('tab', { name: 'Kết luận AI' }))
+    expect(screen.getByText('Model AI đang quá tải tạm thời')).toBeInTheDocument()
+    expect(screen.getByText(/Không cần đổi SUAR_DISPUTE_API_KEY/i)).toBeInTheDocument()
+    await fireEvent.click(screen.getByText('Xem lỗi kỹ thuật đầy đủ'))
+    expect(screen.getByText(/LLM call failed with HTTP 503/)).toBeInTheDocument()
+    expect(screen.getByText(/ai-failed-1/)).toBeInTheDocument()
   })
 })

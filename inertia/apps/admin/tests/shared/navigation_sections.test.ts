@@ -16,11 +16,9 @@ function visibleSectionTitles(
   systemRole: string | null,
   systemPermissions: readonly string[] | null = null
 ): string[] {
-  return filterAdminNavigationByRole(
-    adminNavigationSections,
-    systemRole,
-    systemPermissions
-  ).map((group) => group.title)
+  return filterAdminNavigationByRole(adminNavigationSections, systemRole, systemPermissions).map(
+    (group) => group.title
+  )
 }
 
 describe('isolated System Admin navigation', () => {
@@ -52,11 +50,12 @@ describe('isolated System Admin navigation', () => {
     ])
   })
 
-  it('contains the single System AI dispute board and no retired history/operator entry', () => {
+  it('contains both the dispute board and the separate AI operations console', () => {
     const urls = urlsForGroups(adminNavigationSections)
 
     expect(urls).toContain('/admin/disputes')
-    expect(urls).not.toContain('/admin/disputes/ai-operator')
+    expect(urls).toContain('/admin/taxonomy/governance')
+    expect(urls).toContain('/admin/disputes/ai-operator')
     expect(urls).not.toContain('/admin/reverse-reviews')
     expect(urls.some((url) => url.startsWith('/projects/'))).toBe(false)
     expect(urls.some((url) => url.startsWith('/org'))).toBe(false)
