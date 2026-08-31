@@ -2,8 +2,9 @@
   import { router } from '@inertiajs/svelte'
   import OrganizationLayout from '@/apps/org/shared/layouts/organization_layout.svelte'
   import OrgTalentsResultExplainabilitySummary from '@/apps/org/shared/components/org_talents_result_explainability_summary.svelte'
+  import UnifiedCursorPagination from '@/apps/org/shared/ui/unified_cursor_pagination.svelte'
   import UnifiedOffsetPagination from '@/apps/org/shared/ui/unified_offset_pagination.svelte'
-  import type { OffsetPagePagination } from '@/apps/org/shared/lib/pagination'
+  import type { PagePagination } from '@/apps/org/shared/lib/pagination'
   import { useTranslation } from '@/apps/org/shared/stores/translation.svelte'
   import {
     formatTalentConfidenceLabel,
@@ -26,6 +27,17 @@
     imported_skills_count?: number
     under_dispute_skills_count?: number
     latest_confidence_signal?: 'low' | 'medium' | 'high' | null
+    public_accomplishments?: {
+      title: string
+      concise_statement: string
+      action: string
+      object: string
+      role: string | null
+      ownership_level: string
+      verification_status: 'verified' | 'partially_verified'
+      confidence_band: 'low' | 'medium' | 'high'
+      published_at: string
+    }[]
     bookmark?: {
       id: string | null
       isSaved: boolean
@@ -62,6 +74,8 @@
     saved?: string | null
     min_trust_score?: string | null
     min_completed_tasks?: string | null
+    available_before?: string | null
+    min_proficiency?: string | null
   }
 
   interface Props {
@@ -70,7 +84,9 @@
     availableSkills: SkillOption[]
     availableTasks: TaskOption[]
     stats?: { total?: number; saved?: number }
-    pagination: OffsetPagePagination
+    pagination: PagePagination
+    search?: { scope?: string; rankingVersion?: string; normalizedQuery?: string }
+    authority?: { total?: { state?: string } }
   }
 
   const { talents, filters, availableSkills, availableTasks, pagination }: Props = $props()
@@ -90,8 +106,11 @@
   let roleInTask = $state(initialFilter((value) => value.role_in_task ?? ''))
   let techStack = $state(initialFilter((value) => value.tech_stack ?? ''))
   let domainTags = $state(initialFilter((value) => value.domain_tags ?? ''))
-  let sortBy = $state(initialFilter((value) => value.sort_by ?? 'relevance'))
+  let sortBy = $state(initialFilter((value) => value.sort_by ?? 'trust_score'))
   let sortOrder = $state(initialFilter((value) => value.sort_order ?? 'desc'))
+  let availableBefore = $state(initialFilter((value) => value.available_before ?? ''))
+  let minProficiency = $state(initialFilter((value) => value.min_proficiency ?? ''))
+  const proficiencyLevels = Array.from({ length: 15 }, (_, index) => `l${index}`)
   let expandedTalentId = $state<string | null>(null)
 
   const taxonomy = {
@@ -114,20 +133,52 @@
   )
   const selectedTask = $derived(availableTasks.find((task) => task.id === (filters.task_id ?? '')) ?? null)
   const isTaskRankingMode = $derived(Boolean(filters.task_id))
+  const usesLegacyFilters = $derived(
+    Boolean(taskId || selectedCategories.length || roleInTask || domainTags)
+  )
 
-  const paginationQuery = $derived({
-    q: filters.q,
-    task_id: filters.task_id,
-    skill_categories: filters.skill_categories,
-    skill_ids: filters.skill_ids,
-    business_domain: filters.business_domain,
-    task_type: filters.task_type,
-    problem_category: filters.problem_category,
-    role_in_task: filters.role_in_task,
-    tech_stack: filters.tech_stack,
-    domain_tags: filters.domain_tags,
-    sort_by: filters.sort_by,
-  })
+  const paginationQuery = $derived(
+    pagination.mode === 'offset'
+      ? {
+          q: filters.q,
+          task_id: filters.task_id,
+          skill_categories: filters.skill_categories,
+          skill_ids: filters.skill_ids,
+          business_domain: filters.business_domain,
+          task_type: filters.task_type,
+          problem_category: filters.problem_category,
+          role_in_task: filters.role_in_task,
+          tech_stack: filters.tech_stack,
+          domain_tags: filters.domain_tags,
+          sort_by: filters.sort_by,
+          available_before: filters.available_before,
+          min_proficiency: filters.min_proficiency,
+        }
+      : {
+          q: filters.q,
+          skill_ids: filters.skill_ids,
+          per_page: pagination.perPage,
+          business_domain: filters.business_domain,
+          task_type: filters.task_type,
+          problem_category: filters.problem_category,
+          tech_stack: filters.tech_stack,
+          sort_by: filters.sort_by,
+          sort_order: filters.sort_order,
+          available_before: filters.available_before,
+          min_proficiency: filters.min_proficiency,
+        }
+  )
+
+  function cursorHref(cursor: string | null | undefined) {
+    const params = new URLSearchParams()
+    for (const [key, value] of Object.entries(paginationQuery)) {
+      if (value === undefined || value === null || value === '') continue
+      params.set(key, Array.isArray(value) ? value.join(',') : String(value))
+    }
+    if (cursor) params.set('cursor', cursor)
+    const query = params.toString()
+    return query ? `/org/talents?${query}` : '/org/talents'
+  }
 
   function toArray(value: string[] | string | null | undefined) {
     if (Array.isArray(value)) return value
@@ -173,24 +224,38 @@
   }
 
   function submitSearch() {
-    router.get(
-      '/org/talents',
-      {
-        q: q.trim() || undefined,
-        task_id: taskId || undefined,
-        skill_categories: selectedCategories.length ? selectedCategories : undefined,
-        skill_ids: selectedSkillIds.length ? selectedSkillIds : undefined,
-        business_domain: businessDomain || undefined,
-        task_type: taskType || undefined,
-        problem_category: problemCategory || undefined,
-        role_in_task: roleInTask || undefined,
-        tech_stack: techStack.trim() || undefined,
-        domain_tags: domainTags.trim() || undefined,
-        sort_by: sortBy || undefined,
-        sort_order: sortOrder || undefined,
-      },
-      { preserveState: false, preserveScroll: true }
-    )
+    const legacyPayload = {
+      q: q.trim() || undefined,
+      task_id: taskId || undefined,
+      skill_categories: selectedCategories.length ? selectedCategories : undefined,
+      skill_ids: selectedSkillIds.length ? selectedSkillIds : undefined,
+      business_domain: businessDomain || undefined,
+      task_type: taskType || undefined,
+      problem_category: problemCategory || undefined,
+      role_in_task: roleInTask || undefined,
+      tech_stack: techStack.trim() || undefined,
+      domain_tags: domainTags.trim() || undefined,
+      sort_by: sortBy || undefined,
+      sort_order: sortOrder || undefined,
+      available_before: availableBefore || undefined,
+      min_proficiency: minProficiency || undefined,
+    }
+    const canonicalPayload = {
+      q: q.trim() || undefined,
+      skill_ids: selectedSkillIds.length ? selectedSkillIds.join(',') : undefined,
+      business_domain: businessDomain || undefined,
+      task_type: taskType || undefined,
+      problem_category: problemCategory || undefined,
+      tech_stack: techStack.trim() || undefined,
+      sort_by: sortBy === 'relevance' ? 'trust_score' : sortBy || undefined,
+      sort_order: sortOrder || undefined,
+      available_before: availableBefore || undefined,
+      min_proficiency: minProficiency || undefined,
+    }
+    router.get('/org/talents', usesLegacyFilters ? legacyPayload : canonicalPayload, {
+      preserveState: false,
+      preserveScroll: true,
+    })
   }
 
   async function saveTalent(talent: Talent) {
@@ -204,7 +269,7 @@
       },
       body: JSON.stringify({ folder: 'Shortlist' }),
     })
-    router.reload()
+    router.reload({ only: ['talents', 'stats', 'flash'] })
   }
 
   async function removeTalent(talent: Talent) {
@@ -216,7 +281,7 @@
         ...(token ? { 'X-CSRF-TOKEN': token } : {}),
       },
     })
-    router.reload()
+    router.reload({ only: ['talents', 'stats', 'flash'] })
   }
 
   function toggleCategory(category: string) {
@@ -224,6 +289,12 @@
       ? selectedCategories.filter((item) => item !== category)
       : [...selectedCategories, category]
     selectedSkillIds = []
+  }
+
+  function toggleSkill(skillId: string) {
+    selectedSkillIds = selectedSkillIds.includes(skillId)
+      ? selectedSkillIds.filter((item) => item !== skillId)
+      : [...selectedSkillIds, skillId]
   }
 </script>
 
@@ -270,20 +341,58 @@
           {t('workspace.talents.sort.asc', {}, 'Ascending')}
         </option>
       </select>
-      <select
-        data-testid="talent-skill-filter"
+      <input
+        data-testid="talent-available-before"
+        type="date"
         class="h-10 rounded-xl border border-border px-3 py-2 text-sm"
-        value={selectedSkillIds[0] ?? ''}
-        onchange={(event) => {
-          const value = event.currentTarget.value
-          selectedSkillIds = value ? [value] : []
-        }}
+        bind:value={availableBefore}
+        aria-label={t('workspace.talents.available_before', {}, 'Available before')}
+      />
+      <select
+        data-testid="talent-min-proficiency"
+        class="h-10 rounded-xl border border-border px-3 py-2 text-sm"
+        bind:value={minProficiency}
       >
-        <option value="">{t('workspace.talents.skill', {}, 'Skill')}</option>
-        {#each filteredSkills as skill (skill.id)}
-          <option value={skill.id}>{skill.skill_name} · {categoryLabels[skill.category_code] ?? skill.category_code}</option>
+        <option value="">
+          {t('workspace.talents.min_proficiency', {}, 'Minimum proficiency')}
+        </option>
+        {#each proficiencyLevels as level}
+          <option value={level}>{level.toUpperCase()}</option>
         {/each}
       </select>
+      <details
+        data-testid="talent-skill-filter"
+        class="rounded-xl border border-border px-3 py-2 text-sm"
+        open={selectedSkillIds.length > 0}
+      >
+        <summary class="flex cursor-pointer list-none items-center justify-between gap-2 text-xs font-semibold text-muted-foreground">
+          <span>{t('workspace.talents.skill_filter', {}, 'Skills')}</span>
+          {#if selectedSkillIds.length > 0}
+            <span class="rounded-full bg-muted px-2 py-0.5 text-foreground">
+              {selectedSkillIds.length}
+            </span>
+          {/if}
+        </summary>
+        <div class="mt-2 max-h-36 space-y-1 overflow-y-auto pr-1" style="max-height: 9rem; overflow-y: auto;">
+          {#if filteredSkills.length === 0}
+            <p class="text-xs text-muted-foreground">
+              {t('workspace.talents.no_skills', {}, 'No skills in this category')}
+            </p>
+          {:else}
+            {#each filteredSkills as skill (skill.id)}
+              <label class="flex cursor-pointer items-center gap-2 rounded-md px-1.5 py-1 hover:bg-muted">
+                <input
+                  type="checkbox"
+                  value={skill.id}
+                  checked={selectedSkillIds.includes(skill.id)}
+                  onchange={() => toggleSkill(skill.id)}
+                />
+                <span>{skill.skill_name} · {categoryLabels[skill.category_code] ?? skill.category_code}</span>
+              </label>
+            {/each}
+          {/if}
+        </div>
+      </details>
       <select data-testid="talent-business-domain" class="h-10 rounded-xl border border-border px-3 py-2 text-sm" bind:value={businessDomain}>
         <option value="">
           {t('workspace.talents.business_domain', {}, 'Business domain')}
@@ -444,6 +553,41 @@
                 <strong class="ml-2 text-foreground">{clampPercent(talent.trust_score)}</strong>
               </div>
             {/if}
+            {#if (talent.public_accomplishments?.length ?? 0) > 0}
+              <section
+                data-testid={`public-accomplishments-${talent.id}`}
+                class="mt-4 border-t border-border pt-3"
+                aria-label="Verified demonstrated work"
+              >
+                <div class="flex items-center justify-between gap-2">
+                  <h3 class="text-xs font-bold uppercase tracking-[0.14em] text-muted-foreground">
+                    {t('workspace.talents.demonstrated_work', {}, 'Demonstrated work')}
+                  </h3>
+                  <span class="text-xs text-muted-foreground">
+                    {t('workspace.talents.public_only', {}, 'Public-safe')}
+                  </span>
+                </div>
+                <div class="mt-2 grid gap-2">
+                  {#each talent.public_accomplishments ?? [] as accomplishment}
+                    <article class="rounded-lg border border-border bg-muted/10 p-3">
+                      <div class="flex flex-wrap items-start justify-between gap-2">
+                        <h4 class="font-semibold text-foreground">{accomplishment.title}</h4>
+                        <span class="rounded-full bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-800">
+                          {accomplishment.verification_status === 'verified' ? 'Verified' : 'Partially verified'}
+                        </span>
+                      </div>
+                      <p class="mt-1 text-sm text-muted-foreground">{accomplishment.concise_statement}</p>
+                      <div class="mt-2 flex flex-wrap gap-1.5 text-xs">
+                        <span class="rounded-full bg-muted px-2 py-1">{accomplishment.action}</span>
+                        <span class="rounded-full bg-muted px-2 py-1">{accomplishment.object}</span>
+                        <span class="rounded-full bg-muted px-2 py-1">{accomplishment.ownership_level}</span>
+                        <span class="rounded-full bg-muted px-2 py-1">{accomplishment.confidence_band} confidence</span>
+                      </div>
+                    </article>
+                  {/each}
+                </div>
+              </section>
+            {/if}
             {#if isTaskRankingMode && hasTaskMatch(talent)}
               <div class="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3">
                 <div>
@@ -524,6 +668,15 @@
       {/if}
     </div>
 
-    <UnifiedOffsetPagination {pagination} baseUrl="/org/talents" queryParams={paginationQuery} />
+    {#if pagination.mode === 'cursor'}
+      <UnifiedCursorPagination
+        {pagination}
+        olderHref={cursorHref(pagination.cursor?.nextCursor)}
+        newerHref={cursorHref(pagination.cursor?.previousCursor)}
+        newestHref={cursorHref(null)}
+      />
+    {:else}
+      <UnifiedOffsetPagination {pagination} baseUrl="/org/talents" queryParams={paginationQuery} />
+    {/if}
   </div>
 </OrganizationLayout>

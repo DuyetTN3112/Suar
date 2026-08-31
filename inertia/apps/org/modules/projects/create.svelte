@@ -61,6 +61,7 @@
     start_date: '',
     end_date: '',
     manager_id: '',
+    business_domains: [] as string[],
   })
 
   let startDate = $state<Date | undefined>(undefined)
@@ -514,6 +515,10 @@
               onEndDateChange={handleEndDateChange}
               onInputChange={handleChange}
               onSelectChange={handleSelectChange}
+              onDomainsChange={(domains) => {
+                formData = { ...formData, business_domains: domains }
+                clearError('business_domains')
+              }}
             />
           {/if}
 

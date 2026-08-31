@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { page } from '@inertiajs/svelte'
+  import { page, router } from '@inertiajs/svelte'
   import {
     Clock,
     CircleCheck,
@@ -14,7 +14,6 @@
   import Button from '@/apps/org/shared/ui/button.svelte'
   import Dialog from '@/apps/org/shared/ui/dialog.svelte'
   import DialogContent from '@/apps/org/shared/ui/dialog_content.svelte'
-  import { formatTaskVerificationMethodForDisplay } from '@/apps/org/modules/tasks/lib/rules/task_verification_methods'
   import { currentDocumentLocale } from '@/apps/org/shared/lib/date_locale'
   import { useTranslation } from '@/apps/org/shared/stores/translation.svelte'
 
@@ -24,7 +23,6 @@
   import TaskDiscussionTab from '@/apps/org/modules/tasks/components/detail/task_discussion_tab.svelte'
   import TaskExecutionBrief from '@/apps/org/modules/tasks/components/detail/task_execution_brief.svelte'
   import TaskFilesTab from '@/apps/org/modules/tasks/components/detail/task_files_tab.svelte'
-  import TaskSubmissionPanel from '@/apps/org/modules/tasks/components/detail/task_submission_panel.svelte'
 
   interface CapabilityDecision {
     allowed: boolean
@@ -37,6 +35,7 @@
     canEdit?: boolean
     canAssign?: boolean
     canChangeStatus?: boolean
+    canComment?: boolean
     canOpenWorkTabs?: boolean
   }
 
@@ -51,7 +50,7 @@
       users: { id: string; username: string; email: string }[]
     }
     isHydratingDetail?: boolean
-    onEdit?: (task: TaskDetail) => void
+    onReloadBrief?: () => void | Promise<void>
     onChangeStatus?: (task: TaskDetail, toStatusId: string) => void
     getStatusChangeDecision?: (task: TaskDetail, toStatusId: string) => CapabilityDecision
     shellMode?: 'app' | 'organization'
@@ -64,7 +63,7 @@
     task,
     metadata,
     isHydratingDetail = false,
-    onEdit,
+    onReloadBrief,
     onChangeStatus,
     getStatusChangeDecision,
     workSurfacePermissions = null,
@@ -72,9 +71,15 @@
 
   const { t } = useTranslation()
   const documentLocale = $derived(currentDocumentLocale() === 'vi' ? 'vi-VN' : 'en-US')
-  const verificationMethods = $derived(
-    formatTaskVerificationMethodForDisplay(task?.verification_method, t)
-  )
+  let filesOpen = $state(false)
+  async function reloadBrief(): Promise<void> {
+    if (onReloadBrief) {
+      await onReloadBrief()
+      return
+    }
+
+    router.reload({ only: ['task'] })
+  }
 
   const statusConfig: Partial<Record<string, { icon: typeof Circle; color: string; bgColor: string }>> = {
     todo: { icon: Circle, color: 'text-muted-foreground', bgColor: 'bg-secondary' },
@@ -111,7 +116,6 @@
         task?.verification_method ??
         task?.context_background ??
         (hasNonEmptyArray(task?.tech_stack) ? 'tech-stack' : null) ??
-        (hasNonEmptyArray(task?.learning_objectives) ? 'learning-objectives' : null) ??
         (hasNonEmptyArray(task?.domain_tags) ? 'domain-tags' : null) ??
         task?.environment ??
         task?.collaboration_type ??
@@ -121,9 +125,8 @@
         task?.problem_category ??
         task?.business_domain ??
         task?.estimated_users_affected ??
-        task?.impact_scope ??
-        (hasNonEmptyArray(task?.expected_deliverables) ? 'deliverables' : null) ??
-        (hasNonEmptyArray(task?.measurable_outcomes) ? 'measurable-outcomes' : null)
+        task?.resolved_brief ??
+        (hasNonEmptyArray(task?.expected_deliverables) ? 'deliverables' : null)
     )
   )
 
@@ -163,6 +166,11 @@
   )
   const taskPermissions = $derived((task?.permissions ?? null) as WorkSurfacePermissions | null)
   const effectiveWorkSurfacePermissions = $derived(workSurfacePermissions ?? taskPermissions)
+  // A board viewer may discuss the task; marketplace previews are read-only.
+  // Keep the legacy fallback for board payloads that predate canComment.
+  const canOpenDiscussion = $derived(
+    Boolean(task) && effectiveWorkSurfacePermissions?.canComment !== false
+  )
   const canOpenWorkTabs = $derived(
     effectiveWorkSurfacePermissions?.canOpenWorkTabs ??
       Boolean(
@@ -207,8 +215,8 @@
           <h2 class="text-2xl font-bold leading-tight">{task.title}</h2>
 
           <div class="mt-4 flex flex-wrap items-center gap-2">
-            {#if onEdit}
-              <Button size="sm" variant="outline" onclick={() => { onEdit(task); }}>
+            {#if effectiveWorkSurfacePermissions?.canEdit}
+              <Button size="sm" variant="outline" onclick={() => router.visit(`/tasks/${task.id}/edit`)}>
                 <Pencil class="mr-1 h-3.5 w-3.5" />
                 {t('common.edit', {}, 'Edit')}
               </Button>
@@ -266,166 +274,47 @@
               {/if}
 
               {#if hasContextCard}
-                <div class="rounded-lg border bg-muted/5 p-4 space-y-4">
-                  <h4 class="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                    <span class="text-primary font-bold">✦</span> {t('task.detail_panel.context_title', {}, 'Context and detailed acceptance')}
-                  </h4>
+                <TaskExecutionBrief
+                  task={task}
+                  resolvedBrief={task.resolved_brief}
+                  onReloadBrief={reloadBrief}
+                />
+              {/if}
 
-                  {#if task.context_background}
-                    <div class="space-y-1">
-                      <span class="text-[11px] font-bold text-muted-foreground uppercase">{t('task.detail_panel.business_context', {}, 'Business context')}</span>
-                      <p class="text-xs bg-muted/40 p-2.5 rounded-md whitespace-pre-wrap border border-border/40">{task.context_background}</p>
-                    </div>
-                  {/if}
-
-                  {#if task.acceptance_criteria}
-                    <div class="space-y-1">
-                      <span class="text-[11px] font-bold text-muted-foreground uppercase">{t('task.detail_panel.acceptance_criteria', {}, 'Acceptance criteria')}</span>
-                      <p class="text-xs bg-muted/40 p-2.5 rounded-md whitespace-pre-wrap border border-border/40">{task.acceptance_criteria}</p>
-                    </div>
-                  {/if}
-
-                  {#if task.verification_method}
-                    <div class="space-y-1">
-                      <span class="text-[11px] font-bold text-muted-foreground uppercase">{t('task.detail_panel.verification_method', {}, 'Verification method')}</span>
-                      <div class="text-xs bg-muted/40 p-2.5 rounded-md border border-border/40">
-                        <ul class="list-disc space-y-1 pl-4">
-                          {#each verificationMethods as method}
-                            <li>{method}</li>
-                          {/each}
-                        </ul>
-                      </div>
-                    </div>
-                  {/if}
-
-                  <!-- Tech Stack & Domain Tags -->
-                  <div class="grid gap-3 sm:grid-cols-2">
-                    {#if task.tech_stack && task.tech_stack.length > 0}
-                      <div class="space-y-1">
-                        <span class="text-[11px] font-bold text-muted-foreground uppercase">{t('task.detail_panel.tech_stack', {}, 'Tech Stack')}</span>
-                        <div class="flex flex-wrap gap-1 pt-0.5">
-                          {#each task.tech_stack as tech}
-                            <Badge variant="secondary" class="bg-primary/5 text-primary border border-primary/10 text-[10px] py-0 px-1.5">{tech}</Badge>
-                          {/each}
-                        </div>
-                      </div>
-                    {/if}
-
-                    {#if task.domain_tags && task.domain_tags.length > 0}
-                      <div class="space-y-1">
-                        <span class="text-[11px] font-bold text-muted-foreground uppercase">{t('task.detail_panel.domain_tags', {}, 'Domain Tags')}</span>
-                        <div class="flex flex-wrap gap-1 pt-0.5">
-                          {#each task.domain_tags as tag}
-                            <Badge variant="outline" class="border-primary/20 text-primary bg-primary/5 text-[10px] py-0 px-1.5">{tag}</Badge>
-                          {/each}
-                        </div>
-                      </div>
-                    {/if}
+              {#if task.id && canOpenDiscussion}
+                <details class="rounded-lg border bg-background/70 p-3" data-testid="task-detail-discussion">
+                  <summary class="flex cursor-pointer list-none items-center justify-between gap-3 rounded-md px-1 py-1 text-left">
+                    <span class="font-semibold">{t('task.discussion_tab.title', {}, 'Task discussion')}</span>
+                    <span class="text-xs text-muted-foreground">{t('common.expand', {}, 'Open when needed')}</span>
+                  </summary>
+                  <div class="pt-3">
+                    <TaskDiscussionTab taskId={task.id} {currentUserId} />
                   </div>
-
-                  {#if task.learning_objectives && task.learning_objectives.length > 0}
-                    <div class="space-y-1">
-                      <span class="text-[11px] font-bold text-muted-foreground uppercase">{t('task.detail_panel.learning_objectives', {}, 'Learning objectives')}</span>
-                      <ul class="list-disc list-inside text-xs pl-0.5 text-muted-foreground space-y-0.5">
-                        {#each task.learning_objectives as obj}
-                          <li><span class="text-foreground">{obj}</span></li>
-                        {/each}
-                      </ul>
-                    </div>
-                  {/if}
-
-                  <!-- Advanced Info Grid -->
-                  <div class="border-t pt-3 space-y-2">
-                    <span class="text-[11px] font-bold text-muted-foreground uppercase block">{t('task.detail_panel.ai_dispute_info', {}, 'AI and dispute resolution info')}</span>
-                    <div class="grid grid-cols-2 gap-2 text-xs">
-                      {#if task.task_type}
-                        <div class="rounded border p-1.5 bg-muted/20">
-                          <span class="text-[9px] text-muted-foreground block font-bold uppercase">{t('task.detail_panel.task_type', {}, 'Task type')}</span>
-                          <span class="font-medium truncate block">{task.task_type}</span>
-                        </div>
-                      {/if}
-                      {#if task.environment}
-                        <div class="rounded border p-1.5 bg-muted/20">
-                          <span class="text-[9px] text-muted-foreground block font-bold uppercase">{t('task.detail_panel.environment', {}, 'Environment')}</span>
-                          <span class="font-medium truncate block">{task.environment}</span>
-                        </div>
-                      {/if}
-                      {#if task.collaboration_type}
-                        <div class="rounded border p-1.5 bg-muted/20">
-                          <span class="text-[9px] text-muted-foreground block font-bold uppercase">{t('task.detail_panel.collaboration', {}, 'Collaboration')}</span>
-                          <span class="font-medium truncate block">{task.collaboration_type}</span>
-                        </div>
-                      {/if}
-                      {#if task.role_in_task}
-                        <div class="rounded border p-1.5 bg-muted/20">
-                          <span class="text-[9px] text-muted-foreground block font-bold uppercase">{t('task.detail_panel.role', {}, 'Role')}</span>
-                          <span class="font-medium truncate block">{task.role_in_task}</span>
-                        </div>
-                      {/if}
-                      {#if task.autonomy_level}
-                        <div class="rounded border p-1.5 bg-muted/20">
-                          <span class="text-[9px] text-muted-foreground block font-bold uppercase">{t('task.detail_panel.autonomy', {}, 'Autonomy')}</span>
-                          <span class="font-medium truncate block">{task.autonomy_level}</span>
-                        </div>
-                      {/if}
-                      {#if task.problem_category}
-                        <div class="rounded border p-1.5 bg-muted/20">
-                          <span class="text-[9px] text-muted-foreground block font-bold uppercase">{t('task.detail_panel.problem', {}, 'Problem')}</span>
-                          <span class="font-medium truncate block">{task.problem_category}</span>
-                        </div>
-                      {/if}
-                      {#if task.business_domain}
-                        <div class="rounded border p-1.5 bg-muted/20">
-                          <span class="text-[9px] text-muted-foreground block font-bold uppercase">{t('task.detail_panel.business_domain', {}, 'Business domain')}</span>
-                          <span class="font-medium truncate block">{task.business_domain}</span>
-                        </div>
-                      {/if}
-                      {#if task.estimated_users_affected !== undefined && task.estimated_users_affected !== null}
-                        <div class="rounded border p-1.5 bg-muted/20">
-                          <span class="text-[9px] text-muted-foreground block font-bold uppercase font-bold">{t('task.detail_panel.affected_users', {}, 'Affected users')}</span>
-                          <span class="font-medium block">{task.estimated_users_affected}</span>
-                        </div>
-                      {/if}
-                      {#if task.complexity_notes}
-                        <div class="col-span-full rounded border p-1.5 bg-muted/20">
-                          <span class="text-[9px] text-muted-foreground block font-bold uppercase">{t('task.detail_panel.complexity_notes', {}, 'Complexity notes')}</span>
-                          <span class="font-medium block whitespace-pre-wrap">{task.complexity_notes}</span>
-                        </div>
-                      {/if}
-                    </div>
-                  </div>
-
-                  <TaskExecutionBrief task={task} />
-                </div>
+                </details>
               {/if}
 
               {#if task.id && canOpenWorkTabs}
-                <div class="space-y-4 rounded-lg border bg-background/70 p-4" data-testid="task-drawer-work-surfaces">
-                  <section aria-labelledby="task-drawer-submission-heading">
-                    <h3 id="task-drawer-submission-heading" class="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      {t('task.tabs.submission', {}, 'Submission')}
-                    </h3>
-                    <TaskSubmissionPanel
-                      taskId={task.id}
-                      isAssignee={Boolean(effectiveWorkSurfacePermissions?.isAssignee || task.assigned_to === currentUserId || task.assignee?.id === currentUserId)}
-                      task={{
-                        verification_method: task.verification_method,
-                        acceptance_criteria: task.acceptance_criteria,
-                      }}
-                    />
-                  </section>
-
-                  <section aria-labelledby="task-drawer-files-heading">
-                    <h3 id="task-drawer-files-heading" class="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      {t('task.tabs.files', {}, 'Files')}
-                    </h3>
-                    <TaskFilesTab taskId={task.id} {currentUserId} />
-                  </section>
-                </div>
-
-                <div class="rounded-lg border bg-background/70 p-4">
-                  <TaskDiscussionTab taskId={task.id} {currentUserId} />
-                </div>
+                <section class="rounded-lg border bg-background/70 p-4" data-testid="task-detail-files">
+                  <button
+                    type="button"
+                    class="flex w-full items-center justify-between gap-3 text-left"
+                    aria-expanded={filesOpen}
+                    onclick={() => { filesOpen = !filesOpen }}
+                  >
+                    <span class="font-semibold">{t('task.files_tab.title', {}, 'Attachments')}</span>
+                    <span class="text-xs text-muted-foreground">
+                      {filesOpen ? t('common.collapse', {}, 'Thu gọn') : t('common.expand', {}, 'Mở khi cần')}
+                    </span>
+                  </button>
+                  <p class="mt-1 text-xs text-muted-foreground">
+                    {t('task.files_tab.supporting_help', {}, 'Tài liệu hỗ trợ cho task; không phải bằng chứng bắt buộc để chuyển trạng thái.')}
+                  </p>
+                  {#if filesOpen}
+                    <div class="mt-4">
+                      <TaskFilesTab taskId={task.id} {currentUserId} />
+                    </div>
+                  {/if}
+                </section>
               {/if}
             </div>
           </section>

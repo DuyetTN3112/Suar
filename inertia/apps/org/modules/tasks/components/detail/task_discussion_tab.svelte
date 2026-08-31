@@ -385,7 +385,7 @@
       />
     {/if}
 
-    <div class="space-y-3 border-t border-border/70 pt-4">
+    <div class="space-y-3 pt-4">
       {#if replyingToComment}
         <div class="rounded-lg border border-border bg-secondary/40 px-3 py-3 text-sm">
           <div class="flex items-center justify-between gap-3">

@@ -8,9 +8,6 @@
   import CardHeader from '@/apps/org/shared/ui/card_header.svelte'
   import CardTitle from '@/apps/org/shared/ui/card_title.svelte'
   import CardContent from '@/apps/org/shared/ui/card_content.svelte'
-  import Tabs from '@/apps/org/shared/ui/tabs.svelte'
-  import TabsList from '@/apps/org/shared/ui/tabs_list.svelte'
-  import TabsTrigger from '@/apps/org/shared/ui/tabs_trigger.svelte'
   import { FRONTEND_ROUTES } from '@/apps/org/shared/constants'
   import { resolveBrowserCurrentUrl } from '@/apps/org/shared/components/navigation_helpers'
   import OrganizationLayout from '@/apps/org/shared/layouts/organization_layout.svelte'
@@ -25,9 +22,10 @@
   import ProjectSkillsTab from './components/project_skills_tab.svelte'
   import ProjectSprintPanel from './components/project_sprint_panel.svelte'
   import ProjectOperatingModelTab from './components/project_operating_model_tab.svelte'
+  import ProjectWorkflowSettings from '@/apps/shared/tasks/project_workflow_settings.svelte'
   import type { ProjectMember, ProjectShowProps } from './types'
 
-  type ProjectTab = 'details' | 'members' | 'skills' | 'roles' | 'operating_model' | 'sprints'
+  type ProjectTab = 'details' | 'members' | 'skills' | 'roles' | 'operating_model' | 'sprints' | 'workflow'
 
   interface ProfessionalRoleOption {
     id: string
@@ -36,9 +34,15 @@
     isActive?: boolean
   }
 
+  interface ProjectContextReloadCallbacks {
+    onSuccess: () => void
+    onError: () => void
+  }
+
   const {
     project,
     members,
+    project_context,
     permissions,
     shellMode = 'app',
     baseRoute = FRONTEND_ROUTES.PROJECTS,
@@ -82,12 +86,21 @@
     name: '',
     description: '',
     status: 'pending',
+    businessDomains: [] as string[],
   })
 
   const currentUrl = $derived(resolveBrowserCurrentUrl(page.url))
   const currentQuery = $derived(new URLSearchParams(currentUrl.split('?')[1] ?? ''))
   const focusMode = $derived(currentQuery.get('focus') ?? currentQuery.get('tab'))
   const activeProfessionalRoles = $derived(projectProfessionalRoles.filter((role) => role.isActive !== false))
+
+  function reloadProjectContext({ onSuccess, onError }: ProjectContextReloadCallbacks): void {
+    router.reload({
+      only: ['project_context'],
+      onSuccess,
+      onError: () => onError(),
+    })
+  }
   const staffedProfessionalRoleIds = $derived(
     [...new Set(
       safeMembers
@@ -114,6 +127,7 @@
       editForm.name = projectState.name
       editForm.description = projectState.description ?? ''
       editForm.status = projectState.status ?? 'pending'
+      editForm.businessDomains = projectState.business_domains ?? []
     }
   })
 
@@ -126,6 +140,7 @@
       else if (focusMode === 'roles') nextTab = 'roles'
       else if (focusMode === 'operating_model') nextTab = 'operating_model'
       else if (focusMode === 'sprints') nextTab = 'sprints'
+      else if (focusMode === 'workflow') nextTab = 'workflow'
       activeTab = nextTab
     }
   })
@@ -186,12 +201,14 @@
         name: editForm.name.trim(),
         description: editForm.description.trim() || null,
         status: editForm.status,
+        business_domains: editForm.businessDomains,
       })
       projectState = {
         ...projectState,
         name: editForm.name.trim(),
         description: editForm.description.trim() || undefined,
         status: editForm.status,
+        business_domains: editForm.businessDomains,
       }
       editing = false
       notificationStore.success(t('project.show_page.update_success', {}, 'Project updated'))
@@ -254,24 +271,6 @@
     }
   }
 
-  function setActiveProjectTab(value: string) {
-    const nextTab = value as ProjectTab
-    activeTab = nextTab
-    const params = new URLSearchParams(currentUrl.split('?')[1] ?? '')
-    if (nextTab === 'details') {
-      params.delete('focus')
-      params.delete('tab')
-    } else {
-      params.set('focus', nextTab)
-      params.delete('tab')
-    }
-    const query = params.toString()
-    router.visit(`${baseRoute}/${project.id}${query ? `?${query}` : ''}`, {
-      preserveState: true,
-      preserveScroll: true,
-      replace: true,
-    })
-  }
 </script>
 
 <svelte:head>
@@ -314,24 +313,15 @@
       </div>
     </div>
 
-    <Tabs value={activeTab} onValueChange={setActiveProjectTab}>
-      <div class="overflow-x-auto rounded-2xl border border-border bg-card p-2">
-        <TabsList>
-          <TabsTrigger value="details">{t('project.show_page.tab_details', {}, 'Details')}</TabsTrigger>
-          <TabsTrigger value="members">{t('project.show_page.tab_members', {}, 'Members')}</TabsTrigger>
-          <TabsTrigger value="skills">{t('project.show_page.tab_skills', {}, 'Skills')}</TabsTrigger>
-          <TabsTrigger value="roles">{t('project.show_page.tab_roles', {}, 'Roles')}</TabsTrigger>
-          <TabsTrigger value="operating_model">{t('project.show_page.tab_operating_model', {}, 'Operating model')}</TabsTrigger>
-          <TabsTrigger value="sprints">{t('project.show_page.tab_sprints', {}, 'Sprints')}</TabsTrigger>
-        </TabsList>
-      </div>
-    </Tabs>
-
     {#if activeTab === 'details'}
       <ProjectDetailsTab
         bind:projectState
         bind:editing
         bind:editForm
+        projectContext={project_context}
+        canEdit={permissions.canEdit ?? (permissions.isOwner || permissions.isManager || permissions.isCreator)}
+        onProjectContextPublished={() => router.reload({ only: ['project_context'] })}
+        onProjectContextConflict={reloadProjectContext}
         {formatDate}
       />
     {:else if activeTab === 'members'}
@@ -414,6 +404,11 @@
           canManage={permissions.canEdit ?? (permissions.isOwner || permissions.isManager || permissions.isCreator)}
         />
       </section>
+    {:else if activeTab === 'workflow'}
+      <ProjectWorkflowSettings
+        projectId={project.id}
+        canManage={Boolean(permissions.canEdit ?? (permissions.isCreator || permissions.isManager || permissions.isOwner))}
+      />
     {/if}
   </div>
 </OrganizationLayout>
