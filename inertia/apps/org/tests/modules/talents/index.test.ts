@@ -56,6 +56,19 @@ describe('OrgTalentsPage', () => {
             id: 'talent-1',
             username: 'duyet',
             status: 'active',
+            public_accomplishments: [
+              {
+                title: 'Checkout reliability',
+                concise_statement: 'Reduced payment failure rate',
+                action: 'improved',
+                object: 'checkout',
+                role: 'owner',
+                ownership_level: 'primary_owner',
+                verification_status: 'verified',
+                confidence_band: 'high',
+                published_at: '2026-07-01T00:00:00.000Z',
+              },
+            ],
             bookmark: {
               id: null,
               isSaved: false,
@@ -121,6 +134,67 @@ describe('OrgTalentsPage', () => {
     expect(screen.getByRole('link', { name: /trang trước/i })).toHaveAttribute(
       'href',
       '/org/talents?q=backend&task_id=task-1&skill_categories=technology&skill_ids=skill-1&business_domain=fintech&task_type=api_design&problem_category=compliance&role_in_task=architect&tech_stack=AdonisJS&domain_tags=settlement&sort_by=trust_score&page=1'
+    )
+  })
+
+  it('preserves the cursor page size in older-page links', () => {
+    renderPage({
+      filters: {
+        q: null,
+        skill_ids: ['skill-1'],
+        sort_by: 'trust_score',
+        sort_order: 'desc',
+        min_proficiency: 'l10',
+      },
+      pagination: {
+        mode: 'cursor',
+        page: 1,
+        perPage: 1,
+        total: 2,
+        lastPage: 2,
+        hasNextPage: true,
+        hasPreviousPage: false,
+        cursor: {
+          nextCursor: 'opaque-next-cursor',
+          previousCursor: null,
+        },
+      },
+    })
+
+    expect(screen.getByRole('link', { name: /cũ hơn/i })).toHaveAttribute(
+      'href',
+      expect.stringContaining('per_page=1')
+    )
+    expect(screen.getByText('1-1 / 2')).toBeInTheDocument()
+  })
+
+  it('keeps the skill filter collapsed until it is needed', () => {
+    renderPage({
+      filters: {
+        q: null,
+        task_id: null,
+        skill_categories: null,
+        skill_ids: null,
+        sort_by: 'trust_score',
+        sort_order: 'desc',
+      },
+    })
+
+    expect(screen.getByTestId('talent-skill-filter')).not.toHaveAttribute('open')
+  })
+
+  it('shows public demonstrated work with governed verification context', () => {
+    renderPage()
+
+    expect(screen.getByTestId('public-accomplishments-talent-1')).toHaveTextContent(
+      'Checkout reliability'
+    )
+    expect(screen.getByTestId('public-accomplishments-talent-1')).toHaveTextContent(
+      'Reduced payment failure rate'
+    )
+    expect(screen.getByTestId('public-accomplishments-talent-1')).toHaveTextContent('Verified')
+    expect(screen.getByTestId('public-accomplishments-talent-1')).not.toHaveTextContent(
+      'reviewer'
     )
   })
 
@@ -238,14 +312,11 @@ describe('OrgTalentsPage', () => {
       },
     })
 
-    await fireEvent.click(screen.getByLabelText('Thực thi'))
-    expect(screen.queryByRole('option', { name: /TypeScript/ })).not.toBeInTheDocument()
-    expect(screen.getByRole('option', { name: 'Release Planning · Delivery' })).toBeInTheDocument()
+    await fireEvent.click(screen.getByLabelText('Quản lý công việc'))
+    expect(screen.queryByText('TypeScript · Technology')).not.toBeInTheDocument()
+    expect(screen.getByText('Release Planning · Delivery')).toBeInTheDocument()
 
-    const skillSelect = screen.getByTestId('talent-skill-filter')
-    await fireEvent.change(skillSelect, {
-      target: { value: 'skill-2' },
-    })
+    await fireEvent.click(screen.getByLabelText('Release Planning · Delivery'))
     await fireEvent.change(screen.getByTestId('talent-business-domain'), {
       target: { value: 'fintech' },
     })
@@ -277,6 +348,89 @@ describe('OrgTalentsPage', () => {
         role_in_task: 'architect',
         tech_stack: 'AdonisJS',
         domain_tags: 'settlement',
+      }),
+      { preserveState: false, preserveScroll: true }
+    )
+  })
+
+  it('submits all selected skills for same-talent matching', async () => {
+    inertiaMocks.router.get.mockClear()
+    renderPage({
+      filters: {
+        q: null,
+        task_id: null,
+        skill_categories: null,
+        skill_ids: null,
+        business_domain: null,
+        task_type: null,
+        problem_category: null,
+        role_in_task: null,
+        tech_stack: null,
+        domain_tags: null,
+        sort_by: 'relevance',
+        sort_order: 'desc',
+        saved: null,
+        min_trust_score: null,
+        min_completed_tasks: null,
+      },
+    })
+
+    const skillSelect = screen.getByTestId('talent-skill-filter')
+    expect(skillSelect.querySelectorAll('input[type="checkbox"]')).toHaveLength(4)
+    await fireEvent.click(screen.getByLabelText('Release Planning · Delivery'))
+    await fireEvent.click(screen.getByLabelText('API Design · Engineering'))
+    await fireEvent.click(screen.getByRole('button', { name: /tìm kiếm/i }))
+
+    expect(inertiaMocks.router.get).toHaveBeenCalledWith(
+      '/org/talents',
+      expect.objectContaining({ skill_ids: 'skill-2,skill-4' }),
+      { preserveState: false, preserveScroll: true }
+    )
+  })
+
+  it('keeps legacy filters when the discovery page uses cursor pagination', async () => {
+    inertiaMocks.router.get.mockClear()
+    renderPage({
+      filters: {
+        q: null,
+        task_id: null,
+        skill_categories: null,
+        skill_ids: null,
+        business_domain: null,
+        task_type: null,
+        problem_category: null,
+        role_in_task: null,
+        tech_stack: null,
+        domain_tags: null,
+        sort_by: 'relevance',
+        sort_order: 'desc',
+        saved: null,
+        min_trust_score: null,
+        min_completed_tasks: null,
+      },
+      pagination: {
+        mode: 'cursor',
+        page: 1,
+        perPage: 10,
+        total: 25,
+        lastPage: 1,
+        hasNextPage: true,
+        hasPreviousPage: false,
+        cursor: { nextCursor: 'next', previousCursor: null },
+      },
+    })
+
+    await fireEvent.click(screen.getByLabelText('Công nghệ'))
+    await fireEvent.change(screen.getByTestId('talent-search-task'), {
+      target: { value: 'task-2' },
+    })
+    await fireEvent.click(screen.getByRole('button', { name: /tìm kiếm/i }))
+
+    expect(inertiaMocks.router.get).toHaveBeenCalledWith(
+      '/org/talents',
+      expect.objectContaining({
+        task_id: 'task-2',
+        skill_categories: ['technology'],
       }),
       { preserveState: false, preserveScroll: true }
     )

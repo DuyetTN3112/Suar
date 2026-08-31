@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Link, router } from '@inertiajs/svelte'
+  import { Link } from '@inertiajs/svelte'
   import { format } from 'date-fns'
   import { Bell, Check, LoaderCircle, Trash2 } from 'lucide-svelte'
 
@@ -102,11 +102,6 @@
     if (!notification.isRead) {
       void notificationState.markAsRead(notification.id)
     }
-    const { url } = getNotificationResolution(notification)
-    if (url) {
-      open = false
-      router.visit(url)
-    }
   }
 </script>
 
@@ -132,7 +127,7 @@
     }
   }}
 >
-  <DropdownMenuTrigger>
+  <DropdownMenuTrigger aria-label={t('notifications.open', {}, 'Open notifications')}>
     <div class="relative inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground {className}">
       <Bell class="h-5 w-5" />
       {#if notificationState.unreadCount > 0}
@@ -169,10 +164,18 @@
       {:else}
         <div class="divide-y divide-border/40">
           {#each notificationState.notifications as notification}
+            {@const resolution = getNotificationResolution(notification)}
             <DropdownMenuItem
               class="flex flex-col items-start p-4 cursor-pointer focus:bg-muted/50 {notification.isRead ? 'bg-muted/50' : 'bg-background'}"
-              onclick={() => { handleNotificationClick(notification) }}
             >
+              {#if resolution.url}
+                <Link
+                  href={resolution.url}
+                  aria-label={notification.title || t('notifications.open', {}, 'Open notification')}
+                  class="absolute inset-0 z-10"
+                  onclick={() => { handleNotificationClick(notification) }}
+                />
+              {/if}
               <div class="w-full">
                 <div class="flex justify-between items-start">
                   <div class="flex-1">
@@ -199,7 +202,7 @@
                       </div>
                     {/if}
                   </div>
-                  <div class="flex gap-1 ml-2">
+                  <div class="relative z-20 flex gap-1 ml-2">
                     {#if !notification.isRead}
                         <Button
                           variant="ghost"

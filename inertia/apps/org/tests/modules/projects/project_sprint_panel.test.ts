@@ -92,130 +92,20 @@ describe('ProjectSprintPanel', () => {
     vi.clearAllMocks()
   })
 
-  it('loads sprint list and closes active sprint into the review window', async () => {
-    mockedAxios.get.mockImplementation((url: string) => {
-      if (url === '/api/v1/projects/project-1/sprint-board') {
-        return Promise.resolve({
-          data: {
-            data: {
-              projectId: 'project-1',
-              sprint: null,
-              backlogTasks: [],
-              sprintTasks: [],
-              counts: { backlogTasks: 0, sprintTasks: 0 },
-            },
-          },
-        })
-      }
-
-      return Promise.resolve({
-        data: {
-          data: [
-            {
-              id: 'sprint-1',
-              name: 'Sprint One',
-              goal: null,
-              status: 'active',
-              startsAt: '2026-07-01T00:00:00.000Z',
-              endsAt: '2026-07-14T00:00:00.000Z',
-              reviewOpenedAt: null,
-              reviewClosedAt: null,
-            },
-          ],
-          pagination: {
-            mode: 'offset',
-            page: 2,
-            perPage: 10,
-            total: 24,
-            lastPage: 3,
-            hasNextPage: true,
-            hasPreviousPage: true,
-          },
-        },
-      })
-    })
-    mockedAxios.post.mockResolvedValue({ data: { data: { sprintId: 'sprint-1' } } })
-    mockedAxios.get.mockResolvedValueOnce({
-      data: {
-        data: [
-          {
-              id: 'sprint-1',
-              name: 'Sprint One',
-              goal: null,
-              status: 'active',
-            startsAt: '2026-07-01T00:00:00.000Z',
-            endsAt: '2026-07-14T00:00:00.000Z',
-            reviewOpenedAt: null,
-            reviewClosedAt: null,
-          },
-        ],
-        pagination: {
-          mode: 'offset',
-          page: 2,
-          perPage: 10,
-          total: 24,
-          lastPage: 3,
-          hasNextPage: true,
-          hasPreviousPage: true,
-        },
-      },
-    })
-    mockedAxios.get.mockResolvedValueOnce({
-      data: {
-        data: {
-          projectId: 'project-1',
-          sprint: null,
-          backlogTasks: [],
-          sprintTasks: [],
-          counts: { backlogTasks: 0, sprintTasks: 0 },
-        },
-      },
-    })
-    mockedAxios.get.mockResolvedValueOnce({
-        data: {
-          data: [
-            {
-              id: 'sprint-1',
-              name: 'Sprint One',
-              goal: null,
-              status: 'review_open',
-              startsAt: '2026-07-01T00:00:00.000Z',
-              endsAt: '2026-07-14T00:00:00.000Z',
-              reviewOpenedAt: '2026-07-14T01:00:00.000Z',
-              reviewClosedAt: null,
-            },
-          ],
-        },
-      })
-    mockedAxios.get.mockResolvedValueOnce({
-      data: {
-        data: {
-          projectId: 'project-1',
-          sprint: null,
-          backlogTasks: [],
-          sprintTasks: [],
-          counts: { backlogTasks: 0, sprintTasks: 0 },
-        },
-      },
-    })
-
-    render(ProjectSprintPanel, {
-      props: {
-        projectId: 'project-1',
-        canManage: true,
-      },
-    })
+  it('opens end-delivery dialog and requires destinations for incomplete work', async () => {
+    mockSprintListAndBoard()
+    render(ProjectSprintPanel, { props: { projectId: 'project-1', canManage: true } })
 
     await waitFor(() => expect(screen.getByText('Sprint One')).toBeInTheDocument())
-    expect(screen.getByText('11-20 / 24')).toBeInTheDocument()
-
     await fireEvent.click(screen.getByRole('button', { name: 'Kết thúc sprint' }))
 
-    expect(mockedAxios.post.mock.calls[0]).toEqual([
-      '/api/v1/projects/project-1/sprints/sprint-1/open-review',
-      {},
-    ])
-    await waitFor(() => expect(screen.getByText('Đang review')).toBeInTheDocument())
+    expect(screen.getByRole('dialog', { name: /End Sprint delivery|Kết thúc delivery sprint/i })).toBeInTheDocument()
+    expect(screen.getByText(/Incomplete work must be explicitly planned before delivery ends|Công việc chưa hoàn thành phải được lập kế hoạch rõ ràng/i)).toBeInTheDocument()
+    await fireEvent.click(screen.getByRole('button', { name: /End delivery|Kết thúc delivery/i }))
+    expect(screen.getByRole('alert')).toBeInTheDocument()
+    expect(mockedAxios.post).not.toHaveBeenCalled()
+    await fireEvent.click(screen.getByRole('button', { name: /Cancel|Hủy/i }))
+    expect(screen.queryByRole('dialog', { name: /End Sprint delivery|Kết thúc delivery sprint/i })).not.toBeInTheDocument()
   })
 
   it('loads sprint board and moves tasks between backlog and selected sprint', async () => {
@@ -258,6 +148,22 @@ describe('ProjectSprintPanel', () => {
     expect(screen.queryByRole('button', { name: 'Mở review' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Đưa vào sprint' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Về backlog' })).not.toBeInTheDocument()
+  })
+
+  it('starts a draft sprint through the named start action', async () => {
+    mockedAxios.get.mockImplementation((url: string) => {
+      if (url === '/api/v1/projects/project-1/sprint-board') {
+        return Promise.resolve({ data: { data: { projectId: 'project-1', sprint: null, backlogTasks: [], sprintTasks: [], counts: { backlogTasks: 0, sprintTasks: 0 } } } })
+      }
+      return Promise.resolve({ data: { data: [{ id: 'sprint-draft', name: 'Draft Sprint', goal: null, status: 'draft', startsAt: '2026-07-01T00:00:00.000Z', endsAt: '2026-07-14T00:00:00.000Z', reviewOpenedAt: null, reviewClosedAt: null }] } })
+    })
+    mockedAxios.post.mockResolvedValue({ data: { data: { id: 'sprint-draft', status: 'active' } } })
+
+    render(ProjectSprintPanel, { props: { projectId: 'project-1', canManage: true } })
+    await waitFor(() => expect(screen.getByText('Draft Sprint')).toBeInTheDocument())
+    await fireEvent.click(screen.getByRole('button', { name: /Start sprint|Bắt đầu sprint/i }))
+
+    expect(mockedAxios.post).toHaveBeenCalledWith('/api/v1/projects/project-1/sprints/sprint-draft/start', {})
   })
 
   it('keeps sprint planning copy concise in the main workbench', async () => {
@@ -352,7 +258,7 @@ describe('ProjectSprintPanel', () => {
         goal: 'Make sprint planning usable before review opens',
         startsAt: anyString,
         endsAt: anyString,
-        status: 'active',
+        status: 'draft',
       })
     ])
   })

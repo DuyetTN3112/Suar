@@ -24,6 +24,8 @@ export const FRONTEND_ROUTES = {
   ORG_SETTINGS: '/org/settings',
   ORG_PROJECTS: '/org/projects',
   ORG_TALENTS: '/org/talents',
+  ORG_TASKS: '/org/tasks/board',
+  ORG_TASKS_WORKFLOW: '/org/tasks/workflow',
   ORG_BOOKMARKS: '/org/bookmarks',
   ORG_MARKETPLACE_TASKS: '/org/marketplace/tasks',
   ORG_APPLICATIONS: '/org/applications',
@@ -40,6 +42,10 @@ export const FRONTEND_ROUTES = {
 
 export function getTaskDetailRoute(taskId: string): string {
   return `${FRONTEND_ROUTES.TASKS}/${taskId}`
+}
+
+export function getMarketplaceTaskDetailRoute(taskId: string): string {
+  return `${FRONTEND_ROUTES.ORG_MARKETPLACE_TASKS}/${taskId}`
 }
 
 export function getTaskApplicationsRoute(taskId: string): string {

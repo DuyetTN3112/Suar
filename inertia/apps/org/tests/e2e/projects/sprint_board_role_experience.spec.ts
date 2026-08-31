@@ -47,7 +47,7 @@ async function csrfToken(page: Page): Promise<string> {
 async function screenshot(page: Page, name: string) {
   const path = resolve(SCREENSHOT_DIR, `${name}.png`)
   mkdirSync(dirname(path), { recursive: true })
-  await page.getByRole('heading', { name: /^Backlog$/ }).scrollIntoViewIfNeeded()
+  await page.getByRole('heading', { name: /Product Backlog|^Backlog$/ }).scrollIntoViewIfNeeded()
   await page.screenshot({ path, fullPage: false })
 }
 
@@ -64,21 +64,24 @@ test.describe('Sprint board role experience', () => {
     await page.goto(`${BASE_URL}/org/projects/${seed.projectId}?focus=sprints`)
     await page.waitForLoadState('networkidle')
 
-    await expect(page.getByRole('region', { name: 'Sprint của project' })).toBeVisible()
-    await expect(page.getByRole('heading', { name: /^Backlog$/ })).toBeVisible()
+    await expect(page.getByRole('region', { name: 'Project sprints' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: /Product Backlog|^Backlog$/ })).toBeVisible()
     await expect(page.getByText(/Seed Sprint Task/).first()).toBeVisible()
-    await page.getByRole('button', { name: 'Đưa vào sprint' }).click()
-    await expect(page.getByRole('button', { name: 'Về backlog' })).toBeVisible()
+    await page.getByRole('button', { name: /Move to sprint|Đưa vào sprint/ }).click()
+    await expect(page.getByRole('button', { name: /Move to backlog|Về backlog/ })).toBeVisible()
     await screenshot(page, '01-manager-sprint-management-board')
 
     await login(page, seed.workerEmail, { organizationId: seed.organizationId })
-    await page.goto(`${BASE_URL}/projects/${seed.projectId}/tasks`)
-    await page.waitForLoadState('networkidle')
-
-    await expect(page.locator('.task-board-surface')).toBeVisible()
-    await expect(page.getByRole('button', { name: 'Đưa vào sprint' })).toHaveCount(0)
-    await expect(page.getByRole('button', { name: 'Về backlog' })).toHaveCount(0)
-    await expect(page.getByRole('button', { name: 'Kết thúc sprint' })).toHaveCount(0)
+    const workerMutation = await page.request.patch(
+      `${BASE_URL}/api/v1/projects/${seed.projectId}/tasks/${seed.taskId}/sprint`,
+      {
+        data: { projectSprintId: null },
+        headers: {
+          Accept: 'application/json',
+        },
+      }
+    )
+    expect(workerMutation.status()).toBe(403)
 
     expect(browserErrors).toEqual([])
   })
@@ -94,9 +97,9 @@ test.describe('Sprint board role experience', () => {
     await page.goto(`${BASE_URL}/org/projects/${seed.projectId}?focus=sprints`)
     await page.waitForLoadState('networkidle')
 
-    await expect(page.getByRole('heading', { name: /^Backlog$/ })).toBeVisible()
+    await expect(page.getByRole('heading', { name: /Product Backlog|^Backlog$/ })).toBeVisible()
     await expect(page.getByText(/Seed Sprint Task/).first()).toBeVisible()
-    await expect(page.getByRole('button', { name: 'Đưa vào sprint' })).toBeVisible()
+    await expect(page.getByRole('button', { name: /Move to sprint|Đưa vào sprint/ })).toBeVisible()
 
     const response = await page.request.patch(
       `${BASE_URL}/api/v1/projects/${seed.projectId}/tasks/${seed.taskId}/sprint`,
@@ -110,12 +113,18 @@ test.describe('Sprint board role experience', () => {
     )
     expect(response.status()).toBe(400)
 
-    await page.goto(`${BASE_URL}/org/projects/${seed.projectId}?focus=sprints`)
-    await page.waitForLoadState('networkidle')
-
-    await expect(page.getByText(/Seed Sprint Task/).first()).toBeVisible()
-    await expect(page.getByRole('button', { name: 'Đưa vào sprint' })).toBeVisible()
-    await expect(page.getByRole('button', { name: 'Về backlog' })).toHaveCount(0)
+    const boardResponse = await page.request.get(
+      `${BASE_URL}/api/v1/projects/${seed.projectId}/sprint-board`
+    )
+    expect(boardResponse.ok()).toBe(true)
+    const boardBody = (await boardResponse.json()) as {
+      data: {
+        backlogTasks: Array<{ id: string }>
+        sprintTasks: Array<{ id: string }>
+      }
+    }
+    expect(boardBody.data.backlogTasks.some((task) => task.id === seed.taskId)).toBe(true)
+    expect(boardBody.data.sprintTasks.some((task) => task.id === seed.taskId)).toBe(false)
     expect(browserErrors).toEqual([])
   })
 })

@@ -46,11 +46,10 @@ test.describe('Org Project Detail Split', () => {
       .getByRole('navigation')
       .filter({ has: page.getByRole('button', { name: /Project hiện tại/i }) })
     let operatingModelSidebarButton = projectNavigation.getByRole('button', { name: /Operating model/i })
-
-    if (await operatingModelSidebarButton.count() === 0) {
+    if (!(await operatingModelSidebarButton.isVisible())) {
       await projectNavigation.getByRole('button', { name: /Project hiện tại/i }).click()
-      operatingModelSidebarButton = projectNavigation.getByRole('button', { name: /Operating model/i })
     }
+    await expect(operatingModelSidebarButton).toBeVisible()
     await expect(
       projectNavigation.getByRole('button', { name: /Vai trò project & phân công/i })
     ).toBeVisible()
