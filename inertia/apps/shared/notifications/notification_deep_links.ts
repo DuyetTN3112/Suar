@@ -134,9 +134,7 @@ function resolveEntity(
     }
     case 'organization':
       if (notification.type === 'organization_join_request') {
-        return shell === 'org'
-          ? route('/org', '/invitations/requests')
-          : withReason('Join request notification is only resolvable in the org shell')
+        return route('/org', '/invitations/requests')
       }
       if (notification.type.includes('invitation')) {
         return route('', '/profile/invitations')
