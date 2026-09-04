@@ -12,6 +12,37 @@ interface TaskDetailResponse {
   data?: TaskDetail
 }
 
+export interface TaskDetailUpdatePayload {
+  title?: string
+  description?: string
+  priority?: string | null
+  label?: string | null
+  assigned_to?: string | null
+  due_date?: string | null
+  estimated_time?: number
+  actual_time?: number
+  task_visibility?: 'project' | 'internal' | 'external' | 'all'
+  task_type?: string
+  acceptance_criteria?: string
+  verification_method?: string
+  expected_deliverables?: Array<{ title: string; description?: string }>
+  context_background?: string
+  impact_scope?: string
+  tech_stack?: string[]
+  domain_tags?: string[]
+  learning_objectives?: string[]
+  measurable_outcomes?: Array<{ title: string; description?: string }>
+  environment?: string
+  collaboration_type?: string
+  complexity_notes?: string
+  role_in_task?: string
+  autonomy_level?: string
+  problem_category?: string
+  business_domain?: string
+  estimated_users_affected?: number
+  authoring?: Record<string, unknown>
+}
+
 interface TaskCompletionStatus {
   value: string
   label: string
@@ -42,6 +73,19 @@ export const loadAuditLogs = async (taskId: string): Promise<AuditLog[]> => {
  */
 export const loadTaskDetail = async (taskId: string): Promise<TaskDetail> => {
   const response = await axios.get<TaskDetailResponse>(`/api/v1/tasks/${taskId}`)
+  if (!response.data.data) {
+    throw new ApiResponseContractError()
+  }
+
+  return response.data.data
+}
+
+/** Update the editable task fields from its project board detail panel. */
+export const updateTaskDetail = async (
+  taskId: string,
+  payload: TaskDetailUpdatePayload
+): Promise<TaskDetail> => {
+  const response = await axios.put<TaskDetailResponse>(`/tasks/${taskId}`, payload)
   if (!response.data.data) {
     throw new ApiResponseContractError()
   }

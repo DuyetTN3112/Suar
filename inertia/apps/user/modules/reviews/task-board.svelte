@@ -15,8 +15,11 @@
     | 'disputed'
     | 'reported'
     | 'ai_reviewing'
+    | 'ai_failed'
+    | 'admin_reviewing'
     | 'resolved'
     | 'done'
+  type UserVisibleWorkflowStatus = Exclude<WorkflowStatus, 'ai_reviewing' | 'ai_failed'>
 
   interface BoardCard {
     taskId: string
@@ -69,6 +72,7 @@
 
   interface Detail {
     task: Record<string, unknown>
+    assignment?: Record<string, unknown> | null
     workflow: Record<string, unknown> | null
     reviewers: Reviewer[]
     comments: DetailUserMessage[]
@@ -80,6 +84,7 @@
     selectedTaskId: string | null
     board: { projectId: string | null; columns: BoardColumn[] }
     detail: Detail | null
+    workspaceMode?: 'personal' | 'project'
     projectContext?: {
       selectedProject?: ReviewBoardProjectOption | null
     } | null
@@ -91,8 +96,8 @@
   }
 
   interface ReviewBoardAuthUser {
+    current_organization_role?: string | null
     current_project?: ReviewBoardProjectOption | null
-    projects?: ReviewBoardProjectOption[]
   }
 
   interface ReviewBoardPageLike {
@@ -103,7 +108,14 @@
     url: string
   }
 
-  const { projectId, selectedTaskId, board, detail, projectContext }: Props = $props()
+  const {
+    projectId,
+    selectedTaskId,
+    board,
+    detail,
+    projectContext,
+    workspaceMode = 'project',
+  }: Props = $props()
   const { t } = useTranslation()
   const currentPage = page as unknown as ReviewBoardPageLike
   const flash = $derived(currentPage.props.flash)
@@ -114,20 +126,32 @@
   const currentProject = $derived(
     projectContext?.selectedProject ?? currentPage.props.auth?.user?.current_project ?? null
   )
-  const projectOptions = $derived(currentPage.props.auth?.user?.projects ?? [])
   const activeProjectId = $derived(projectId ?? currentProject?.id ?? null)
+  const canFinalizeResolvedWorkflow = $derived(
+    ['org_owner', 'org_admin'].includes(
+      currentPage.props.auth?.user?.current_organization_role ?? ''
+    )
+  )
+  const boardRoute = $derived(
+    workspaceMode === 'project' && activeProjectId
+      ? `/projects/${encodeURIComponent(activeProjectId)}/reviews/tasks`
+      : '/reviews/tasks'
+  )
   const boardColumns = $derived(
     board.columns.length > 0
-      ? board.columns
+      ? board.columns.filter(
+          (column): column is BoardColumn & { status: UserVisibleWorkflowStatus } =>
+            column.status !== 'ai_reviewing' && column.status !== 'ai_failed'
+        )
       : [
-          { status: 'awaiting_review' as WorkflowStatus, label: t('task.reviews.task_board.awaiting_review', {}, 'Chờ review'), cards: [] },
-          { status: 'in_review' as WorkflowStatus, label: t('task.reviews.task_board.in_review', {}, 'Đang review'), cards: [] },
-          { status: 'awaiting_response' as WorkflowStatus, label: t('task.reviews.task_board.awaiting_response', {}, 'Chờ phản hồi'), cards: [] },
-          { status: 'disputed' as WorkflowStatus, label: t('task.reviews.task_board.disputed', {}, 'Tranh chấp'), cards: [] },
-          { status: 'reported' as WorkflowStatus, label: t('task.reviews.task_board.reported', {}, 'Đã gửi report tranh chấp'), cards: [] },
-          { status: 'ai_reviewing' as WorkflowStatus, label: t('task.reviews.task_board.ai_reviewing', {}, 'AI đang xử lý'), cards: [] },
-          { status: 'resolved' as WorkflowStatus, label: t('task.reviews.task_board.resolved', {}, 'Đã xử lý'), cards: [] },
-          { status: 'done' as WorkflowStatus, label: t('task.reviews.task_board.done', {}, 'Done'), cards: [] },
+          { status: 'awaiting_review' as UserVisibleWorkflowStatus, label: t('task.reviews.task_board.awaiting_review', {}, 'Chờ review'), cards: [] },
+          { status: 'in_review' as UserVisibleWorkflowStatus, label: t('task.reviews.task_board.in_review', {}, 'Đang review'), cards: [] },
+          { status: 'awaiting_response' as UserVisibleWorkflowStatus, label: t('task.reviews.task_board.awaiting_response', {}, 'Chờ phản hồi'), cards: [] },
+          { status: 'disputed' as UserVisibleWorkflowStatus, label: t('task.reviews.task_board.disputed', {}, 'Tranh chấp'), cards: [] },
+          { status: 'reported' as UserVisibleWorkflowStatus, label: t('task.reviews.task_board.reported', {}, 'Đã gửi report tranh chấp'), cards: [] },
+          { status: 'admin_reviewing' as UserVisibleWorkflowStatus, label: t('task.reviews.task_board.admin_reviewing', {}, 'Chờ admin quyết định'), cards: [] },
+          { status: 'resolved' as UserVisibleWorkflowStatus, label: t('task.review_workflow.status.resolved', {}, 'Resolved'), cards: [] },
+          { status: 'done' as UserVisibleWorkflowStatus, label: t('task.reviews.task_board.done', {}, 'Done'), cards: [] },
         ]
   )
   const waitingOnMeOnly = $derived(
@@ -142,22 +166,21 @@
       : boardColumns
   )
 
-  const allCards = $derived(board.columns.flatMap((column) => column.cards))
   const visibleCardCount = $derived(visibleColumns.flatMap((column) => column.cards).length)
   const taskReviewRedirectUrl = $derived(
     selectedTaskId
-      ? `/projects/${encodeURIComponent(activeProjectId ?? '')}/reviews/tasks?task_id=${encodeURIComponent(selectedTaskId)}`
-      : `/projects/${encodeURIComponent(activeProjectId ?? '')}/reviews/tasks`
+      ? `${boardRoute}?task_id=${encodeURIComponent(selectedTaskId)}`
+      : boardRoute
   )
 
-  const laneTone: Record<WorkflowStatus, string> = {
+  const laneTone: Record<UserVisibleWorkflowStatus, string> = {
     awaiting_review: 'border-t-muted-foreground',
     in_review: 'border-t-primary',
     awaiting_response: 'border-t-accent-foreground',
     disputed: 'border-t-destructive',
     reported: 'border-t-muted-foreground',
-    ai_reviewing: 'border-t-primary',
-    resolved: 'border-t-foreground',
+    admin_reviewing: 'border-t-foreground',
+    resolved: 'border-t-amber-500',
     done: 'border-t-primary',
   }
 
@@ -184,46 +207,28 @@
     return tones[value] ?? 'border-border bg-background text-foreground'
   }
 
-  function handleProjectChange(event: Event) {
-    const nextProjectId = (event.currentTarget as HTMLSelectElement).value
-    if (!nextProjectId) return
-
-    router.get(
-      `/projects/${encodeURIComponent(nextProjectId)}/reviews/tasks`,
-      {},
-      { preserveScroll: true, preserveState: true }
-    )
-  }
-
-  $effect(() => {
-    if (!activeProjectId) {
-      const selector = document.getElementById('task-review-project-selector')
-      if (selector instanceof HTMLSelectElement) {
-        selector.focus()
-      }
-    }
-  })
-
   function openTask(taskId: string) {
     router.get(
-      `/projects/${encodeURIComponent(activeProjectId ?? '')}/reviews/tasks?task_id=${encodeURIComponent(taskId)}`,
+      `${boardRoute}?task_id=${encodeURIComponent(taskId)}`,
       {},
       { preserveScroll: true, preserveState: true }
     )
   }
 
   function setWaitingOnMeFilter(enabled: boolean) {
-    const path = `/projects/${encodeURIComponent(activeProjectId ?? '')}/reviews/tasks`
+    const path = boardRoute
     router.get(
       path,
-      enabled ? { focus: 'waiting_on_me' } : {},
+      enabled
+        ? { focus: 'waiting_on_me' }
+        : {},
       { preserveScroll: true, preserveState: true }
     )
   }
 
   function closeTaskReview() {
     router.get(
-      `/projects/${encodeURIComponent(activeProjectId ?? '')}/reviews/tasks`,
+      boardRoute,
       waitingOnMeOnly ? { focus: 'waiting_on_me' } : {},
       { preserveScroll: true, preserveState: true, replace: true }
     )
@@ -234,7 +239,7 @@
   <title>{pageTitle}</title>
 </svelte:head>
 
-<AppLayout title={pageTitle} workspaceMode="project">
+<AppLayout title={pageTitle} {workspaceMode}>
   <div class="task-control-page space-y-4">
     <section class="task-board-surface min-h-[calc(100vh-60px)] rounded-3xl border border-border bg-card p-4 shadow-xs md:p-5" aria-label={pageTitle}>
       <header class="mb-4 flex flex-wrap items-end justify-between gap-3 border-b border-border pb-4">
@@ -244,29 +249,6 @@
           <p class="mt-1 text-sm font-medium text-muted-foreground">
             {currentProject?.name ?? t('task.reviews.task_board.no_project_name', {}, 'Choose a project')}
           </p>
-        </div>
-        <div class="flex min-w-[280px] flex-col gap-2">
-          <label class="text-xs font-bold uppercase tracking-[0.16em] text-muted-foreground" for="task-review-project-selector">
-            {t('task.reviews.task_board.project_selector', {}, 'Project selector')}
-          </label>
-          <select
-            id="task-review-project-selector"
-            class="h-10 rounded-xl border border-border bg-background px-3 text-sm font-semibold text-foreground shadow-xs"
-            onchange={handleProjectChange}
-            value={activeProjectId ?? ''}
-            aria-label={t('task.reviews.task_board.project_selector', {}, 'Project selector')}
-          >
-            {#if !activeProjectId}
-              <option value="">{t('task.reviews.task_board.choose_project', {}, 'Choose project')}</option>
-            {/if}
-            {#each projectOptions as project (project.id)}
-              <option value={project.id}>{project.name}</option>
-            {/each}
-          </select>
-          <div class="flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2 text-sm font-semibold text-muted-foreground">
-            <ClipboardCheck class="h-4 w-4" />
-            {t('task.reviews.task_board.done_count', { count: allCards.length }, ':count completed tasks in project')}
-          </div>
         </div>
       </header>
 
@@ -389,7 +371,7 @@
           }}
         >
           <DialogContent
-            class="max-h-[92vh] w-[96vw] max-w-6xl overflow-y-auto p-3 sm:p-5"
+            class="h-[92vh] max-h-[92vh] w-[96vw] max-w-6xl overflow-hidden p-0"
             role="dialog"
             aria-modal="true"
             aria-label={t('task.reviews.task_board.card_room', {}, 'Task review card room')}
@@ -401,6 +383,9 @@
                 {currentUserId}
                 taskDetailUrl={taskReviewRedirectUrl}
                 {detail}
+                {canFinalizeResolvedWorkflow}
+                translate={t}
+                initialTab="context"
               />
             {/if}
           </DialogContent>

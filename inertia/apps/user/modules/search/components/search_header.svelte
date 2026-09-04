@@ -43,13 +43,7 @@
       <h1 class="mt-2 text-4xl font-black tracking-normal text-foreground">
         {t('common.search_center.title', {}, 'Search Center')}
       </h1>
-      <p class="mt-2 text-sm leading-6 text-muted-foreground">
-        {t(
-          'common.search_center.subtitle',
-          {},
-          'Search tasks, projects, comments, talent, skills, and organizations from one place. Each result explains where the match happened and why it ranked.'
-        )}
-      </p>
+
     </div>
     <div class="grid min-w-[260px] grid-cols-2 gap-2 text-sm">
       <div class="rounded-xl border border-border bg-background p-3">

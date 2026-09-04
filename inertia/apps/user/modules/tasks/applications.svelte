@@ -316,7 +316,9 @@
             : t('task.applications.reject_application_success', {}, 'Application rejected')
         )
         rejectingAppId = null
-        router.reload()
+        router.reload({
+          only: ['applications', 'pagination', 'statusFilter', 'flash'],
+        })
       } else {
         const data = (await response.json()) as { error?: { message?: string } }
         notificationStore.error(data.error?.message ?? t('task.applications.process_error', {}, 'Something went wrong'))
