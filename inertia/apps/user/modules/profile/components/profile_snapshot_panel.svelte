@@ -129,10 +129,23 @@
     snapshotFeedback = ''
     try {
       // APPROVED: GroupC - profile-snapshot-access-toggle
-      await axios.patch(`/api/v1/me/profile-snapshots/${currentSnapshotState.id}/access`, {
+      const response = await axios.patch<{
+        data: {
+          isPublic: boolean
+          shareableSlug: string | null
+          shareableToken: string | null
+        }
+      }>(`/api/v1/me/profile-snapshots/${currentSnapshotState.id}/access`, {
         isPublic,
       })
-      await Promise.all([loadCurrentSnapshot(), loadSnapshotHistory()])
+      const updatedAccess = response.data.data
+      currentSnapshotState = {
+        ...currentSnapshotState,
+        is_public: updatedAccess.isPublic,
+        shareable_slug: updatedAccess.shareableSlug,
+        shareable_token: updatedAccess.shareableToken,
+      }
+      await loadSnapshotHistory()
       snapshotFeedback = isPublic
         ? t('user.profile_snapshot.access_public_success', {}, 'Current snapshot is now public.')
         : t('user.profile_snapshot.access_private_success', {}, 'Current snapshot is now private.')

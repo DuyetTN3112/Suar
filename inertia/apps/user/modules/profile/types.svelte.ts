@@ -202,6 +202,31 @@ export interface ProfileWorkHistory {
     end_date: string | null
     visibility: string
   }[]
+  demonstratedWork?: {
+    taskAssignmentId: string
+    taskId: string
+    action: string | null
+    object: string
+    ownership: string | null
+    context: {
+      businessDomain: string | null
+      problemCategory: string | null
+      collaborationType: string | null
+    }
+    output: {
+      title: string
+      difficulty: string | null
+    }
+    outcome: {
+      onTime: boolean | null
+      qualityScore: number | null
+    }
+    verification: {
+      status: 'review_confirmed' | 'retrospective'
+      confidence: 'high' | 'limited'
+    }
+    completedAt: string | null
+  }[]
 }
 
 export type UserReviewHistoryDirection = 'received' | 'sent'

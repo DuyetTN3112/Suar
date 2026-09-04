@@ -5,13 +5,21 @@
   import Input from '@/apps/user/shared/ui/input.svelte'
   import Label from '@/apps/user/shared/ui/label.svelte'
   import { useTranslation } from '@/apps/user/shared/hooks/use_translation.svelte'
-  import type { Project, ProjectMember } from '../types'
+  import ProjectContextReadCard from '@/apps/shared/components/project_context_read_card.svelte'
+  import ProjectContextEditor from '@/apps/shared/components/project_context_editor.svelte'
+  import ProjectBusinessDomainsField from '@/apps/shared/projects/project_business_domains_field.svelte'
+  import type { Project, ProjectMember, ProjectShowProps } from '../types'
 
   interface ProfessionalRoleOption {
     id: string
     name: string
     code: string
     isActive?: boolean
+  }
+
+  interface ContextConflictReloadCallbacks {
+    onSuccess: () => void
+    onError: () => void
   }
 
   interface Props {
@@ -21,6 +29,7 @@
       name: string
       description: string
       status: string
+      businessDomains: string[]
     }
     memberCount: number
     projectTaskSummary: {
@@ -35,6 +44,10 @@
     activeProfessionalRoles: ProfessionalRoleOption[]
     membersWithoutDeliveryRole: ProjectMember[]
     unstaffedProfessionalRoles: ProfessionalRoleOption[]
+    projectContext?: ProjectShowProps['project_context']
+    canEdit?: boolean
+    onProjectContextPublished?: () => void
+    onProjectContextConflict?: (callbacks: ContextConflictReloadCallbacks) => void
     formatDate: (d: string, options?: Intl.DateTimeFormatOptions) => string
   }
 
@@ -49,6 +62,10 @@
     activeProfessionalRoles,
     membersWithoutDeliveryRole,
     unstaffedProfessionalRoles,
+    projectContext,
+    canEdit = false,
+    onProjectContextPublished,
+    onProjectContextConflict,
     formatDate,
   }: Props = $props()
 
@@ -165,6 +182,16 @@
         {/if}
       </div>
 
+      <div class="md:col-span-2">
+        <ProjectBusinessDomainsField
+          domains={editing ? editForm.businessDomains : projectState.business_domains ?? []}
+          {editing}
+          onDomainsChange={(domains) => {
+            editForm.businessDomains = domains
+          }}
+        />
+      </div>
+
       <div>
         <p class="mb-1 text-sm font-medium text-foreground/80">{t('project.start_date', {}, 'Start Date')}</p>
         <p>{projectState.start_date ? formatDate(projectState.start_date) : t('project.details_tab.empty_value', {}, 'None')}</p>
@@ -197,5 +224,16 @@
         />
       </div>
     {/if}
+
+    <div class="mt-6">
+      <ProjectContextReadCard projectContext={projectContext} />
+      <ProjectContextEditor
+        projectId={projectState.id}
+        projectContext={projectContext}
+        {canEdit}
+        onPublished={onProjectContextPublished ? () => onProjectContextPublished?.() : undefined}
+        onConflict={onProjectContextConflict}
+      />
+    </div>
   </CardContent>
 </Card>

@@ -12,6 +12,7 @@
   import { dateFnsLocale } from '@/apps/user/shared/lib/date_locale'
   import { cn } from '@/apps/user/shared/lib/utils'
   import { useTranslation } from '@/apps/user/shared/hooks/use_translation.svelte'
+  import ProjectBusinessDomainsField from '@/apps/shared/projects/project_business_domains_field.svelte'
 
   interface Props {
     formData: {
@@ -21,6 +22,7 @@
       status: string
       start_date: string
       end_date: string
+      business_domains: string[]
     }
     organizations: Array<{ id: string; name: string }>
     statuses: Array<{ value: string; label: string }>
@@ -31,6 +33,7 @@
     onEndDateChange: (d: Date | undefined) => void
     onInputChange: (e: Event) => void
     onSelectChange: (name: string, val: string) => void
+    onDomainsChange: (domains: string[]) => void
   }
 
   let {
@@ -43,6 +46,7 @@
     onEndDateChange,
     onInputChange,
     onSelectChange,
+    onDomainsChange,
   }: Props = $props()
 
   const { locale, t } = $derived(useTranslation())
@@ -77,6 +81,12 @@
       placeholder={t('project.description_placeholder', {}, 'Main goals, delivery scope, and project operating context...')}
     />
   </div>
+
+  <ProjectBusinessDomainsField
+    domains={formData.business_domains}
+    editing={true}
+    {onDomainsChange}
+  />
 
 
 

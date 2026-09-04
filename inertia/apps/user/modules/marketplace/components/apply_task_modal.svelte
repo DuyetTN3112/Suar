@@ -133,7 +133,7 @@
       toast.success(t('task.apply_modal.success_title', {}, 'Application sent!'), {
         description: t('task.apply_modal.success_description', {}, 'The task owner will review and respond to your application.'),
       })
-      router.reload()
+      router.reload({ only: ['tasks', 'pagination', 'filters', 'availableSkills', 'flash'] })
     } catch (caughtError: unknown) {
       const responseData = (caughtError as {
         response?: {

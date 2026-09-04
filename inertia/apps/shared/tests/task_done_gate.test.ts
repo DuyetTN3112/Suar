@@ -20,35 +20,49 @@ describe('task done gate decision', () => {
     expect(taskHasFinalSubmission({ review_zone: { submission_status: 'draft' } })).toBe(false)
   })
 
-  it('blocks done-category moves without final submission and offers Submit work', () => {
+  it('allows the assignee to move a done-category task without submitting a report', () => {
     const decision = getTaskDoneGateDecision({
       task: {
         task_type: 'feature_work',
+        assigned_to: 'assignee-1',
         review_zone: { submission_status: 'draft' },
       },
       targetStatus: { value: 'ready_for_review', category: 'done' },
     })
 
     expect(decision).toMatchObject({
-      allowed: false,
-      code: 'missing_submission',
-      action: 'submit_work',
+      allowed: true,
+      reason: null,
+      code: null,
+      action: null,
     })
-    expect(decision.reason).toContain('Submit work')
   })
 
-  it('allows bypass task types to reach done without a submission', () => {
+  it('allows every task type with an assignee to reach done without a submission', () => {
     for (const taskType of ['research_spike', 'poc', 'prototype', 'technical_writing', 'documentation', 'knowledge_transfer', 'mentoring', 'product_management']) {
       expect(
         getTaskDoneGateDecision({
-          task: { task_type: taskType },
+          task: { task_type: taskType, assigned_to: 'assignee-1' },
           targetStatus: { value: 'done-custom', category: 'done' },
         }).allowed
       ).toBe(true)
     }
   })
 
-  it('checks permission before the submission gate to avoid leaking submission state', () => {
+  it('requires an assignee before moving a task into a done column', () => {
+    const decision = getTaskDoneGateDecision({
+      task: { task_type: 'feature_work' },
+      targetStatus: { value: 'done-custom', category: 'done' },
+    })
+
+    expect(decision).toMatchObject({
+      allowed: false,
+      code: 'missing_assignee',
+      action: 'assign_task',
+    })
+  })
+
+  it('checks permission before allowing a done transition', () => {
     const decision = getTaskDoneGateDecision({
       task: {
         canChangeStatus: false,

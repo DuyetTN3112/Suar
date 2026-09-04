@@ -254,8 +254,6 @@
 
 <AppLayout title={pageTitle}>
   <div class="w-full space-y-3 px-4 py-4 sm:px-6 lg:px-8">
-    <ProfileOverviewSection {user} {userSkills} {deliveryMetrics} />
-
     <div class="flex justify-end gap-2">
       <Button variant="outline" size="sm" onclick={goToReviews}>
         {t('ui_misc.profile.view_reviews', {}, 'View reviews')}
@@ -266,6 +264,10 @@
         </Button>
       {/if}
     </div>
+
+    <ProfileWorkHistorySection {workHistory} />
+
+    <ProfileOverviewSection {user} {userSkills} {deliveryMetrics} />
 
     {#if !isOwnProfile}
       <Card class="border border-border shadow-xs rounded-md px-2 py-1">
@@ -359,8 +361,6 @@
       {spiderChartData}
       {neoBrutalCard}
     />
-
-    <ProfileWorkHistorySection {workHistory} />
 
     <ProfileFeaturedReviewsSection
       featuredReviews={featuredReviews}

@@ -106,14 +106,14 @@
   const pageTitle = $derived(t('user.profile_show.title', {}, 'Capability dossier'))
   const flash = $derived((page as { props: { flash?: { success?: string; error?: string } } }).props.flash)
   let activeSection = $state<'profile-overview' | 'profile-skills' | 'profile-evidence' | 'profile-work-history'>(
-    'profile-overview'
+    'profile-work-history'
   )
 
   const sectionNav = $derived([
+    { label: t('user.profile_show.nav_demonstrated_work', {}, 'Demonstrated work'), id: 'profile-work-history' as const },
     { label: t('user.profile_show.nav_overview', {}, 'Overview'), id: 'profile-overview' as const },
     { label: t('user.profile_show.nav_skills', {}, 'Capabilities'), id: 'profile-skills' as const },
     { label: t('user.profile_show.nav_evidence', {}, 'Evidence'), id: 'profile-evidence' as const },
-    { label: t('user.profile_show.nav_work_history', {}, 'Experience'), id: 'profile-work-history' as const },
   ])
 
   // Group skills by category (simple transform - NO business logic)
@@ -192,10 +192,6 @@
       </div>
     </div>
 
-    <section id="profile-overview" class="scroll-mt-24">
-      <ProfileOverviewSection {user} {userSkills} {deliveryMetrics} {currentSnapshot} />
-    </section>
-
     <div
       class="sticky top-2 z-10 flex w-full flex-wrap gap-1 rounded-xl border border-border bg-background/95 p-1 shadow-suar-xs backdrop-blur"
       aria-label={t('ui_misc.profile.sections_aria', {}, 'Profile sections')}
@@ -216,6 +212,20 @@
       {/each}
     </div>
 
+    <section id="profile-work-history" class="scroll-mt-24">
+      <ProfileWorkHistorySection {workHistory} />
+    </section>
+
+    <section id="profile-overview" class="scroll-mt-24">
+      <ProfileOverviewSection
+        {user}
+        {userSkills}
+        {deliveryMetrics}
+        {currentSnapshot}
+        {reviewHistory}
+      />
+    </section>
+
     <section id="profile-skills" class="scroll-mt-24">
       <ProfileSkillsAndChartsSection
         groupedSkills={normalizedGroupedSkills}
@@ -233,8 +243,5 @@
       />
     </section>
 
-    <section id="profile-work-history" class="scroll-mt-24">
-      <ProfileWorkHistorySection {workHistory} />
-    </section>
   </div>
 </AppLayout>
