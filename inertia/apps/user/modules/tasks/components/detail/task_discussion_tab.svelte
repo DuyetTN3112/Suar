@@ -21,6 +21,8 @@
     taskId: string
     currentUserId: string | null
     apiBase?: string
+    initialComments?: TaskComment[] | null
+    readOnly?: boolean
   }
 
   interface TaskComment {
@@ -46,7 +48,13 @@
     pagination?: OffsetPagePagination
   }
 
-  const { taskId, currentUserId, apiBase = '/api/v1/tasks' }: Props = $props()
+  const {
+    taskId,
+    currentUserId,
+    apiBase = '/api/v1/tasks',
+    initialComments = null,
+    readOnly = false,
+  }: Props = $props()
   const { t } = useTranslation()
   const commentsEndpoint = $derived(`${apiBase}/${taskId}/comments`)
   const TASK_COMMENT_PER_PAGE = 10
@@ -86,6 +94,7 @@
   })
 
   async function loadComments(page = commentPagination.page) {
+    if (initialComments !== null) return
     loadingComments = true
     try {
       const response = await axios.get<TaskCollectionResponse<TaskComment>>(commentsEndpoint, {
@@ -192,6 +201,15 @@
   }
 
   onMount(async () => {
+    if (initialComments !== null) {
+      comments = initialComments
+      commentPagination = buildOffsetPagination({
+        page: 1,
+        perPage: TASK_COMMENT_PER_PAGE,
+        total: initialComments.length,
+      })
+      return
+    }
     await loadComments()
   })
 
@@ -245,14 +263,16 @@
                 {/if}
               </div>
               <div class="flex items-center gap-1">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  disabled={updatingComment || deletingCommentId === comment.id}
-                  onclick={() => { startReply(comment) }}
-                >
-                  {t('task.discussion_tab.reply', {}, 'Reply')}
-                </Button>
+                {#if !readOnly}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={updatingComment || deletingCommentId === comment.id}
+                    onclick={() => { startReply(comment) }}
+                  >
+                    {t('task.discussion_tab.reply', {}, 'Reply')}
+                  </Button>
+                {/if}
                 {#if currentUserId && comment.authorId === currentUserId}
                   <Button
                     variant="ghost"
@@ -315,14 +335,16 @@
                         {/if}
                       </div>
                       <div class="flex items-center gap-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          disabled={updatingComment || deletingCommentId === reply.id}
-                          onclick={() => { startReply(reply) }}
-                        >
-                          {t('task.discussion_tab.reply', {}, 'Reply')}
-                        </Button>
+                        {#if !readOnly}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            disabled={updatingComment || deletingCommentId === reply.id}
+                            onclick={() => { startReply(reply) }}
+                          >
+                            {t('task.discussion_tab.reply', {}, 'Reply')}
+                          </Button>
+                        {/if}
                         {#if currentUserId && reply.authorId === currentUserId}
                           <Button
                             variant="ghost"
@@ -387,7 +409,7 @@
       />
     {/if}
 
-    <div class="space-y-3 border-t border-border/70 pt-4">
+    <div class="space-y-3 pt-4">
       {#if replyingToComment}
         <div class="rounded-lg border border-border bg-secondary/40 px-3 py-3 text-sm">
           <div class="flex items-center justify-between gap-3">
