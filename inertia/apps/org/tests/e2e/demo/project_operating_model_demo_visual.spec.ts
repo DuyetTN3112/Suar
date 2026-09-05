@@ -63,7 +63,7 @@ test.describe('Project operating model demo visual audit', () => {
     await expect(page.getByRole('button', { name: /^Công nghệ$/i })).toBeVisible()
     await expect(page.getByRole('button', { name: /^Kỹ thuật phần mềm$/i })).toBeVisible()
     await expect(page.getByRole('button', { name: /^Kỹ năng mềm$/i })).toBeVisible()
-    await expect(page.getByRole('button', { name: /^Thực thi$/i })).toBeVisible()
+    await expect(page.getByRole('button', { name: /^Quản lý công việc$/i })).toBeVisible()
     await sectionScreenshot(
       page,
       '[data-demo-section="project-skills-catalog"]',

@@ -5,7 +5,6 @@
   import type { NavCollapsible, NavGroup } from '@/apps/org/shared/components/navigation_types'
   import {
     isNavCollapsible,
-    isNavItemActive,
     isNavLink,
     isNavUrlActive,
   } from '@/apps/org/shared/components/navigation_helpers'
@@ -107,18 +106,12 @@
             </li>
           {:else if isNavCollapsible(item)}
             {@const ParentIcon = item.icon}
-            <li
-              class={`rounded-xl border px-2 py-1.5 ${
-                isNavItemActive(currentUrl, item)
-                  ? 'border-primary/25 bg-primary/5'
-                  : 'border-border/70 bg-muted/20'
-              }`}
-            >
+            <li>
               <button
                 type="button"
                 aria-expanded={item.items.length > 1 ? isExpanded(navGroup.title, item) : undefined}
                 aria-haspopup={item.items.length > 1 ? 'menu' : undefined}
-                class="flex w-full items-center gap-2.5 rounded-lg px-1 py-1 text-left text-sm font-semibold text-foreground"
+                class="flex w-full items-center gap-2.5 rounded-lg px-3 py-1.5 text-left text-sm font-medium text-foreground hover:bg-accent transition-colors"
                 onclick={() => {
                   handleCollapsibleClick(navGroup.title, item)
                 }}
@@ -137,7 +130,7 @@
               </button>
 
               {#if isExpanded(navGroup.title, item)}
-                <div class="mt-1.5 space-y-1 border-l border-border pl-3">
+                <div class="mt-0.5 space-y-0.5 pl-4">
                   {#each item.items as subItem}
                     {@const SubIcon = subItem.icon ?? item.icon}
                     {@const active = isNavUrlActive(currentUrl, subItem.url)}
@@ -145,7 +138,7 @@
                       class:active={active}
                       data-sidebar-active={active ? 'true' : undefined}
                       aria-current={active ? 'page' : undefined}
-                      class="flex w-full items-center gap-2.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors {active ? 'bg-primary text-primary-foreground' : 'text-foreground hover:bg-accent'}"
+                      class="flex w-full items-center gap-2.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors {active ? 'bg-primary text-primary-foreground font-semibold' : 'text-foreground hover:bg-accent'}"
                       type="button"
                       onclick={() => {
                         onNavigate(subItem.url)

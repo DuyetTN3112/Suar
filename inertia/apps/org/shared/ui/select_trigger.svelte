@@ -13,6 +13,9 @@
     placeholder?: string
     disabled?: boolean
     id?: string
+    'aria-required'?: boolean | 'true' | 'false'
+    'aria-invalid'?: boolean | 'true' | 'false'
+    'aria-describedby'?: string
   }
 
   const { class: className, children, value: _value, placeholder: _placeholder, disabled, id, ...restProps }: Props = $props()

@@ -83,9 +83,7 @@ async function openTaskBoard(page: Page): Promise<void> {
       return
     } catch (error) {
       lastError = error
-      if (attempt < 3) {
-        await page.waitForTimeout(250 * attempt)
-      }
+      if (attempt === 3) break
     }
   }
 

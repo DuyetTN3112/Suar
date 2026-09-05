@@ -121,7 +121,7 @@ describe('ProjectShowPage', () => {
     expect(screen.queryByText('Reverse review cho dự án')).not.toBeInTheDocument()
   })
 
-  it('renders a real six-tab project navigation bar', () => {
+  it('keeps project navigation in the sidebar instead of duplicating it as tabs', () => {
     inertiaPage.url = '/org/projects/project-1'
 
     render(ProjectShowPage, {
@@ -154,13 +154,8 @@ describe('ProjectShowPage', () => {
       },
     })
 
-    const tablist = screen.getByRole('tablist')
-    expect(tablist).toBeInTheDocument()
-    expect(screen.getAllByRole('tab')).toHaveLength(6)
-    expect(screen.getByRole('tab', { name: /members|thành viên/i })).toBeInTheDocument()
-    expect(screen.getByRole('tab', { name: /roles|vai trò/i })).toBeInTheDocument()
-    expect(screen.getByRole('tab', { name: /operating model|mô hình/i })).toBeInTheDocument()
-    expect(screen.getByRole('tab', { name: /sprints|sprint/i })).toBeInTheDocument()
+    expect(screen.queryByRole('tablist')).not.toBeInTheDocument()
+    expect(screen.queryAllByRole('tab')).toHaveLength(0)
   })
 
   it('renders sprint management as its own project tab', () => {

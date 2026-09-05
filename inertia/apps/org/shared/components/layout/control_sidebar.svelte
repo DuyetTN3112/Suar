@@ -116,7 +116,7 @@
     })
   }
 
-  // ── Org switch: reload current page, no redirect ──
+  // ── Org switch: reload page to target surface ──
   let isSwitching = $state(false)
   async function handleSwitchOrg(orgId: string) {
     if (!orgId || isSwitching || orgId === currentOrgId) return
@@ -127,9 +127,8 @@
         currentPath: currentUrl,
       })
       uiToast.success(result.message ?? t('common.switch_organization_success', {}, 'Organization switched'))
-      visitWorkspaceRedirect(result.redirect ?? currentUrl, () => {
-        isSwitching = false
-      })
+      const targetUrl = result.redirect ?? currentUrl
+      window.location.assign(targetUrl)
     } catch (error) {
       uiToast.error(error instanceof Error ? error.message : t('common.switch_organization_error', {}, 'Unable to switch organization'))
       isSwitching = false
@@ -204,14 +203,7 @@
         </div>
       </div>
 
-      <div class="mt-2 grid grid-cols-2 gap-1 rounded-lg border border-border bg-background p-1">
-        <button
-          type="button"
-          class="rounded-md px-2 py-1 text-[10px] font-black uppercase tracking-wide text-muted-foreground transition hover:text-foreground"
-          onclick={() => visitWorkspaceRedirect('/dashboard', () => onClose?.())}
-        >
-          {t('common.sidebar.personal_workspace', {}, 'Personal')}
-        </button>
+      <div class="mt-2 grid grid-cols-1 gap-1 rounded-lg border border-border bg-background p-1">
         {#if currentProjectId}
           <button
             type="button"
@@ -234,9 +226,13 @@
           </button>
         {/if}
         {#if canEnterOrganizationWorkspace}
-          <div class="col-span-2 rounded-md bg-foreground px-2 py-1 text-center text-[10px] font-black uppercase tracking-wide text-background">
+          <button
+            type="button"
+            class="w-full rounded-md bg-primary px-2 py-1 text-center text-[10px] font-black uppercase tracking-wide text-primary-foreground transition hover:opacity-90"
+            onclick={() => visitWorkspaceRedirect('/org', () => onClose?.())}
+          >
             {t('common.sidebar.organization_workspace', {}, 'Organization management')}
-          </div>
+          </button>
         {/if}
       </div>
 
