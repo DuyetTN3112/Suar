@@ -127,6 +127,8 @@ describe('TaskRolePrefillPanel', () => {
       expect(currentFormData.required_skills).toHaveLength(1)
       expect(currentFormData.required_skills[0]?.name).toBe('TypeScript')
       expect(currentFormData.assigned_to).toBe('user-1')
+      expect(currentFormData.acceptance_criteria).toBe('')
+      expect(currentFormData.context_background).toBe('')
       expect(screen.getByText('1 skill')).toBeInTheDocument()
       expect(screen.getByText('1 phù hợp')).toBeInTheDocument()
       expect(screen.getByText('alex')).toBeInTheDocument()

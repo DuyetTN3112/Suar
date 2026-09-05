@@ -12,6 +12,7 @@
 
 <Dialog bind:open {onOpenChange} {...restProps}>
   <div>Dialog content</div>
+  <input aria-label="Dialog input" />
   <button
     onclick={() => {
       open = false

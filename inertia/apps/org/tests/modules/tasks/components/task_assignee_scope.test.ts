@@ -28,6 +28,13 @@ describe('task assignee scope helpers', () => {
     expect(buckets[1]?.users).toEqual(assigneeGroups.orgMembersOutsideProject)
   })
 
+  it('shows only project members for project-only tasks', () => {
+    const buckets = buildVisibleAssigneeBuckets('project', assigneeGroups, fallbackUsers)
+
+    expect(buckets.map((bucket) => bucket.key)).toEqual(['project'])
+    expect(buckets[0]?.users).toEqual(assigneeGroups.projectMembers)
+  })
+
   it('shows all three buckets for marketplace-facing tasks', () => {
     const externalBuckets = buildVisibleAssigneeBuckets('external', assigneeGroups, fallbackUsers)
     const hybridBuckets = buildVisibleAssigneeBuckets('all', assigneeGroups, fallbackUsers)
@@ -64,6 +71,12 @@ describe('task assignee scope helpers', () => {
     ).toBe(false)
     expect(
       shouldResetAssignedToForVisibility('external-1', 'external', assigneeGroups, fallbackUsers)
+    ).toBe(false)
+    expect(
+      shouldResetAssignedToForVisibility('org-1', 'project', assigneeGroups, fallbackUsers)
+    ).toBe(true)
+    expect(
+      shouldResetAssignedToForVisibility('project-1', 'project', assigneeGroups, fallbackUsers)
     ).toBe(false)
   })
 })

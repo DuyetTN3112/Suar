@@ -48,7 +48,7 @@ describe('buildPrefilledTaskSkills', () => {
     ])
   })
 
-  it('falls back to l4 when helper API response does not include a canonical level code', () => {
+  it('does not invent a minimum level when the Project role has not configured one', () => {
     const skills = buildPrefilledTaskSkills([
       {
         skillId: 'skill-2',
@@ -56,7 +56,7 @@ describe('buildPrefilledTaskSkills', () => {
       },
     ])
 
-    expect(skills[0]?.level).toBe('l4')
+    expect(skills[0]?.level).toBe('')
   })
 
   it('returns only project members that currently hold the selected professional role', () => {

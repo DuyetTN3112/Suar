@@ -4,6 +4,28 @@ import { describe, expect, it } from 'vitest'
 import TaskSubmissionFormHarness from './task_submission_form_harness.svelte'
 
 describe('TaskSubmissionForm', () => {
+  it('shows readiness guidance without making draft depend on test notes or evidence', async () => {
+    render(TaskSubmissionFormHarness)
+
+    expect(screen.getByRole('region', { name: /Báo cáo sẵn sàng|Mức độ sẵn sàng hoàn thành|Completion readiness/i })).toBeInTheDocument()
+    expect(screen.getByText('Add tests')).toBeInTheDocument()
+    expect(screen.getByText('Document the result')).toBeInTheDocument()
+    expect(screen.getByText(/Bản nháp có thể lưu khi bạn đã có tóm tắt kết quả|Có thể lưu nháp một phần/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Lưu nháp' })).not.toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Nộp báo cáo' })).toBeDisabled()
+    expect(screen.getByText(/Tóm tắt kết quả là bắt buộc|Vui lòng nhập tóm tắt kết quả/i)).toBeInTheDocument()
+    expect(screen.getByText(/✓ 1 verification evidence attached/i)).toBeInTheDocument()
+
+    await fireEvent.input(screen.getByLabelText('Tóm tắt kết quả'), {
+      target: { value: 'Implemented the requested change' },
+    })
+
+    expect(screen.getByRole('button', { name: 'Lưu nháp' })).not.toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Nộp báo cáo' })).not.toBeDisabled()
+    expect(screen.queryByText(/Tóm tắt kết quả là bắt buộc|Vui lòng nhập tóm tắt kết quả/i)).not.toBeInTheDocument()
+    expect(screen.getByText(/✓ 1 verification evidence attached/i)).toBeInTheDocument()
+  })
+
   it('adds evidence and hides the inline form afterwards', async () => {
     render(TaskSubmissionFormHarness)
 

@@ -19,6 +19,7 @@ describe('User-realm organization navigation filtering', () => {
   it('keeps an ordinary member on governance entry and project portfolio only', () => {
     expect(visibleUrlsFromGroups(organizationNavigationSections, 'org_member')).toEqual([
       '/org',
+      '/org/marketplace/tasks',
       '/org/projects',
     ])
   })
@@ -35,9 +36,9 @@ describe('User-realm organization navigation filtering', () => {
           '/org/invitations/requests',
           '/org/roles',
           '/org/permissions',
+          '/org/marketplace/tasks',
           '/org/talents',
           '/org/bookmarks',
-          '/org/settings',
           '/org/audit-logs',
           '/org/projects',
           '/org/projects/create',

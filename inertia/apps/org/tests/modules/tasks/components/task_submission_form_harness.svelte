@@ -48,6 +48,9 @@
 </script>
 
 <TaskSubmissionForm
+  acceptanceCriteria={'Add tests\nDocument the result'}
+  verificationMethods={['Automated test']}
+  verificationRequiresEvidence={true}
   bind:summary
   bind:implementationNotes
   bind:knownLimitations
