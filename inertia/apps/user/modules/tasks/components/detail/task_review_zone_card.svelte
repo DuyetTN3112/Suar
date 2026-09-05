@@ -131,11 +131,11 @@
 
         <div class="flex flex-wrap gap-2">
           {#if reviewZone.dispute_id}
-            <Link href={`/projects/${task.project_id}/reviews/tasks?task_id=${task.id}`}>
+            <Link href={`/reviews/tasks?task_id=${task.id}`}>
               <Button>{t('task.review_zone.open_dispute', {}, 'Go to dispute')}</Button>
             </Link>
           {:else if reviewZone.review_session_id}
-            <Link href={`/projects/${task.project_id}/reviews/tasks?task_id=${task.id}`}>
+            <Link href={`/reviews/tasks?task_id=${task.id}`}>
               <Button>{t('task.review_zone.open_review_session', {}, 'Go to review session')}</Button>
             </Link>
           {/if}

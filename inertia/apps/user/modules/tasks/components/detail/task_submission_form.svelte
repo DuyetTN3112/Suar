@@ -22,6 +22,11 @@
     repositoryUrl: string
     pullRequestUrl: string
     evidences: SubmissionEvidence[]
+    acceptanceCriteria?: string | null
+    /** @deprecated retained for older harnesses; evidence is never a submit gate. */
+    verificationMethods?: string[]
+    /** @deprecated retained for older harnesses; evidence is never a submit gate. */
+    verificationRequiresEvidence?: boolean
     saving: boolean
     submitting: boolean
     onSaveDraft: () => void
@@ -39,6 +44,7 @@
     repositoryUrl = $bindable(),
     pullRequestUrl = $bindable(),
     evidences = $bindable(),
+    acceptanceCriteria = null,
     saving,
     submitting,
     onSaveDraft,
@@ -68,6 +74,20 @@
   let evidenceTitle = $state('')
   let evidenceDescription = $state('')
   let localError = $state('')
+
+  const coverageCriteria = $derived(
+    (acceptanceCriteria ?? '')
+      .split(/\r?\n/)
+      .map((criterion) => criterion.replace(/^\s*(?:[-*•]|\d+[.)])\s*/, '').trim())
+      .filter((criterion) => criterion.length > 0)
+  )
+  const coverageGuide = $derived(
+    coverageCriteria.length > 0
+      ? coverageCriteria
+      : ['Describe the actual result and how it was verified.']
+  )
+  // Evidence is optional governance data; it never gates the normal task flow.
+  const submitBlocked = $derived(!summary.trim())
 
   function handleAddEvidenceLocal() {
     localError = ''
@@ -102,6 +122,55 @@
       {localError}
     </div>
   {/if}
+
+  <section
+    class="space-y-3 rounded-lg border border-primary/20 bg-primary/5 p-4"
+    aria-labelledby="completion-readiness-heading"
+  >
+    <div>
+      <h3 id="completion-readiness-heading" class="text-sm font-semibold">
+        {t('task.submission_form.readiness_title', {}, 'Completion readiness')}
+      </h3>
+      <p class="mt-1 text-sm text-muted-foreground">
+        {t(
+          'task.submission_form.readiness_draft',
+          {},
+          'Draft can be saved partially after a result summary is provided.'
+        )}
+      </p>
+    </div>
+
+    <div class="space-y-2" aria-labelledby="completion-coverage-heading">
+      <h4 id="completion-coverage-heading" class="text-sm font-medium">
+        {t('task.submission_form.coverage_title', {}, 'Completion coverage guide')}
+      </h4>
+      <p class="text-xs text-muted-foreground">
+        {t(
+          'task.submission_form.coverage_not_persisted',
+          {},
+          'This guide is not saved as criterion results. Use the report fields and evidence to explain each item.'
+        )}
+      </p>
+      <ul class="list-disc space-y-1 pl-5 text-sm">
+        {#each coverageGuide as criterion}
+          <li>{criterion}</li>
+        {/each}
+      </ul>
+    </div>
+
+    <div class="grid gap-2 text-sm sm:grid-cols-2" aria-live="polite">
+      <p class={summary.trim() ? 'text-foreground' : 'text-muted-foreground'}>
+        {summary.trim()
+          ? '✓ Result summary provided'
+          : '○ Add a result summary (required for draft and submit)'}
+      </p>
+      <p class={evidences.length > 0 ? 'text-foreground' : 'text-muted-foreground'}>
+        {evidences.length > 0
+          ? `✓ ${evidences.length} optional governance evidence attached`
+          : '○ Evidence is optional; the tester checks the output against acceptance criteria'}
+      </p>
+    </div>
+  </section>
 
   <div class="space-y-2">
     <Label for="submission-summary">{t('task.submission_form.summary_label', {}, 'Result summary')}</Label>
@@ -258,7 +327,7 @@
     <Button variant="outline" onclick={onSaveDraft} disabled={saving || submitting}>
       {saving ? t('task.submission_form.saving', {}, 'Saving...') : t('task.submission_form.save_draft', {}, 'Save draft')}
     </Button>
-    <Button onclick={onSubmitPackage} disabled={saving || submitting}>
+    <Button onclick={onSubmitPackage} disabled={saving || submitting || submitBlocked}>
       {submitting ? t('task.submission_form.submitting', {}, 'Submitting...') : t('task.submission_form.submit_package', {}, 'Submit package')}
     </Button>
   </div>
