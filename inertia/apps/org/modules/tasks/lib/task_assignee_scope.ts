@@ -57,8 +57,12 @@ export function buildVisibleAssigneeBuckets(
   fallbackUsers: AssigneeOption[]
 ): VisibleAssigneeBucket[] {
   const buckets = [
-    buildBucket('project', assigneeGroups.projectMembers),
-    buildBucket('organization', assigneeGroups.orgMembersOutsideProject),
+    ...(visibility === 'project'
+      ? [buildBucket('project', assigneeGroups.projectMembers)]
+      : [
+          buildBucket('project', assigneeGroups.projectMembers),
+          buildBucket('organization', assigneeGroups.orgMembersOutsideProject),
+        ]),
   ]
 
   if (visibility === 'external' || visibility === 'all') {
@@ -100,6 +104,8 @@ export function shouldResetAssignedToForVisibility(
 
   if (!currentScope) return false
   if (visibility === 'external' || visibility === 'all') return false
+
+  if (visibility === 'project') return currentScope !== 'project'
 
   return currentScope === 'external'
 }

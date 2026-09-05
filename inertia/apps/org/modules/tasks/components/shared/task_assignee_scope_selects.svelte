@@ -7,7 +7,6 @@
   import type { TaskVisibilityValue } from '@/apps/org/modules/tasks/lib/rules/task_visibility'
   import {
     buildVisibleAssigneeBuckets,
-    resolveAssigneeVisibilityScope,
     type AssigneeGroups,
     type AssigneeOption,
     type AssigneeBucketKey,
@@ -32,59 +31,56 @@
     onSelect,
   }: Props = $props()
 
-  const visibleBuckets = $derived(
-    buildVisibleAssigneeBuckets(visibility, assigneeGroups, fallbackUsers)
-  )
-  const selectedScope = $derived(
-    resolveAssigneeVisibilityScope(assignedTo, assigneeGroups, fallbackUsers)
+  const visibleBuckets = $derived(buildVisibleAssigneeBuckets(visibility, assigneeGroups, fallbackUsers))
+  const visibleUsers = $derived(
+    visibleBuckets.flatMap((bucket) =>
+      bucket.users.map((user) => ({
+        ...user,
+        scope: bucket.key,
+      }))
+    )
   )
   const { t } = useTranslation()
+  const visibleUserCount = $derived(visibleUsers.length)
 
   function getUserLabel(user: AssigneeOption): string {
     return user.username || user.email
   }
 
-  function getBucketLabel(key: AssigneeBucketKey, fallback: string): string {
-    return t(`task.assignee_scope.${key}.label`, {}, fallback)
-  }
-
-  function getBucketPlaceholder(key: AssigneeBucketKey, fallback: string): string {
-    return t(`task.assignee_scope.${key}.placeholder`, {}, fallback)
+  function getScopeLabel(key: AssigneeBucketKey): string {
+    return t(`task.assignee_scope.${key}.short_label`, {}, key === 'project' ? 'Chỉ trong project' : key === 'organization' ? 'Trong tổ chức (bao gồm project)' : 'Bên ngoài tổ chức')
   }
 </script>
 
 <div class="grid gap-3">
-  {#each visibleBuckets as bucket (bucket.key)}
-    {@const selectedUser =
-      selectedScope === bucket.key
-        ? bucket.users.find((user) => user.id === assignedTo) ?? null
-        : null}
-    {@const isDisabled = disabled || bucket.users.length === 0}
-
-    <div class="grid gap-2">
-      <Label for={`assigned_to_${bucket.key}`}>
-        {getBucketLabel(bucket.key, bucket.label)} ({bucket.users.length})
-      </Label>
-      <Select
-        value={selectedScope === bucket.key ? assignedTo : ''}
-        onValueChange={(value: string) => {
-          onSelect(value)
-        }}
-        disabled={isDisabled}
-      >
-        <SelectTrigger disabled={isDisabled} class="min-w-0">
-          <span class="min-w-0 flex-1 truncate text-left">
-            {selectedUser ? getUserLabel(selectedUser) : bucket.users.length > 0 ? getBucketPlaceholder(bucket.key, bucket.placeholder) : t('task.assignee_scope.no_matching_user', {}, 'No matching user')}
-          </span>
-        </SelectTrigger>
-        <SelectContent class="max-h-80">
-          {#each bucket.users as user (user.id)}
-            <SelectItem value={user.id} label={getUserLabel(user)}>
-              {getUserLabel(user)}
-            </SelectItem>
-          {/each}
-        </SelectContent>
-      </Select>
-    </div>
-  {/each}
+  <div class="grid gap-2">
+    <Label for="assigned_to">{t('task.assignee_scope.single_label', {}, 'Người thực hiện (chọn 1 người)')}</Label>
+    <p class="text-xs text-muted-foreground" data-testid="task-assignee-scope-summary">
+      {t('task.assignee_scope.available_count', { count: visibleUserCount }, `${visibleUserCount} người có thể chọn`)}
+    </p>
+    <Select value={assignedTo} onValueChange={(value: string) => { onSelect(value) }} disabled={disabled || visibleUsers.length === 0}>
+      <SelectTrigger id="assigned_to" disabled={disabled || visibleUsers.length === 0} class="min-w-0">
+        <span class="min-w-0 flex-1 truncate text-left">
+          {#if assignedTo}
+            {getUserLabel(visibleUsers.find((user) => user.id === assignedTo) ?? { id: '', username: '', email: '' })}
+          {:else}
+            {t('task.assignee_scope.single_placeholder', {}, 'Chọn một người thực hiện')}
+          {/if}
+        </span>
+      </SelectTrigger>
+      <SelectContent class="max-h-80">
+        {#each visibleUsers as user (user.id)}
+          <SelectItem value={user.id} label={`${getUserLabel(user)} · ${getScopeLabel(user.scope)}`}>
+            <span class="flex min-w-0 flex-col items-start">
+              <span class="truncate">{getUserLabel(user)}</span>
+              <span class="text-xs text-muted-foreground">{getScopeLabel(user.scope)}</span>
+            </span>
+          </SelectItem>
+        {/each}
+      </SelectContent>
+    </Select>
+    {#if visibleUsers.length === 0}
+      <p class="text-xs text-muted-foreground">{t('task.assignee_scope.no_matching_user', {}, 'Không có người phù hợp')}</p>
+    {/if}
+  </div>
 </div>

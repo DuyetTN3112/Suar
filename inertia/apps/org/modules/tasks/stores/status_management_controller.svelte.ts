@@ -39,12 +39,14 @@ interface StatusRenameTarget extends StatusRenamePayload {
 
 interface ControllerOptions {
   getStatuses: () => TaskMetadata['statuses']
+  getProjectId: () => string | null
   canManageWorkflow: () => boolean
   isBoardMutationLocked: () => boolean
 }
 
 export function createStatusManagementController({
   getStatuses,
+  getProjectId,
   canManageWorkflow,
   isBoardMutationLocked,
 }: ControllerOptions) {
@@ -66,6 +68,7 @@ export function createStatusManagementController({
   let renameStatusSubmitting = $state(false)
   let renameStatusError = $state('')
   let renameStatusName = $state('')
+  let renameStatusColor = $state('#6B7280')
   let statusRenameTarget = $state<StatusRenameTarget | null>(null)
   let reorderStatusesSubmitting = $state(false)
 
@@ -89,6 +92,17 @@ export function createStatusManagementController({
     return false
   }
 
+  function requireProjectId(): string | null {
+    const projectId = getProjectId()
+    if (projectId) return projectId
+
+    notificationStore.error(
+      t('task.workflow.project_required_title', {}, 'Select a project'),
+      t('task.workflow.project_required_message', {}, 'Task statuses belong to a project. Select a project before managing its workflow.')
+    )
+    return null
+  }
+
   function handleCreateStatusClick() {
     if (!canManageWorkflow()) {
       notificationStore.error(
@@ -99,6 +113,7 @@ export function createStatusManagementController({
     }
 
     if (!isBoardReady(t('task.workflow.manage_wait_message', {}, 'Please wait for drag-and-drop changes to finish before managing statuses.'))) return
+    if (!requireProjectId()) return
     createStatusModalOpen = true
     createStatusError = ''
   }
@@ -113,6 +128,8 @@ export function createStatusManagementController({
       createStatusError = t('task.workflow.board_sync_retry_error', {}, 'Board is syncing. Please try again in a few seconds.')
       return
     }
+    const projectId = requireProjectId()
+    if (!projectId) return
 
     const name = createStatusName.trim()
     const slug = slugifyStatusName(name)
@@ -143,7 +160,7 @@ export function createStatusManagementController({
         color: createStatusColor,
         description: createStatusDescription.trim(),
         sortOrder: getStatuses().length,
-      })
+      }, projectId)
       notificationStore.success(t('task.workflow.create_success', {}, 'New status created'))
       createStatusModalOpen = false
       createStatusName = ''
@@ -173,6 +190,7 @@ export function createStatusManagementController({
     }
 
     if (!isBoardReady(t('task.workflow.delete_wait_message', {}, 'Please wait for drag-and-drop changes to finish before deleting a status.'))) return
+    if (!requireProjectId()) return
 
     const definition = findStatusDefinition(statusDefinitions, payload.status)
     statusDeleteTarget = {
@@ -194,6 +212,7 @@ export function createStatusManagementController({
     }
 
     if (!isBoardReady(t('task.workflow.rename_wait_message', {}, 'Please wait for drag-and-drop changes to finish before renaming a status.'))) return
+    if (!requireProjectId()) return
 
     const definition = findStatusDefinition(statusDefinitions, payload.status)
     statusRenameTarget = {
@@ -201,6 +220,9 @@ export function createStatusManagementController({
       id: definition?.id,
     }
     renameStatusName = payload.label
+    renameStatusColor =
+      getStatuses().find((status) => status.value === payload.status || status.slug === payload.status)
+        ?.color ?? '#6B7280'
     renameStatusError = ''
     renameStatusModalOpen = true
   }
@@ -215,6 +237,8 @@ export function createStatusManagementController({
       renameStatusError = t('task.workflow.board_sync_retry_error', {}, 'Board is syncing. Please try again in a few seconds.')
       return
     }
+    const projectId = requireProjectId()
+    if (!projectId) return
 
     if (!statusRenameTarget?.id) {
       renameStatusError = t('task.workflow.rename_missing_target', {}, 'Unable to rename this status.')
@@ -236,11 +260,12 @@ export function createStatusManagementController({
     renameStatusError = ''
 
     try {
-      await updateTaskStatusDefinition(statusRenameTarget.id, { name, slug })
+      await updateTaskStatusDefinition(statusRenameTarget.id, { name, slug, color: renameStatusColor }, projectId)
       notificationStore.success(t('task.workflow.rename_success', {}, 'Status renamed'))
       renameStatusModalOpen = false
       statusRenameTarget = null
       renameStatusName = ''
+      renameStatusColor = '#6B7280'
       router.reload({ only: ['metadata', 'tasks', 'flash'] })
     } catch (error: unknown) {
       renameStatusError = getStatusMutationErrorMessage(error, t('task.workflow.rename_error', {}, 'Unable to rename status'))
@@ -269,6 +294,10 @@ export function createStatusManagementController({
       )
       throw new Error(t('task.workflow.status_mutation_locked_error', {}, 'Status mutation locked'))
     }
+    const projectId = requireProjectId()
+    if (!projectId) {
+      throw new Error(t('task.workflow.project_required_message', {}, 'Select a project before managing its workflow.'))
+    }
 
     const allowedStatusIds = new Set(getStatuses().map((status) => status.value))
     const orderedStatusIds = payload.orderedStatusIds.filter((statusId) =>
@@ -284,7 +313,7 @@ export function createStatusManagementController({
         orderedStatusIds.map((statusId, index) =>
           updateTaskStatusDefinition(statusId, {
             sortOrder: index + 1,
-          })
+          }, projectId)
         )
       )
       notificationStore.success(t('task.workflow.reorder_success', {}, 'Status order updated'))
@@ -308,6 +337,8 @@ export function createStatusManagementController({
       deleteStatusError = t('task.workflow.board_sync_retry_error', {}, 'Board is syncing. Please try again in a few seconds.')
       return
     }
+    const projectId = requireProjectId()
+    if (!projectId) return
 
     if (!statusDeleteTarget?.id) {
       deleteStatusError = t('task.workflow.delete_missing_target', {}, 'Unable to delete this status.')
@@ -328,7 +359,7 @@ export function createStatusManagementController({
     deleteStatusError = ''
 
     try {
-      await deleteTaskStatusDefinition(statusDeleteTarget.id)
+      await deleteTaskStatusDefinition(statusDeleteTarget.id, projectId)
       notificationStore.success(t('task.workflow.delete_success', {}, 'Status deleted'))
       deleteStatusModalOpen = false
       statusDeleteTarget = null
@@ -423,6 +454,12 @@ export function createStatusManagementController({
     },
     set renameStatusName(value: string) {
       renameStatusName = value
+    },
+    get renameStatusColor() {
+      return renameStatusColor
+    },
+    set renameStatusColor(value: string) {
+      renameStatusColor = value
     },
     get renameStatusError() {
       return renameStatusError

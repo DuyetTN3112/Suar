@@ -1,6 +1,13 @@
 <script lang="ts">
   import { page, router } from '@inertiajs/svelte'
 
+  import {
+    TASK_CREATE_VALIDATION_ORDER,
+    validateTaskCreate,
+    type TaskCreateIntent,
+  } from '@/apps/shared/tasks/task_create_validation'
+  import { isDocumentationTaskStatusId } from '@/apps/shared/tasks/documentation_task_status'
+  import { toIsoDueAt } from '@/apps/shared/tasks/task_schedule'
   import Button from '@/apps/org/shared/ui/button.svelte'
   import Card from '@/apps/org/shared/ui/card.svelte'
   import CardContent from '@/apps/org/shared/ui/card_content.svelte'
@@ -13,21 +20,19 @@
 
   import CreateTaskForm from '@/apps/org/modules/tasks/components/modals/create_task_form.svelte'
   import type { TaskCreateAssigneeGroups, TaskCreateFormData } from '@/apps/org/modules/tasks/types/create_form_types'
-  import { getTaskContractPreset, mergeTaskContractPreset } from '@/apps/org/modules/tasks/lib/rules/task_contract_presets'
   import { normalizeTaskFormErrors } from '@/apps/org/modules/tasks/lib/errors/task_form_errors'
   import {
     countTaskSkillsByCategory,
     formatTaskSkillCategoryViolations,
     getTaskSkillCategoryViolations,
   } from '@/apps/org/modules/tasks/lib/rules/task_skill_category_rules'
-  import TaskReadinessCard from '@/apps/org/modules/tasks/components/detail/task_readiness_card.svelte'
   import TaskRolePrefillPanel from '@/apps/org/modules/tasks/components/detail/task_role_prefill_panel.svelte'
 
   interface Props {
     shellMode?: 'app' | 'organization'
     auth?: { user?: { current_organization_role?: string | null; current_project?: { id: string; name?: string | null } | null } }
     metadata: {
-      statuses: { value: string; label: string }[]
+      statuses: { value: string; label: string; slug?: string; category?: string }[]
       labels: { value: string; label: string }[]
       priorities: { value: string; label: string }[]
       users: { id: string; username: string; email: string }[]
@@ -81,10 +86,7 @@
   const { t } = useTranslation()
   const currentQuery = $derived(new URLSearchParams(currentPage.url.split('?')[1] ?? ''))
   const currentProjectId = $derived(currentPage.props.auth?.user?.current_project?.id ?? '')
-  const requestedProjectId = $derived(currentQuery.get('project_id') ?? currentQuery.get('projectId') ?? '')
   const requestedRoleId = $derived(currentQuery.get('roleId') ?? currentQuery.get('role_id') ?? '')
-  const requestedTaskType = $derived(currentQuery.get('taskType') ?? currentQuery.get('task_type') ?? '')
-  const fallbackProjectId = $derived(metadata.projects?.[0]?.id ?? '')
 
   let formData = $state<TaskCreateFormData>({
     title: '',
@@ -96,7 +98,9 @@
     priority: '',
     label: '',
     task_visibility: 'internal',
+    reviewer_visibility: 'project',
     assigned_to: '',
+    reviewer_user_id: '',
     due_date: '',
     parent_task_id: '',
     estimated_time: '0',
@@ -109,6 +113,21 @@
     tech_stack_text: '',
     learning_objectives_text: '',
     domain_tags_text: '',
+    scope_text: '',
+    out_of_scope_text: '',
+    deliverables_text: '',
+    quality_requirements_text: '',
+    constraints_text: '',
+    dependencies_text: '',
+    authoring_mode: 'evidence_enabled',
+    authoring_intent: 'save_draft',
+    creator_confirmed: false,
+    constraints_addressed: false,
+    dependencies_addressed: false,
+    supporting_reference_uri: '',
+    supporting_reference_title: '',
+    reviewer_role_code: 'org_owner',
+    profile_eligibility: true,
   })
 
   let projectProfessionalRoleId = $state('')
@@ -118,16 +137,12 @@
   })
   let selectedProjectVisibility = $state<string | null>(null)
   let loadingAssigneeGroups = $state(false)
-  let didAutoApplyTaskStarter = $state(false)
   let errors = $state<Record<string, string>>({})
   let formError = $state('')
   let submitting = $state(false)
   let assigneeGroupRequestKey = 0
 
   const pageTitle = $derived(t('task.new_task', {}, 'Create new task'))
-  const selectedProject = $derived(
-    metadata.projects?.find((project) => project.id === formData.project_id) ?? null
-  )
   const selectedAssignee = $derived(
     metadata.users.find((user) => user.id === formData.assigned_to) ?? null
   )
@@ -137,40 +152,6 @@
       {},
       t('task.create.project_visibility_unknown', {}, 'Unknown')
     )
-  )
-  const contractChecks = $derived([
-    {
-      key: 'project',
-      label: t('task.create.project', {}, 'Project'),
-      done: Boolean(formData.project_id),
-    },
-    {
-      key: 'skills',
-      label: t('task.create.skills_heading', {}, 'Skills'),
-      done: formData.required_skills.length > 0,
-    },
-    {
-      key: 'acceptance',
-      label: t('task.create.acceptance_criteria', {}, 'Acceptance criteria'),
-      done: formData.acceptance_criteria.trim().length > 0,
-    },
-    {
-      key: 'verification',
-      label: t('task.create.verification', {}, 'Verification'),
-      done: formData.verification_method.trim().length > 0,
-    },
-    {
-      key: 'assignee',
-      label: t('task.create.assignee', {}, 'Assignee'),
-      done: formData.assigned_to.trim().length > 0,
-    },
-  ])
-  const completedContractChecks = $derived(contractChecks.filter((item) => item.done).length)
-  const contractReadyForAssignment = $derived(
-    Boolean(formData.project_id) &&
-      formData.required_skills.length > 0 &&
-      formData.acceptance_criteria.trim().length > 0 &&
-      formData.verification_method.trim().length > 0
   )
   const scopedAssigneeUsers = $derived([
     ...assigneeGroups.projectMembers.map((member) => ({
@@ -190,6 +171,33 @@
       !assigneeGroups.orgMembersOutsideProject.some((member) => member.id === user.id)
     ),
   ])
+  const isDocumentationItem = $derived(
+    isDocumentationTaskStatusId(formData.task_status_id, metadata.statuses)
+  )
+
+  $effect(() => {
+    if (!isDocumentationItem) return
+    if (
+      !formData.assigned_to &&
+      !formData.reviewer_user_id &&
+      !formData.due_date &&
+      formData.estimated_time === '0' &&
+      formData.authoring_mode === 'operational_only' &&
+      formData.profile_eligibility === false &&
+      !projectProfessionalRoleId
+    ) return
+
+    projectProfessionalRoleId = ''
+    formData = {
+      ...formData,
+      assigned_to: '',
+      reviewer_user_id: '',
+      due_date: '',
+      estimated_time: '0',
+      authoring_mode: 'operational_only',
+      profile_eligibility: false,
+    }
+  })
 
   $effect(() => {
     if (!formData.task_status_id && metadata.statuses[0]?.value) {
@@ -199,20 +207,10 @@
       }
     }
 
-    if (!formData.project_id && requestedProjectId) {
-      formData = {
-        ...formData,
-        project_id: requestedProjectId,
-      }
-    } else if (!formData.project_id && currentProjectId) {
+    if (currentProjectId && formData.project_id !== currentProjectId) {
       formData = {
         ...formData,
         project_id: currentProjectId,
-      }
-    } else if (!formData.project_id && fallbackProjectId) {
-      formData = {
-        ...formData,
-        project_id: fallbackProjectId,
       }
     }
   })
@@ -271,16 +269,6 @@
       })
   })
 
-  $effect(() => {
-    if (didAutoApplyTaskStarter || !requestedTaskType) return
-
-    const preset = getTaskContractPreset(requestedTaskType, t)
-    if (!preset) return
-
-    didAutoApplyTaskStarter = true
-    setFormData((prev) => mergeTaskContractPreset(prev, preset))
-  })
-
   const parseListInput = (raw: string) =>
     raw
       .split(/[\n,]/)
@@ -298,7 +286,57 @@
     return violations.length > 0 ? formatTaskSkillCategoryViolations(violations) : null
   }
 
-  const buildPayload = () => ({
+  function getCreateValidationErrors(intent: TaskCreateIntent): Record<string, string> {
+    const validationErrors: Record<string, string> = {
+      ...validateTaskCreate({ ...formData, is_documentation_item: isDocumentationItem }, intent, t),
+    }
+    const requiredSkillMixError =
+      formData.required_skills.length > 0 ? validateRequiredSkillMix() : null
+
+    if (requiredSkillMixError) validationErrors.required_skills = requiredSkillMixError
+
+    return validationErrors
+  }
+
+  const buildPayload = (intent: TaskCreateFormData['authoring_intent']) => {
+    const authoringMode = isDocumentationItem ? 'operational_only' : 'evidence_enabled'
+    const resolvedIntent: TaskCreateIntent = isDocumentationItem
+      ? 'save_draft'
+      : intent ?? 'save_draft'
+    const referenceUri = formData.supporting_reference_uri?.trim() ?? ''
+    const referenceTitle = formData.supporting_reference_title?.trim() ?? ''
+    const listItems = (raw: string | undefined) => parseListInput(raw ?? '').map((text) => ({ id: crypto.randomUUID(), title: text, description: text }))
+    const deliverables = listItems(formData.deliverables_text).map((item) => ({ ...item, expectedFormat: null, expectedLocation: null }))
+    const acceptanceCriteria = parseListInput(formData.acceptance_criteria).map((statement) => ({ id: crypto.randomUUID(), statement, verificationMethod: formData.verification_method, critical: true }))
+    const dependencies = listItems(formData.dependencies_text).map((item) => ({ ...item, ownerId: null, state: 'available' }))
+    const levelNumber = (value: string) => {
+      const match = value.match(/\d+/)
+      return match ? Number(match[0]) : null
+    }
+    const evidenceRequirements: Array<{
+      id: string
+      type: string
+      title: string
+      description: string
+      criterionIds: string[]
+      deliverableIds: string[]
+      required: boolean
+      privacyClassification: string
+    }> = authoringMode === 'evidence_enabled'
+      ? [{
+          id: crypto.randomUUID(),
+          type: 'review_observation',
+          title: `Đánh giá kết quả: ${formData.title.trim()}`,
+          description: 'Người nghiệm thu đối chiếu kết quả công việc với tiêu chí nghiệm thu và đầu ra đã chốt.',
+          criterionIds: acceptanceCriteria.map((criterion) => criterion.id),
+          deliverableIds: deliverables.map((deliverable) => deliverable.id),
+          required: true,
+          privacyClassification: 'internal',
+        }]
+      : []
+    const evidenceCapabilities = authoringMode === 'evidence_enabled' ? formData.required_skills.map((skill) => { const level = levelNumber(skill.level); return { id: crypto.randomUUID(), capabilityId: skill.id, capabilityName: skill.name, minimumLevel: level, targetLevel: levelNumber(skill.target_level_code ?? skill.level), assessmentCeiling: levelNumber(skill.assessment_ceiling_level_code ?? ''), rubricVersionId: skill.rubric_version_id ?? null, observableBehaviours: [`Demonstrates ${skill.name} through the task deliverables.`] } }) : []
+
+    return ({
     title: formData.title,
     description: formData.description,
     taskStatusId: formData.task_status_id,
@@ -308,7 +346,9 @@
     priority: normalizeOptionalString(formData.priority),
     label: normalizeOptionalString(formData.label),
     taskVisibility: formData.task_visibility,
-    assignedTo: normalizeOptionalString(formData.assigned_to),
+    assignedTo: !isDocumentationItem && resolvedIntent === 'publish'
+      ? normalizeOptionalString(formData.assigned_to)
+      : undefined,
     dueDate: normalizeOptionalString(formData.due_date),
     parentTaskId: normalizeOptionalString(formData.parent_task_id),
     estimatedTime: Number(normalizeOptionalString(formData.estimated_time) ?? 0),
@@ -334,44 +374,67 @@
     acceptanceCriteria: formData.acceptance_criteria,
     contextBackground: normalizeOptionalString(formData.context_background),
     roleInTask: normalizeOptionalString(formData.role_in_task),
-    businessDomain: normalizeOptionalString(formData.business_domain),
     problemCategory: normalizeOptionalString(formData.problem_category),
-    techStack: parseListInput(formData.tech_stack_text),
-    learningObjectives: parseListInput(formData.learning_objectives_text),
-    domainTags: parseListInput(formData.domain_tags_text),
-  })
+    authoring: {
+      mode: authoringMode,
+      intent: resolvedIntent,
+      idempotencyKey: `task-authoring:${crypto.randomUUID()}`,
+      expectedHeadRevision: 0,
+      creatorConfirmed: resolvedIntent === 'publish' && (formData.creator_confirmed ?? false),
+      constraintsAddressed: formData.constraints_addressed ?? false,
+      dependenciesAddressed: formData.dependencies_addressed ?? false,
+      specification: {
+        plainText: [formData.title, formData.description, formData.context_background, formData.acceptance_criteria]
+          .filter((value) => value.trim().length > 0)
+          .join('\n\n'),
+      },
+      workContract: {
+        action: formData.task_type,
+        object: formData.title,
+        problemStatement: formData.context_background,
+        desiredOutcome: formData.acceptance_criteria,
+        roleInTask: formData.role_in_task,
+        ownershipLevel: 'contributor',
+        autonomyLevel: 'supervised',
+        collaborationType: 'team',
+        environment: 'application',
+        complexityContext: {},
+        impactScope: {},
+        estimatedUsersAffected: 1,
+        dueAt: formData.due_date
+          ? (toIsoDueAt(formData.due_date) ?? new Date(Date.now() + 7 * 86_400_000).toISOString())
+          : new Date(Date.now() + 7 * 86_400_000).toISOString(),
+        scope: listItems(formData.scope_text),
+        outOfScope: listItems(formData.out_of_scope_text),
+        deliverables,
+        acceptanceCriteria,
+        qualityRequirements: listItems(formData.quality_requirements_text),
+        constraints: listItems(formData.constraints_text),
+        dependencies,
+      },
+      evidenceContract: {
+        mode: authoringMode,
+        requirements: evidenceRequirements,
+        verificationMethods: formData.verification_method ? [formData.verification_method] : [],
+        verifierPolicy: { reviewerIds: formData.reviewer_user_id ? [formData.reviewer_user_id] : [], reviewerRoleCodes: [], minimumReviewers: authoringMode === 'evidence_enabled' ? 1 : 0, disallowSelfReview: true },
+        reviewerVisibility: formData.reviewer_visibility ?? 'project',
+        capabilities: evidenceCapabilities,
+        profileEligibility: authoringMode === 'evidence_enabled',
+        privacyClassification: 'internal',
+      },
+      ...(referenceUri
+        ? { supportingReferences: [{ type: 'url', uri: referenceUri, title: referenceTitle || formData.title.trim(), relevantSection: 'specification', relation: 'requirement_source', accessState: 'unknown', privacyClassification: 'internal' }] }
+        : {}),
+    },
+    })
+  }
 
-  const handleSubmit = () => {
-    const newErrors: Record<string, string> = {}
-
-    if (!formData.title.trim()) {
-      newErrors.title = t('task.title', {}, 'Title') + ' ' + t('common.is_required', {}, 'is required')
-    }
-
-    if (!formData.task_status_id) {
-      newErrors.task_status_id =
-        t('task.status', {}, 'Status') + ' ' + t('common.is_required', {}, 'is required')
-    }
-
-    if (!formData.project_id) {
-      newErrors.project_id = t('task.create.project_required', {}, 'Project is required')
-    }
-
-    if (formData.required_skills.length === 0) {
-      newErrors.required_skills =
-        t('task.marketplace_card.required_skills', {}, 'Required skills') +
-        ' ' +
-        t('common.is_required', {}, 'is required')
-    } else {
-      const requiredSkillMixError = validateRequiredSkillMix()
-      if (requiredSkillMixError) {
-        newErrors.required_skills = requiredSkillMixError
-      }
-    }
-
-    if (!formData.acceptance_criteria.trim()) {
-      newErrors.acceptance_criteria = t('task.create.acceptance_criteria_required', {}, 'Acceptance criteria is required')
-    }
+  const handleSubmit = (intent: TaskCreateFormData['authoring_intent']) => {
+    const resolvedIntent: TaskCreateIntent = isDocumentationItem
+      ? 'save_draft'
+      : (intent ?? 'save_draft') as TaskCreateIntent
+    formData = { ...formData, authoring_intent: resolvedIntent }
+    const newErrors = getCreateValidationErrors(resolvedIntent)
 
     if (Object.keys(newErrors).length > 0) {
       errors = newErrors
@@ -383,7 +446,7 @@
     errors = {}
     formError = ''
 
-    router.post(FRONTEND_ROUTES.TASKS, buildPayload(), {
+    router.post(FRONTEND_ROUTES.TASKS, buildPayload(resolvedIntent), {
       preserveState: true,
       preserveScroll: true,
       onSuccess: () => {
@@ -410,17 +473,13 @@
 
     const nextErrors = { ...errors }
     const previousErrorCount = Object.keys(nextErrors).length
-    if (nextErrors.task_status_id && formData.task_status_id) {
-      delete nextErrors.task_status_id
-    }
-    if (nextErrors.project_id && formData.project_id) {
-      delete nextErrors.project_id
-    }
-    if (nextErrors.required_skills && formData.required_skills.length > 0) {
-      delete nextErrors.required_skills
-    }
-    if (nextErrors.acceptance_criteria && formData.acceptance_criteria.trim()) {
-      delete nextErrors.acceptance_criteria
+    const currentValidationErrors = getCreateValidationErrors(
+      (formData.authoring_intent ?? 'save_draft') as TaskCreateIntent
+    )
+    for (const field of TASK_CREATE_VALIDATION_ORDER) {
+      if (nextErrors[field] && !currentValidationErrors[field]) {
+        delete nextErrors[field]
+      }
     }
     errors = nextErrors
     if (formError && Object.keys(nextErrors).length < previousErrorCount) {
@@ -440,9 +499,6 @@
     <Card>
       <CardHeader>
         <CardTitle>{pageTitle}</CardTitle>
-        <p class="text-sm text-muted-foreground">
-          {selectedProject?.name ?? t('task.create.no_project_selected', {}, 'No project selected')}
-        </p>
       </CardHeader>
 
       <CardContent>
@@ -458,12 +514,6 @@
               <div class="rounded-2xl border border-border bg-background/80 p-3">
                 <p class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t('task.create.organization', {}, 'Organization')}</p>
                 <p class="mt-2 text-sm font-semibold text-foreground">{t('task.create.current_organization_value', {}, 'Current')}</p>
-              </div>
-              <div class="rounded-2xl border border-border bg-background/80 p-3">
-                <p class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t('task.create.project', {}, 'Project')}</p>
-                <p class="mt-2 text-sm font-semibold text-foreground">
-                  {selectedProject?.name ?? t('task.create.no_project_selected', {}, 'No project selected')}
-                </p>
               </div>
               <div class="rounded-2xl border border-border bg-background/80 p-3">
                 <p class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t('task.create.task_access', {}, 'Task access')}</p>
@@ -483,22 +533,18 @@
             {/if}
           </div>
 
-          <TaskReadinessCard
-            {contractChecks}
-            {completedContractChecks}
-            {contractReadyForAssignment}
-          />
         </div>
 
-        <TaskRolePrefillPanel
-          projectId={formData.project_id}
-          assignedTo={formData.assigned_to}
-          {requestedTaskType}
-          {requestedRoleId}
-          {assigneeGroups}
-          {setFormData}
-          bind:projectProfessionalRoleId
-        />
+        {#if !isDocumentationItem && formData.task_visibility === 'project'}
+          <TaskRolePrefillPanel
+            projectId={formData.project_id}
+            assignedTo={formData.assigned_to}
+            {requestedRoleId}
+            {assigneeGroups}
+            {setFormData}
+            bind:projectProfessionalRoleId
+          />
+        {/if}
 
         <CreateTaskForm
           {formData}
@@ -511,7 +557,6 @@
           {assigneeGroups}
           parentTasks={metadata.parentTasks ?? []}
           availableSkills={metadata.availableSkills ?? []}
-          projects={metadata.projects ?? []}
           proficiencyLevels={metadata.proficiencyLevels ?? []}
           {selectedProjectVisibility}
           {formError}
@@ -522,9 +567,12 @@
         <Button variant="outline" onclick={handleCancel} disabled={submitting}>
           {t('common.cancel', {}, 'Cancel')}
         </Button>
-        <Button onclick={handleSubmit} disabled={submitting || (metadata.projects?.length ?? 0) === 0}>
-          {submitting ? t('common.creating', {}, 'Creating...') : t('task.add_task', {}, 'Create task')}
-        </Button>
+        {#if isDocumentationItem}
+          <Button onclick={() => handleSubmit('save_draft')} disabled={submitting || (metadata.projects?.length ?? 0) === 0}>{submitting ? t('common.creating', {}, 'Đang tạo...') : t('task.create.create_docs', {}, 'Tạo mục Docs')}</Button>
+        {:else}
+          <Button variant="outline" onclick={() => handleSubmit('save_draft')} disabled={submitting || (metadata.projects?.length ?? 0) === 0}>{t('task.create.save_draft', {}, 'Lưu nháp')}</Button>
+          <Button onclick={() => handleSubmit('publish')} disabled={submitting || (metadata.projects?.length ?? 0) === 0}>{submitting ? t('common.creating', {}, 'Đang tạo...') : t('task.create.publish_assign', {}, 'Tạo và giao việc')}</Button>
+        {/if}
       </CardFooter>
     </Card>
   </div>

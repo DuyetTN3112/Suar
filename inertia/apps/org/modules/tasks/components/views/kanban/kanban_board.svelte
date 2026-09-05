@@ -3,7 +3,6 @@
 
   import {
     getTaskDoneGateDecision,
-    type TaskDoneGateDecision,
   } from '@/apps/shared/tasks/done_gate'
   import type { TaskStore } from '@/apps/org/modules/tasks/stores/tasks.svelte'
   import { useTranslation } from '@/apps/org/shared/stores/translation.svelte'
@@ -44,12 +43,6 @@
     hasProjectOptions?: boolean
   }
 
-  interface BoardMoveRefusal {
-    taskId: string
-    message: string
-    action: TaskDoneGateDecision['action']
-  }
-
   const {
     store,
     metadata,
@@ -70,7 +63,7 @@
   let orderedColumnKeys = $state<string[]>([])
   let draggingColumnKey = $state<string | null>(null)
   let columnReorderSubmitting = $state(false)
-  let boardMoveRefusal = $state<BoardMoveRefusal | null>(null)
+  let boardMoveRefusal = $state<{ message: string } | null>(null)
 
   const statusLabelFallback: Record<string, string> = {
     todo: t('task.status_todo', {}, 'To Do'),
@@ -241,30 +234,19 @@
       reason: {
         boardSyncing: t('task.workflow.board_sync_retry_error', {}, 'Board is syncing. Please try again in a few seconds.'),
         permissionDenied: t('task.workflow.status_permission_denied', {}, 'You do not have permission to update this task status.'),
-        missingSubmission: t('task.workflow.done_gate_missing_submission', {}, 'Submit work before moving this task into a done column. The card stayed in its original column.'),
+        missingAssignee: t('task.workflow.assignee_required_for_done', {}, 'Assign a person to the task before moving it to Done.'),
       },
     })
 
     if (!decision.allowed) {
       boardMoveRefusal = {
-        taskId,
         message: decision.reason,
-        action: decision.action,
       }
       return
     }
 
     boardMoveRefusal = null
     void store.moveTaskStatus(taskId, newStatus, sortOrder)
-  }
-
-  function handleSubmitWorkAction() {
-    if (!boardMoveRefusal) return
-
-    const task = store.getTaskById(boardMoveRefusal.taskId)
-    if (task) {
-      onTaskClick?.(task)
-    }
   }
 
   function handleCreateTask(status: string) {
@@ -296,7 +278,14 @@
     }
 
     const legacyTasks = store.sortedTasks.filter((task): task is TaskDetail => {
-      if (task.task_status_id) {
+      // A project workflow migration replaces status IDs. A board response
+      // already cached before that migration can therefore carry an ID no
+      // longer present in this project's metadata. In that one case, use the
+      // durable legacy status value so tasks remain visible until refresh.
+      const hasCurrentStatusId = task.task_status_id
+        ? metadata.statuses.some((status) => status.value === task.task_status_id)
+        : false
+      if (hasCurrentStatusId) {
         return false
       }
 
@@ -344,15 +333,6 @@
       <div class="mb-3 rounded-2xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm font-semibold text-foreground shadow-sm" role="status" aria-live="assertive">
         <div class="flex flex-wrap items-center justify-between gap-3">
           <span>{boardMoveRefusal.message}</span>
-          {#if boardMoveRefusal.action === 'submit_work'}
-            <button
-              type="button"
-              class="rounded-xl border border-destructive/30 bg-background px-3 py-2 text-xs font-bold text-foreground shadow-sm transition hover:bg-muted"
-              onclick={handleSubmitWorkAction}
-            >
-              {t('task.workflow.submit_work_action', {}, 'Submit work')}
-            </button>
-          {/if}
         </div>
       </div>
     {/if}

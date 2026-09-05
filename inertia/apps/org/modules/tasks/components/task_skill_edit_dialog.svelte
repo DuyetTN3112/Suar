@@ -8,7 +8,6 @@
   import Button from '@/apps/org/shared/ui/button.svelte'
   import Input from '@/apps/org/shared/ui/input.svelte'
   import Label from '@/apps/org/shared/ui/label.svelte'
-  import LevelRangeSelector from '@/apps/org/modules/profile/components/level_range_selector.svelte'
   import { uiToast } from '@/apps/org/shared/lib/ui_toast'
   import { useTranslation } from '@/apps/org/shared/stores/translation.svelte'
 
@@ -45,6 +44,8 @@
   interface ProjectSkill {
     id: string
     rubricVersionId?: string | null
+    minimumTaskRequirementLevelId?: string | null
+    maximumTaskRequirementLevelId?: string | null
   }
 
   interface Props {
@@ -66,8 +67,6 @@
   }: Props = $props()
 
   let editMinLevelId = $state('')
-  let editTargetLevelId = $state('')
-  let editCeilingLevelId = $state('')
   let editRubricVersionId = $state('')
   let editMandatory = $state(false)
   let editImportance = $state<'low' | 'medium' | 'high' | 'critical'>('medium')
@@ -82,17 +81,40 @@
   const rubricOptions = $derived(
     [...new Set([requirement?.rubricVersionId ?? null, projectDefaultRubricVersionId].filter(Boolean) as string[])]
   )
+  const selectedProjectSkill = $derived(
+    projectSkills.find((projectSkill) => projectSkill.id === requirement?.projectSkillId) ?? null
+  )
+  const allowedMinimumLevels = $derived(
+    !selectedProjectSkill?.minimumTaskRequirementLevelId ||
+      !selectedProjectSkill.maximumTaskRequirementLevelId
+      ? []
+      : proficiencyLevels.filter(
+          (level) =>
+            level.ordinal >=
+              (proficiencyLevels.find(
+                (candidate) => candidate.id === selectedProjectSkill?.minimumTaskRequirementLevelId
+              )?.ordinal ?? Number.POSITIVE_INFINITY) &&
+            level.ordinal <=
+              (proficiencyLevels.find(
+                (candidate) => candidate.id === selectedProjectSkill?.maximumTaskRequirementLevelId
+              )?.ordinal ?? Number.NEGATIVE_INFINITY)
+        )
+  )
 
   $effect(() => {
     if (open && requirement) {
       editMinLevelId = requirement.minimumLevelId ?? ''
-      editTargetLevelId = requirement.targetLevelId ?? ''
-      editCeilingLevelId = requirement.assessmentCeilingLevelId ?? ''
       editRubricVersionId = requirement.rubricVersionId ?? projectDefaultRubricVersionId ?? ''
       editMandatory = requirement.isMandatory
       editImportance = requirement.importance
       editWeight = requirement.weight
       editNotes = requirement.requirementNotes ?? ''
+    }
+  })
+
+  $effect(() => {
+    if (open && allowedMinimumLevels.length > 0 && !allowedMinimumLevels.some((level) => level.id === editMinLevelId)) {
+      editMinLevelId = allowedMinimumLevels[0]?.id ?? ''
     }
   })
 
@@ -103,8 +125,6 @@
     try {
       await axios.put(`/api/v1/tasks/${taskId}/requirements/${requirement.id}`, {
         minimumLevelId: editMinLevelId || null,
-        targetLevelId: editTargetLevelId || null,
-        assessmentCeilingLevelId: editCeilingLevelId || null,
         rubricVersionId: editRubricVersionId || null,
         isMandatory: editMandatory,
         importance: editImportance,
@@ -129,12 +149,31 @@
         <DialogTitle>{t('task.skill_requirements.edit_dialog_title', { skillName: requirement.skill?.skillName ?? '' }, 'Edit: :skillName')}</DialogTitle>
       </DialogHeader>
       <form onsubmit={handleSave} class="space-y-4 pt-2">
-        <LevelRangeSelector
-          levels={proficiencyLevels}
-          bind:minLevelId={editMinLevelId}
-          bind:targetLevelId={editTargetLevelId}
-          bind:ceilingLevelId={editCeilingLevelId}
-        />
+        <div class="space-y-1.5">
+          <Label for="edit-minimum-level">Mức tối thiểu để nhận Task</Label>
+          <select
+            id="edit-minimum-level"
+            bind:value={editMinLevelId}
+            class="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1.5 text-sm"
+            disabled={allowedMinimumLevels.length === 0}
+            required
+          >
+            <option value="" disabled>Chọn mức tối thiểu</option>
+            {#each allowedMinimumLevels as level (level.id)}
+              <option value={level.id}>{level.shortName ?? level.displayName}</option>
+            {/each}
+          </select>
+          {#if allowedMinimumLevels.length === 0}
+            <p class="text-xs text-destructive">Kỹ năng này chưa được Project cấu hình khoảng level.</p>
+          {:else}
+            <p class="text-xs text-muted-foreground">
+              Project cho phép Task đặt mức tối thiểu từ
+              {allowedMinimumLevels[0]?.shortName ?? allowedMinimumLevels[0]?.displayName}
+              đến
+              {allowedMinimumLevels[allowedMinimumLevels.length - 1]?.shortName ?? allowedMinimumLevels[allowedMinimumLevels.length - 1]?.displayName}.
+            </p>
+          {/if}
+        </div>
 
         <div class="space-y-1.5">
           <Label for="edit-rubric">{t('task.skill_requirements.rubric_label', {}, 'Rubric')}</Label>
@@ -181,7 +220,7 @@
 
         <div class="flex justify-end gap-2">
           <Button type="button" variant="outline" onclick={() => { open = false }}>{t('common.cancel', {}, 'Cancel')}</Button>
-          <Button type="submit" disabled={saving}>
+          <Button type="submit" disabled={!editMinLevelId || saving}>
             {#if saving}<LoaderCircle class="h-4 w-4 animate-spin mr-1.5" />{/if}
             {t('common.save', {}, 'Save')}
           </Button>
