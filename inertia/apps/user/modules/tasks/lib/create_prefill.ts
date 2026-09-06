@@ -59,7 +59,7 @@ export function buildPrefilledTaskSkills(
   return (requirements ?? []).map((req) => ({
     id: req.skillId,
     name: req.skillName,
-    level: req.requiredLevelCode?.trim().toLowerCase() || 'l4',
+    level: req.requiredLevelCode?.trim().toLowerCase() || '',
     categoryCode: req.categoryCode ?? null,
     project_skill_id: req.projectSkillId,
     source_project_professional_role_id: req.sourceProjectProfessionalRoleId,

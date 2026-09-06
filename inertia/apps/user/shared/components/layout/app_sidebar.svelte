@@ -37,6 +37,6 @@
   )}
   workspaceLabel={t('common.sidebar.user_workspace', {}, 'User workspace')}
   logo="S"
-  showProjectSwitcher={false}
+  showProjectSwitcher={true}
   workspaceMode="personal"
 />

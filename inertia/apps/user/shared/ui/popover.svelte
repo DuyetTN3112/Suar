@@ -11,6 +11,6 @@
   let { children, open = $bindable(false), onOpenChange, ...restProps }: Props = $props()
 </script>
 
-<PopoverPrimitive.Root {open} onOpenChange={onOpenChange} {...restProps}>
+<PopoverPrimitive.Root bind:open onOpenChange={onOpenChange} {...restProps}>
   {@render children?.()}
 </PopoverPrimitive.Root>

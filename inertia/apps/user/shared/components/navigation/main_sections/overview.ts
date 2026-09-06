@@ -24,10 +24,28 @@ export const mainOverviewSection: NavGroup = {
       iconName: 'Mail',
     },
     {
-      title: 'My work',
-      titleKey: 'common.navigation.my_work',
-      url: FRONTEND_ROUTES.WORK,
-      iconName: 'Briefcase',
+      title: 'Task board',
+      titleKey: 'common.navigation.task_board',
+      url: FRONTEND_ROUTES.TASKS,
+      iconName: 'SquareCheckBig',
+    },
+    {
+      title: 'Task review board',
+      titleKey: 'common.navigation.task_review_board',
+      url: '/reviews/tasks',
+      iconName: 'ClipboardCheck',
+    },
+    {
+      title: 'Assigner review',
+      titleKey: 'common.navigation.manager_review',
+      url: '/reviews/assigners',
+      iconName: 'UserCheck',
+    },
+    {
+      title: 'Work environment review',
+      titleKey: 'common.navigation.work_environment_review',
+      url: '/reviews/environment',
+      iconName: 'Building2',
     },
     {
       title: 'Open tasks',

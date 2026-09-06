@@ -44,7 +44,7 @@
     "inline-flex min-w-9 items-center justify-center rounded-md border border-border px-3 py-2 text-sm font-medium transition-colors"
   const paginationActiveClass = "border-primary bg-primary text-primary-foreground"
   const paginationIdleClass = "bg-background text-foreground hover:bg-accent"
-  const paginationDisabledClass = "pointer-events-none opacity-50"
+  const paginationDisabledClass = "pointer-events-none text-foreground"
 
   function normalizePageNumber(value: number | undefined): number {
     if (typeof value !== "number" || !Number.isFinite(value)) return 1
@@ -171,6 +171,7 @@
     <a
       href={item.href}
       aria-label={ariaLabel}
+      aria-disabled={item.isDisabled ? 'true' : undefined}
       aria-current={'isCurrent' in item && item.isCurrent ? 'page' : undefined}
       class={cn(
         paginationItemClass,
@@ -184,6 +185,7 @@
     <button
       type="button"
       aria-label={ariaLabel}
+      aria-disabled={item.isDisabled ? 'true' : undefined}
       aria-current={'isCurrent' in item && item.isCurrent ? 'page' : undefined}
       class={cn(
         paginationItemClass,

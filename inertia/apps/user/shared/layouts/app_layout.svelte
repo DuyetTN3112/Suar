@@ -72,7 +72,7 @@
 <NotificationDialog />
 <GlobalFeedbackSurface />
 
-<div class="flex min-h-screen bg-background">
+<div class="flex min-h-screen overflow-x-hidden bg-background">
   {#if workspaceMode === 'project'}
     <ProjectSidebar open={sidebarOpen} onClose={() => { sidebarOpen = false }} />
   {:else}
@@ -80,7 +80,7 @@
   {/if}
 
   <div class="flex-1 flex flex-col min-w-0">
-    <NavBar onMenuClick={() => { sidebarOpen = true }} />
+  <NavBar {workspaceMode} onMenuClick={() => { sidebarOpen = true }} />
     <main class="flex-1 p-6 lg:p-8">
       {@render children()}
     </main>

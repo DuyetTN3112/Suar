@@ -1,6 +1,5 @@
 export const FRONTEND_ROUTES = {
   HOME: '/',
-  WORK: '/work',
   TASKS: '/tasks',
   TASKS_CREATE: '/tasks/create',
   PROJECTS: '/projects',
@@ -39,6 +38,10 @@ export const FRONTEND_ROUTES = {
 
 export function getTaskDetailRoute(taskId: string): string {
   return `${FRONTEND_ROUTES.TASKS}/${taskId}`
+}
+
+export function getMarketplaceTaskDetailRoute(taskId: string): string {
+  return `${FRONTEND_ROUTES.MARKETPLACE_TASKS}/${taskId}`
 }
 
 export function getTaskApplicationsRoute(taskId: string): string {

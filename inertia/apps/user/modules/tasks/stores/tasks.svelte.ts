@@ -309,7 +309,11 @@ export function createTaskStore(options: TaskStoreOptions = {}) {
 
     const map: Record<string, TaskDetail> = {}
     for (const task of tasks) {
-      map[task.id] = task
+      const hydratedTask = tasksMap[task.id]
+      map[task.id] =
+        task.resolved_brief === undefined && hydratedTask?.resolved_brief !== undefined
+          ? { ...task, resolved_brief: hydratedTask.resolved_brief }
+          : task
     }
     tasksMap = map
     pendingSync = null

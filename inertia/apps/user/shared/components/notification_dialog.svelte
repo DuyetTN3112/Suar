@@ -11,6 +11,7 @@
 <Toaster
   theme={resolvedTheme}
   position="bottom-right"
+  style="max-width: calc(100vw - 2rem);"
   closeButton
   richColors
   duration={4000}

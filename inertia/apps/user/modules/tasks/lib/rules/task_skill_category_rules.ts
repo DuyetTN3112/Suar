@@ -1,8 +1,8 @@
 export const TASK_SKILL_CATEGORY_MINIMUMS = {
-  technology: 1,
-  engineering: 1,
-  soft_skill: 1,
-  delivery: 1,
+  technology: 0,
+  engineering: 0,
+  soft_skill: 0,
+  delivery: 0,
 } as const
 
 export type TaskSkillCategoryCode = keyof typeof TASK_SKILL_CATEGORY_MINIMUMS
@@ -83,5 +83,5 @@ export function formatTaskSkillCategoryViolations(
     )
     .join(', ')
 
-  return `Each skill group must have at least ${TASK_SKILL_CATEGORY_MINIMUMS.technology} item. Missing: ${details}.`
+  return `Relevant skill groups only are required. Missing: ${details}.`
 }

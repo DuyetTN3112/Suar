@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { page, router } from '@inertiajs/svelte'
+  import { page } from '@inertiajs/svelte'
   import { untrack } from 'svelte'
 
   import { normalizeApiProblem } from '@/apps/shared/http/api_problem'
@@ -35,22 +35,21 @@
   }: Props = $props()
   const { t } = useTranslation()
   const currentOrganizationRole = $derived(auth?.user?.current_organization_role ?? null)
-  const isOrgTaskSurface = $derived(shellMode === 'organization')
   const isProjectTaskSurface = $derived(shellMode === 'project')
   const isOrgOwnerOrAdmin = $derived(
     currentOrganizationRole === 'org_owner' || currentOrganizationRole === 'org_admin'
-  )
-  // TODO: remove role fallback after backend provides permissions.canManageWorkflow consistently.
-  const canManageWorkflow = $derived(
-    isOrgTaskSurface && (permissions?.canManageWorkflow ?? isOrgOwnerOrAdmin)
   )
   const currentQuery = $derived(new URLSearchParams(page.url.split('?')[1] ?? ''))
   const requestedRoleId = $derived(currentQuery.get('roleId') ?? currentQuery.get('role_id') ?? '')
   const requestedCreate = $derived(currentQuery.get('create') ?? '')
   const requestedStatus = $derived(currentQuery.get('status') ?? '')
+  const selectedProjectId = $derived(projectContext?.selectedProject?.id ?? filters.project_id ?? '')
+  const canManageWorkflow = $derived(
+    Boolean(selectedProjectId) && (permissions?.canManageWorkflow ?? isOrgOwnerOrAdmin)
+  )
   const requestedTaskId = $derived(currentQuery.get('task_id'))
   let didAutoOpenCreateModal = $state(false)
-  let hydratedTaskId = $state<string | null>(null)
+  let autoOpenedTaskId = $state<string | null>(null)
 
   function getCurrentTaskScope() {
     return {
@@ -77,14 +76,18 @@
   let detailModalOpen = $state(false)
   let detailTaskLoading = $state(false)
   let selectedTaskId = $state<string | null>(null)
+  let selectedTaskSnapshot = $state<TaskDetail | null>(null)
   let detailFetchSequence = 0
-  const selectedTask = $derived(selectedTaskId ? (store.getTaskById(selectedTaskId) ?? null) : null)
+  const selectedTask = $derived(
+    selectedTaskId ? (store.getTaskById(selectedTaskId) ?? selectedTaskSnapshot) : null
+  )
   const createTaskPermission = $derived({
     allowed: permissions?.canCreateTask ?? false,
     reason: permissions?.createTaskReason ?? null,
   })
   const statusManager = createStatusManagementController({
     getStatuses: () => metadata.statuses,
+    getProjectId: () => selectedProjectId || null,
     canManageWorkflow: () => canManageWorkflow,
     isBoardMutationLocked: () => isBoardMutationLocked,
   })
@@ -99,10 +102,10 @@
       return
     }
 
-    if (projectOptions.length === 0) {
+    if (!selectedProjectId) {
       notificationStore.error(
-        t('task.create.no_project_title', {}, 'No project'),
-        t('task.kanban.no_projects', {}, 'Create a project before creating tasks.')
+        t('task.create.no_project_title', {}, 'No project selected'),
+        t('task.create.project_context_help', {}, 'Select a project from the sidebar before creating a task.')
       )
       return
     }
@@ -115,7 +118,7 @@
       !didAutoOpenCreateModal &&
       requestedCreate === '1' &&
       createTaskPermission.allowed &&
-      projectOptions.length > 0
+      selectedProjectId
     ) {
       didAutoOpenCreateModal = true
       selectedCreateStatus = requestedStatus || ''
@@ -125,14 +128,19 @@
 
   function handleViewTaskDetail(task: TaskDetail) {
     selectedTaskId = task.id
+    selectedTaskSnapshot = task
     detailModalOpen = true
-    const query = new URLSearchParams(page.url.split('?')[1] ?? '')
-    query.set('task_id', task.id)
-    router.get(baseRoute, Object.fromEntries(query), {
-      preserveScroll: true,
-      preserveState: true,
-      replace: true,
-    })
+    replaceTaskDetailUrl(task.id)
+  }
+
+  function replaceTaskDetailUrl(taskId: string | null): void {
+    if (typeof window === 'undefined') return
+
+    const nextUrl = new URL(window.location.href)
+    if (taskId) nextUrl.searchParams.set('task_id', taskId)
+    else nextUrl.searchParams.delete('task_id')
+
+    window.history.replaceState(window.history.state, '', `${nextUrl.pathname}${nextUrl.search}${nextUrl.hash}`)
   }
 
   function isTaskInCurrentScope(task: TaskDetail): boolean {
@@ -150,6 +158,17 @@
     void store.moveTaskStatus(task.id, toStatusId)
   }
 
+  async function handleRenameStatus(payload: { status: string; label: string }) {
+    statusManager.handleRenameStatusClick(payload)
+  }
+
+  async function handleReorderStatuses(payload: {
+    orderedStatusIds: string[]
+    previousStatusIds: string[]
+  }) {
+    await statusManager.handleReorderStatuses(payload)
+  }
+
   function getDetailStatusChangeDecision(task: TaskDetail, toStatusId: string) {
     return getTaskDoneGateDecision({
       task,
@@ -160,7 +179,7 @@
       reason: {
         boardSyncing: t('task.workflow.board_sync_retry_error', {}, 'Board is syncing. Please try again in a few seconds.'),
         permissionDenied: t('task.workflow.status_permission_denied', {}, 'You do not have permission to update this task status.'),
-        missingSubmission: t('task.workflow.missing_submission_done_gate', {}, 'Submit work before moving this task into a done column. The task stayed in its original status.'),
+        missingAssignee: t('task.workflow.assignee_required_for_done', {}, 'Assign a person to the task before moving it to Done.'),
       },
     })
   }
@@ -168,40 +187,25 @@
   function handleDetailClose() {
     detailModalOpen = false
     selectedTaskId = null
-    hydratedTaskId = null
-    const query = new URLSearchParams(page.url.split('?')[1] ?? '')
-    query.delete('task_id')
-    router.get(baseRoute, Object.fromEntries(query), {
-      preserveScroll: true,
-      preserveState: true,
-      replace: true,
-    })
+    selectedTaskSnapshot = null
+    replaceTaskDetailUrl(null)
   }
 
-  $effect(() => {
-    if (requestedTaskId && hydratedTaskId !== requestedTaskId) {
-      selectedTaskId = requestedTaskId
-      detailModalOpen = true
-      hydratedTaskId = requestedTaskId
-    }
-  })
-
-  $effect(() => {
-    if (!detailModalOpen || !selectedTaskId) {
-      detailTaskLoading = false
-      return
-    }
+  function reloadSelectedTaskBrief(): void {
+    const taskId = selectedTaskId
+    if (!taskId) return
 
     const requestId = ++detailFetchSequence
     detailTaskLoading = true
 
-    void loadTaskDetail(selectedTaskId)
+    void loadTaskDetail(taskId)
       .then((task) => {
         if (requestId !== detailFetchSequence || selectedTaskId !== task.id) {
           return
         }
 
         store.upsertTask(task)
+        selectedTaskSnapshot = task
       })
       .catch((error: unknown) => {
         if (requestId !== detailFetchSequence) return
@@ -211,13 +215,33 @@
 
         const reference = problem.requestId ? ` Reference: ${problem.requestId}` : ''
         notificationStore.error(problem.title, `${problem.detail}${reference}`)
-        handleDetailClose()
+        // Keep the brief board snapshot open when hydration fails. Closing the
+        // dialog here made task detail flash and disappear without an
+        // explanation, especially during an Inertia visit.
       })
       .finally(() => {
         if (requestId === detailFetchSequence) {
           detailTaskLoading = false
         }
       })
+  }
+
+  $effect(() => {
+    if (requestedTaskId && autoOpenedTaskId !== requestedTaskId) {
+      selectedTaskId = requestedTaskId
+      selectedTaskSnapshot = store.getTaskById(requestedTaskId) ?? null
+      detailModalOpen = true
+      autoOpenedTaskId = requestedTaskId
+    }
+  })
+
+  $effect(() => {
+    if (!detailModalOpen || !selectedTaskId) {
+      detailTaskLoading = false
+      return
+    }
+
+    reloadSelectedTaskBrief()
   })
 
   const pageTitle = $derived(
@@ -249,7 +273,9 @@
         onCreateTask={handleCreateClick}
         onCreateStatus={statusManager.handleCreateStatusClick}
         onDeleteStatus={statusManager.handleDeleteStatusClick}
-        canCreateTask={createTaskPermission.allowed && projectOptions.length > 0}
+        onRenameStatus={handleRenameStatus}
+        onReorderStatuses={handleReorderStatuses}
+        canCreateTask={createTaskPermission.allowed && Boolean(selectedProjectId)}
         canManageStatuses={canManageWorkflow}
         canDeleteStatus={statusManager.canDeleteStatus}
         createTaskDisabledReason={createTaskPermission.reason}
@@ -275,6 +301,7 @@
     {selectedTask}
     {detailTaskLoading}
     onDetailClose={handleDetailClose}
+    onReloadBrief={reloadSelectedTaskBrief}
     onDetailStatusChange={handleDetailStatusChange}
     getDetailStatusChangeDecision={getDetailStatusChangeDecision}
     {shellMode}
@@ -301,6 +328,23 @@
     }}
     onCreateStatusColorChange={(value: string) => {
       statusManager.createStatusColor = value
+    }}
+    renameStatusModalOpen={statusManager.renameStatusModalOpen}
+    renameStatusName={statusManager.renameStatusName}
+    renameStatusColor={statusManager.renameStatusColor}
+    renameStatusError={statusManager.renameStatusError}
+    renameStatusSubmitting={statusManager.renameStatusSubmitting}
+    statusRenameTarget={statusManager.statusRenameTarget}
+    onRenameStatusSubmit={statusManager.handleRenameStatusSubmit}
+    onRenameStatusDialogClose={statusManager.handleRenameStatusDialogClose}
+    onRenameStatusModalOpenChange={(open: boolean) => {
+      statusManager.renameStatusModalOpen = open
+    }}
+    onRenameStatusNameChange={(value: string) => {
+      statusManager.renameStatusName = value
+    }}
+    onRenameStatusColorChange={(value: string) => {
+      statusManager.renameStatusColor = value
     }}
     deleteStatusModalOpen={statusManager.deleteStatusModalOpen}
     deleteStatusError={statusManager.deleteStatusError}
