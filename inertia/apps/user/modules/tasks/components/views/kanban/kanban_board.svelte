@@ -1,18 +1,12 @@
 <script lang="ts">
   import { Plus } from 'lucide-svelte'
-
   import {
     getTaskDoneGateDecision,
-    type TaskDoneGateDecision,
   } from '@/apps/shared/tasks/done_gate'
   import type { TaskStore } from '@/apps/user/modules/tasks/stores/tasks.svelte'
   import { useTranslation } from '@/apps/user/shared/stores/translation.svelte'
-
   import type { TaskDetail } from '@/apps/user/modules/tasks/types/index.svelte'
-
   import KanbanColumn from '@/apps/user/modules/tasks/components/views/kanban/kanban_column.svelte'
-
-
 
   interface Props {
     store: TaskStore
@@ -32,17 +26,13 @@
     onCreateTask?: (status?: string) => void
     onCreateStatus?: () => void
     onDeleteStatus?: (payload: { status: string; label: string; taskCount: number }) => void
+    onRenameStatus?: (payload: { status: string; label: string }) => void
+    onReorderStatuses?: (payload: { orderedStatusIds: string[]; previousStatusIds: string[] }) => void | Promise<void>
     canDeleteStatus?: (status: string) => boolean
     canCreateTask?: boolean
     canManageStatuses?: boolean
     createTaskDisabledReason?: string | null
     hasProjectOptions?: boolean
-  }
-
-  interface BoardMoveRefusal {
-    taskId: string
-    message: string
-    action: TaskDoneGateDecision['action']
   }
 
   const {
@@ -52,18 +42,20 @@
     onCreateTask,
     onCreateStatus,
     onDeleteStatus,
+    onRenameStatus,
+    onReorderStatuses,
     canDeleteStatus,
     canCreateTask = false,
     canManageStatuses = false,
     hasProjectOptions = true,
   }: Props = $props()
   const { t } = useTranslation()
-  const STATUS_ORDER_STORAGE_KEY = 'tasks:kanban:status-order'
   const COLUMN_DRAG_DATA_TYPE = 'application/x-kanban-column'
 
   let orderedColumnKeys = $state<string[]>([])
   let draggingColumnKey = $state<string | null>(null)
-  let boardMoveRefusal = $state<BoardMoveRefusal | null>(null)
+  let columnReorderSubmitting = $state(false)
+  let boardMoveRefusal = $state<{ message: string } | null>(null)
 
   const statusLabelFallback: Record<string, string> = {
     todo: t('task.status_todo', {}, 'To Do'),
@@ -139,33 +131,14 @@
       return
     }
 
-    let storedKeys: string[] = []
-    try {
-      const raw = window.localStorage.getItem(STATUS_ORDER_STORAGE_KEY)
-      if (raw) {
-        const parsed = JSON.parse(raw) as unknown
-        if (Array.isArray(parsed)) {
-          storedKeys = parsed.filter((item): item is string => typeof item === 'string')
-        }
-      }
-    } catch {
-      storedKeys = []
-    }
-
-    const merged = [
-      ...storedKeys.filter((key) => keys.includes(key)),
-      ...keys.filter((key) => !storedKeys.includes(key)),
-    ]
-
-    orderedColumnKeys = merged
+    orderedColumnKeys = keys
   })
 
-  function persistOrder(nextKeys: string[]) {
-    if (typeof window === 'undefined') return
-    window.localStorage.setItem(STATUS_ORDER_STORAGE_KEY, JSON.stringify(nextKeys))
-  }
-
   function handleColumnDragStart(event: DragEvent, columnKey: string) {
+    if (columnReorderSubmitting) {
+      event.preventDefault()
+      return
+    }
     draggingColumnKey = columnKey
     event.stopPropagation()
 
@@ -186,7 +159,7 @@
     }
   }
 
-  function handleColumnDrop(event: DragEvent, targetKey: string) {
+  async function handleColumnDrop(event: DragEvent, targetKey: string) {
     if (!isColumnDrag(event)) {
       return
     }
@@ -208,10 +181,20 @@
     const to = current.indexOf(targetKey)
     if (from === -1 || to === -1) return
 
+    const previous = [...current]
     current.splice(from, 1)
     current.splice(to, 0, sourceKey)
     orderedColumnKeys = current
-    persistOrder(current)
+
+    if (!onReorderStatuses) return
+    columnReorderSubmitting = true
+    try {
+      await onReorderStatuses({ orderedStatusIds: current, previousStatusIds: previous })
+    } catch {
+      orderedColumnKeys = previous
+    } finally {
+      columnReorderSubmitting = false
+    }
   }
 
   function handleColumnDragEnd() {
@@ -237,30 +220,19 @@
       reason: {
         boardSyncing: t('task.workflow.board_sync_retry_error', {}, 'Board is syncing. Please try again in a few seconds.'),
         permissionDenied: t('task.workflow.status_permission_denied', {}, 'You do not have permission to update this task status.'),
-        missingSubmission: t('task.workflow.done_gate_missing_submission', {}, 'Submit work before moving this task into a done column. The card stayed in its original column.'),
+        missingAssignee: t('task.workflow.assignee_required_for_done', {}, 'Assign a person to the task before moving it to Done.'),
       },
     })
 
     if (!decision.allowed) {
       boardMoveRefusal = {
-        taskId,
         message: decision.reason,
-        action: decision.action,
       }
       return
     }
 
     boardMoveRefusal = null
     void store.moveTaskStatus(taskId, newStatus, sortOrder)
-  }
-
-  function handleSubmitWorkAction() {
-    if (!boardMoveRefusal) return
-
-    const task = store.getTaskById(boardMoveRefusal.taskId)
-    if (task) {
-      onTaskClick?.(task)
-    }
   }
 
   function handleCreateTask(status: string) {
@@ -288,7 +260,14 @@
     }
 
     const legacyTasks = store.sortedTasks.filter((task): task is TaskDetail => {
-      if (task.task_status_id) {
+      // A project workflow migration replaces status IDs. A board response
+      // already cached before that migration can therefore carry an ID no
+      // longer present in this project's metadata. In that one case, use the
+      // durable legacy status value so tasks remain visible until refresh.
+      const hasCurrentStatusId = task.task_status_id
+        ? metadata.statuses.some((status) => status.value === task.task_status_id)
+        : false
+      if (hasCurrentStatusId) {
         return false
       }
 
@@ -336,15 +315,6 @@
       <div class="mb-3 rounded-2xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm font-semibold text-foreground shadow-sm" role="status" aria-live="assertive">
         <div class="flex flex-wrap items-center justify-between gap-3">
           <span>{boardMoveRefusal.message}</span>
-          {#if boardMoveRefusal.action === 'submit_work'}
-            <button
-              type="button"
-              class="rounded-xl border border-destructive/30 bg-background px-3 py-2 text-xs font-bold text-foreground shadow-sm transition hover:bg-muted"
-              onclick={handleSubmitWorkAction}
-            >
-              {t('task.workflow.submit_work_action', {}, 'Submit work')}
-            </button>
-          {/if}
         </div>
       </div>
     {/if}
@@ -377,7 +347,7 @@
     {/if}
 
     <div
-      class="grid min-w-max grid-flow-col auto-cols-[320px] items-start gap-3 pb-2 sm:auto-cols-[340px]"
+      class="grid min-w-max grid-flow-col auto-cols-[280px] items-start gap-3 pb-2 sm:auto-cols-[300px]"
       role="list"
     >
       {#each orderedColumns as column (column.key)}
@@ -397,6 +367,7 @@
             onDropTask={handleDropTask}
             onCreateTask={handleCreateTask}
             onDeleteStatus={handleDeleteStatus}
+            onRenameStatus={(status: string, label: string) => onRenameStatus?.({ status, label })}
             isBoardMutationLocked={store.isOptimisticActive}
             isTaskMutating={store.isTaskMutating}
             {canCreateTask}

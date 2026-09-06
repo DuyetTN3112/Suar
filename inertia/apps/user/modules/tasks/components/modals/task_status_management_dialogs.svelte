@@ -27,6 +27,12 @@
     isSystem?: boolean
   }
 
+  interface StatusRenameTarget {
+    status: string
+    label: string
+    id?: string
+  }
+
   interface Props {
     createOpen: boolean
     createStatusName: string
@@ -42,6 +48,18 @@
     onCreateStatusCategoryChange: (value: TaskStatusCategory | '') => void
     onCreateStatusDescriptionChange: (value: string) => void
     onCreateStatusColorChange: (value: string) => void
+
+    renameOpen: boolean
+    renameStatusName: string
+    renameStatusColor: string
+    renameStatusError: string
+    renameStatusSubmitting: boolean
+    statusRenameTarget: StatusRenameTarget | null
+    onRenameSubmit: () => void
+    onRenameClose: () => void
+    onRenameOpenChange: (open: boolean) => void
+    onRenameStatusNameChange: (value: string) => void
+    onRenameStatusColorChange: (value: string) => void
 
     deleteOpen: boolean
     deleteStatusError: string
@@ -69,6 +87,17 @@
     onCreateStatusCategoryChange,
     onCreateStatusDescriptionChange,
     onCreateStatusColorChange,
+    renameOpen = $bindable(),
+    renameStatusName = $bindable(),
+    renameStatusColor = $bindable(),
+    renameStatusError = $bindable(),
+    renameStatusSubmitting = $bindable(),
+    statusRenameTarget = $bindable(),
+    onRenameSubmit,
+    onRenameClose,
+    onRenameOpenChange,
+    onRenameStatusNameChange,
+    onRenameStatusColorChange,
     deleteOpen = $bindable(),
     deleteStatusError = $bindable(),
     deleteStatusSubmitting = $bindable(),
@@ -162,6 +191,68 @@
 </Dialog>
 
 <Dialog
+  open={renameOpen}
+  onOpenChange={(open: boolean) => {
+    onRenameOpenChange(open)
+    if (!open) onRenameClose()
+  }}
+>
+  <DialogContent class="sm:max-w-[460px]">
+    <DialogHeader>
+      <DialogTitle>{t('task.workflow.rename_dialog_title', {}, 'Rename status')}</DialogTitle>
+      <DialogDescription>
+        {t('task.workflow.rename_dialog_description', {}, 'The new name applies to this project task board only.')}
+      </DialogDescription>
+    </DialogHeader>
+
+    <div class="space-y-4 py-2">
+      <div class="space-y-2">
+        <Label for="rename-status-name">{t('task.workflow.status_name_label', {}, 'Status name')}</Label>
+        <Input
+          id="rename-status-name"
+          placeholder={t('task.workflow.status_name_placeholder', {}, 'Example: Ready for QA')}
+          value={renameStatusName}
+          disabled={renameStatusSubmitting || isStatusMutationLocked}
+          oninput={(event: Event) => onRenameStatusNameChange((event.target as HTMLInputElement).value)}
+          onkeydown={(event: KeyboardEvent) => {
+            if (event.key === 'Enter') {
+              event.preventDefault()
+              onRenameSubmit()
+            }
+          }}
+        />
+      </div>
+      <div class="space-y-2">
+        <Label for="rename-status-color">{t('task.workflow.color_label', {}, 'Color')}</Label>
+        <Input
+          id="rename-status-color"
+          type="color"
+          class="h-9 p-1"
+          value={renameStatusColor}
+          disabled={renameStatusSubmitting || isStatusMutationLocked}
+          oninput={(event: Event) => onRenameStatusColorChange((event.target as HTMLInputElement).value)}
+        />
+      </div>
+      {#if renameStatusError}
+        <p class="text-sm text-destructive">{renameStatusError}</p>
+      {/if}
+      {#if !statusRenameTarget?.id}
+        <p class="text-sm text-muted-foreground">{t('task.workflow.rename_dialog_missing_target', {}, 'Unable to find a status identifier to update.')}</p>
+      {/if}
+    </div>
+
+    <DialogFooter>
+      <Button variant="outline" onclick={() => { onRenameOpenChange(false); onRenameClose() }} disabled={renameStatusSubmitting}>
+        {t('common.cancel', {}, 'Cancel')}
+      </Button>
+      <Button onclick={onRenameSubmit} disabled={renameStatusSubmitting || isStatusMutationLocked || !statusRenameTarget?.id}>
+        {renameStatusSubmitting ? t('task.workflow.saving', {}, 'Saving...') : t('task.workflow.save_name_button', {}, 'Save name')}
+      </Button>
+    </DialogFooter>
+  </DialogContent>
+</Dialog>
+
+<Dialog
   open={createOpen}
   onOpenChange={(open: boolean) => {
     onCreateOpenChange(open)
@@ -200,7 +291,7 @@
       </div>
 
       <div class="space-y-2">
-        <Label>{t('task.workflow.status_group_label', {}, 'Status group')}</Label>
+        <Label>{t('task.workflow.workflow_role_label', {}, 'Vai trò trong quy trình')}</Label>
         <Select
           value={createStatusCategory}
           onValueChange={(value: string) => {
@@ -209,15 +300,29 @@
           }}
         >
           <SelectTrigger class="w-full {createStatusSubmitting || isStatusMutationLocked ? 'pointer-events-none opacity-60' : ''}">
-            <SelectValue placeholder={t('task.workflow.status_group_placeholder', {}, 'Choose status group')} />
+            <SelectValue placeholder={t('task.workflow.workflow_role_placeholder', {}, 'Chọn vai trò trong quy trình')} />
           </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="todo" label={t('task.workflow.group_todo_label', {}, 'Todo: Not started')} />
-            <SelectItem value="in_progress" label={t('task.workflow.group_in_progress_label', {}, 'In progress: In progress')} />
-            <SelectItem value="done" label={t('task.workflow.group_done_label', {}, 'Done: Completed')} />
-            <SelectItem value="cancelled" label={t('task.workflow.group_cancelled_label', {}, 'Cancelled: Cancelled')} />
+          <SelectContent class="text-foreground">
+            <SelectItem class="text-foreground" value="docs" label={t('task.workflow.group_docs_label', {}, 'Tài liệu — thông tin dùng chung')}>
+              {t('task.workflow.group_docs_label', {}, 'Tài liệu — thông tin dùng chung')}
+            </SelectItem>
+            <SelectItem class="text-foreground" value="todo" label={t('task.workflow.group_todo_label', {}, 'Chưa bắt đầu')}>
+              {t('task.workflow.group_todo_label', {}, 'Chưa bắt đầu')}
+            </SelectItem>
+            <SelectItem class="text-foreground" value="in_progress" label={t('task.workflow.group_in_progress_label', {}, 'Đang thực hiện')}>
+              {t('task.workflow.group_in_progress_label', {}, 'Đang thực hiện')}
+            </SelectItem>
+            <SelectItem class="text-foreground" value="done" label={t('task.workflow.group_done_label', {}, 'Hoàn tất')}>
+              {t('task.workflow.group_done_label', {}, 'Hoàn tất')}
+            </SelectItem>
+            <SelectItem class="text-foreground" value="cancelled" label={t('task.workflow.group_cancelled_label', {}, 'Đã hủy hoặc từ chối')}>
+              {t('task.workflow.group_cancelled_label', {}, 'Đã hủy hoặc từ chối')}
+            </SelectItem>
           </SelectContent>
         </Select>
+        <p class="text-xs leading-5 text-muted-foreground">
+          Chọn Tài liệu cho các cột thông tin chung như API hoặc kiến trúc. Các mục trong nhóm này không được giao người và không đi vào đánh giá hay hồ sơ năng lực.
+        </p>
       </div>
 
       <div class="grid gap-3 sm:grid-cols-[1fr_96px]">
