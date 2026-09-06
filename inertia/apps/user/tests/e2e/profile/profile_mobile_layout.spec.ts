@@ -6,7 +6,7 @@ import { login } from '../../shared/e2e/helpers.js'
 
 const E2E_USER = 'tranngocduyet31@gmail.com'
 const SCREENSHOT_DIR = resolve('test-results/e2e-visual/profile')
-const PROFILE_CATEGORY_LABELS = ['Công nghệ', 'Kỹ thuật phần mềm', 'Kỹ năng mềm', 'Thực thi']
+const PROFILE_CATEGORY_LABELS = ['Công nghệ', 'Kỹ thuật phần mềm', 'Kỹ năng mềm', 'Quản lý công việc']
 
 test.describe('Profile mobile layout', () => {
   test.use({ viewport: { width: 390, height: 844 }, isMobile: true })
