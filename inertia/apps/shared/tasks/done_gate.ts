@@ -23,6 +23,8 @@ export type TaskDoneGateStatus = {
 
 export type TaskDoneGateTask = {
   task_type?: string | null
+  assigned_to?: string | null
+  assignee?: { id?: string | null } | null
   submission_status?: string | null
   review_zone?: {
     submission_status?: string | null
@@ -43,8 +45,8 @@ export type TaskDoneGateDecision =
   | {
       allowed: false
       reason: string
-      code: 'board_syncing' | 'permission_denied' | 'missing_submission'
-      action: 'submit_work' | null
+      code: 'board_syncing' | 'permission_denied' | 'missing_assignee' | 'missing_submission'
+      action: 'assign_task' | 'submit_work' | null
     }
 
 export interface TaskDoneGateDecisionInput {
@@ -54,6 +56,7 @@ export interface TaskDoneGateDecisionInput {
   reason?: {
     boardSyncing?: string
     permissionDenied?: string
+    missingAssignee?: string
     missingSubmission?: string
   }
 }
@@ -61,6 +64,7 @@ export interface TaskDoneGateDecisionInput {
 const DEFAULT_REASON = {
   boardSyncing: 'Board is syncing. Please try again in a few seconds.',
   permissionDenied: 'You do not have permission to update this task status.',
+  missingAssignee: 'Assign a person to the task before moving it to Done.',
   missingSubmission:
     'Submit work before moving this task into a done column. The card stayed in its original column.',
 }
@@ -118,17 +122,20 @@ export function getTaskDoneGateDecision(
 
   if (
     isDoneCategoryStatus(input.targetStatus) &&
-    !taskHasFinalSubmission(input.task) &&
-    !taskBypassesDoneSubmissionGate(input.task)
+    !input.task?.assigned_to &&
+    !input.task?.assignee?.id
   ) {
     return {
       allowed: false,
-      reason: reason.missingSubmission,
-      code: 'missing_submission',
-      action: 'submit_work',
+      reason: reason.missingAssignee,
+      code: 'missing_assignee',
+      action: 'assign_task',
     }
   }
 
+  // Completion reports and evidence are optional governance data. They must
+  // never block a properly assigned task from moving to Done; the reviewer
+  // owns acceptance after the assignee marks the work complete.
   return {
     allowed: true,
     reason: null,
