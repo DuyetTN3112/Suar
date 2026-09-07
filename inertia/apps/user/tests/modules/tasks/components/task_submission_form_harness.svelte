@@ -26,6 +26,9 @@
     },
   ]
 
+  const acceptanceCriteria = 'Automated tests pass\nDocument the user-visible result'
+  const verificationMethods = ['Automated test']
+
   function handleAddEvidence(
     evidence: SubmissionEvidence
   ) {
@@ -52,6 +55,8 @@
   bind:repositoryUrl
   bind:pullRequestUrl
   bind:evidences
+  {acceptanceCriteria}
+  {verificationMethods}
   saving={false}
   submitting={false}
   onSaveDraft={() => {}}
