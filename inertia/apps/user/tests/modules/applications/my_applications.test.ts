@@ -107,4 +107,20 @@ describe('MyApplicationsPage withdraw action', () => {
     expect(screen.getAllByText('Chờ duyệt').length).toBeGreaterThan(0)
     expect(screen.getByRole('button', { name: 'Rút đề xuất' })).toBeEnabled()
   })
+
+  it('reloads only application page props after a successful withdraw', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 204 }))
+    vi.stubGlobal('fetch', fetchMock)
+    document.head.insertAdjacentHTML('beforeend', '<meta name="csrf-token" content="csrf-token-1">')
+
+    renderPage()
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Rút đề xuất' }))
+
+    await waitFor(() => {
+      expect(inertiaMocks.router.reload).toHaveBeenCalledWith({
+        only: ['applications', 'pagination', 'statusFilter', 'flash'],
+      })
+    })
+  })
 })

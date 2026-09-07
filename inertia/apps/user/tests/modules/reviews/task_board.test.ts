@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/svelte'
+import { fireEvent, render, screen, within } from '@testing-library/svelte'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import TaskBoardPage from '@/apps/user/modules/reviews/task-board.svelte'
@@ -13,6 +13,7 @@ const inertiaMocks = vi.hoisted(() => ({
       auth: {
         user: {
           id: 'reviewer-1',
+          current_organization_role: 'org_member',
           current_project: {
             id: 'project-1',
             name: 'Project One',
@@ -44,6 +45,7 @@ type WorkflowStatus =
   | 'disputed'
   | 'reported'
   | 'ai_reviewing'
+  | 'ai_failed'
   | 'resolved'
   | 'done'
 
@@ -88,24 +90,75 @@ const boardProps = {
 describe('User task review board', () => {
   beforeEach(() => {
     inertiaMocks.router.get.mockClear()
+    inertiaMocks.page.props.auth.user.current_organization_role = 'org_member'
     inertiaMocks.page.props.auth.user.current_project = {
       id: 'project-1',
       name: 'Project One',
     }
-    inertiaMocks.page.props.auth.user.projects = [
-      { id: 'project-1', name: 'Project One' },
-      { id: 'project-2', name: 'Project Two' },
-    ]
   })
 
-  it('shows the current project and a switcher that preserves the board route', () => {
+  it('shows the current project without duplicating project navigation', () => {
     render(TaskBoardPage, {
       props: boardProps,
     })
 
     expect(screen.getByText('Project One', { selector: 'p' })).toBeInTheDocument()
-    expect(screen.getByLabelText('Bộ chọn dự án')).toHaveValue('project-1')
-    expect(screen.getByRole('option', { name: 'Project Two' })).toBeInTheDocument()
+    expect(screen.queryByLabelText('Bộ chọn dự án')).not.toBeInTheDocument()
+  })
+
+  it('keeps AI-reviewing cards in the reported lane and shows resolved work before Done', () => {
+    const card = boardProps.board.columns[0]?.cards[0]
+    if (!card) throw new Error('Expected the review board fixture card')
+
+    render(TaskBoardPage, {
+      props: {
+        ...boardProps,
+        board: {
+          ...boardProps.board,
+          columns: [
+            ...boardProps.board.columns,
+            {
+              status: 'ai_reviewing' as WorkflowStatus,
+              label: 'AI đang xử lý',
+              cards: [],
+            },
+            {
+              status: 'ai_failed' as WorkflowStatus,
+              label: 'AI xử lý thất bại — cần thử lại',
+              cards: [],
+            },
+            {
+              status: 'reported' as WorkflowStatus,
+              label: 'Đã gửi report tranh chấp',
+              cards: [
+                {
+                  ...card,
+                  status: 'reported' as WorkflowStatus,
+                  workflowStatus: 'ai_reviewing',
+                },
+              ],
+            },
+            {
+              status: 'resolved' as WorkflowStatus,
+              label: 'Đã xử lý',
+              cards: [],
+            },
+          ],
+        },
+      },
+    })
+
+    expect(screen.queryByText('AI đang xử lý')).not.toBeInTheDocument()
+    expect(screen.queryByText('AI xử lý thất bại — cần thử lại')).not.toBeInTheDocument()
+    expect(screen.getByText('Đã xử lý')).toBeInTheDocument()
+    const reportedLabel = screen.getByText('Đã gửi report tranh chấp')
+    const reportedLane = reportedLabel.parentElement?.parentElement?.parentElement
+    expect(reportedLane).not.toBeNull()
+    expect(
+      within(reportedLane as HTMLElement).getByRole('button', {
+        name: /Review delivered payment task/i,
+      })
+    ).toBeInTheDocument()
   })
 
   it('selects a task inline without leaving the review board', async () => {
@@ -122,7 +175,24 @@ describe('User task review board', () => {
     )
   })
 
-  it('renders the selected task review workflow inline on the board', () => {
+  it('keeps personal task review cards inside the personal route', async () => {
+    render(TaskBoardPage, {
+      props: {
+        ...boardProps,
+        workspaceMode: 'personal',
+      },
+    })
+
+    await fireEvent.click(screen.getByRole('button', { name: /Review delivered payment task/i }))
+
+    expect(inertiaMocks.router.get).toHaveBeenCalledWith(
+      '/reviews/tasks?task_id=task-1',
+      {},
+      { preserveScroll: true, preserveState: true }
+    )
+  })
+
+  it('renders the selected task review workflow inline on the board', async () => {
     render(TaskBoardPage, {
       props: {
         ...boardProps,
@@ -152,8 +222,40 @@ describe('User task review board', () => {
       },
     })
 
-    expect(screen.getByRole('heading', { name: 'Review task này' })).toBeInTheDocument()
+    await fireEvent.click(screen.getByRole('button', { name: 'Đánh giá & tranh chấp' }))
+
+    expect(screen.getByRole('heading', { name: 'Đánh giá nhiệm vụ này' })).toBeInTheDocument()
     expect(screen.getByLabelText('Nhập review')).toBeInTheDocument()
+  })
+
+  it('shows resolved separately and gives an organization governor the final Done control', async () => {
+    inertiaMocks.page.props.auth.user.current_organization_role = 'org_admin'
+
+    render(TaskBoardPage, {
+      props: {
+        ...boardProps,
+        selectedTaskId: 'task-1',
+        detail: {
+          task: {
+            id: 'task-1',
+            title: 'Review delivered payment task',
+            assigned_to: 'worker-1',
+          },
+          workflow: {
+            id: 'workflow-1',
+            status: 'resolved',
+          },
+          reviewers: [],
+          comments: [],
+          reviewMessages: [],
+        },
+      },
+    })
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Đánh giá & tranh chấp' }))
+
+    expect(screen.getByRole('heading', { name: 'Hoàn tất review cuối' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Đánh dấu review Done' })).toBeInTheDocument()
   })
 
   it('renders disabled lanes when no project is resolvable', () => {
@@ -174,7 +276,7 @@ describe('User task review board', () => {
       },
     })
 
-    expect(screen.getByLabelText('Bộ chọn dự án')).toBeInTheDocument()
+    expect(screen.queryByLabelText('Bộ chọn dự án')).not.toBeInTheDocument()
     expect(screen.getAllByText('Trống')).toHaveLength(8)
   })
 

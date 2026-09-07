@@ -32,6 +32,13 @@ describe('PublicSnapshotPage', () => {
               overallQualityScore: 91,
               wasOnTime: true,
               completedAt: '2026-07-03T10:00:00.000Z',
+              taskType: 'API integration',
+              businessDomain: 'Payments',
+              roleInTask: 'Primary owner',
+              verification: {
+                status: 'retrospective',
+                confidence: 'limited',
+              },
             },
           ],
           performanceMetrics: {
@@ -53,6 +60,11 @@ describe('PublicSnapshotPage', () => {
     expect(screen.getByText('9')).toBeInTheDocument()
     expect(screen.getByText('Node.js')).toBeInTheDocument()
     expect(screen.getByText('Internal dashboard cleanup')).toBeInTheDocument()
+    expect(screen.getByText('API integration')).toBeInTheDocument()
+    expect(screen.getByText('Payments')).toBeInTheDocument()
+    expect(screen.getByText('Primary owner')).toBeInTheDocument()
+    expect(screen.getByText(/Retrospective|Hồi cứu/i)).toBeInTheDocument()
+    expect(screen.getByText(/limited|giới hạn/i)).toBeInTheDocument()
     expect(container.textContent).not.toMatch(/public-secret|shareableToken|token=/i)
   })
 })
