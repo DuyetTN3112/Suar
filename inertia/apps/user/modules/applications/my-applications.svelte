@@ -143,7 +143,9 @@
 
       if (response.ok) {
         notificationStore.success(t('task.my_applications.withdraw_success', {}, 'Application withdrawn successfully.'))
-        router.reload()
+        router.reload({
+          only: ['applications', 'pagination', 'statusFilter', 'flash'],
+        })
       } else {
         notificationStore.error(t('task.my_applications.withdraw_error', {}, 'Unable to withdraw application.'))
       }

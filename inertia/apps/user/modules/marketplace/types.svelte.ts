@@ -81,7 +81,7 @@ export interface MarketplaceTask {
   difficulty?: TaskDifficulty | null
   due_date?: string | null
   application_deadline?: string | null
-  task_visibility: 'internal' | 'external' | 'all'
+  task_visibility: 'project' | 'internal' | 'external' | 'all'
   priority_score?: number
   recommendation_reasons?: string[]
   evidence_warnings?: string[]
@@ -121,6 +121,7 @@ export interface MarketplaceTask {
 export interface MarketplaceFilters {
   skill_categories?: string[] | null
   skill_ids?: string[] | null
+  skill_match?: 'any' | 'all'
   keyword?: string | null
   difficulty?: string | null
   task_type?: string | null
@@ -145,10 +146,7 @@ export interface MarketplaceTasksProps {
 
 // ---- Difficulty display config ----
 
-export const DIFFICULTY_CONFIG: Record<
-  TaskDifficulty,
-  { label: string; marker: string }
-> = {
+export const DIFFICULTY_CONFIG: Record<TaskDifficulty, { label: string; marker: string }> = {
   easy: { label: 'Easy', marker: '◇' },
   medium: { label: 'Medium', marker: '◆' },
   hard: { label: 'Hard', marker: '◆◆' },

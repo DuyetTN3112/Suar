@@ -44,9 +44,19 @@
     userSkills?: UserSkillResult[]
     deliveryMetrics: DeliveryMetrics
     currentSnapshot?: ProfileSnapshotSummary | null
+    reviewHistory?: {
+      received?: unknown[]
+      sent?: unknown[]
+    } | null
   }
 
-  const { user, userSkills = [], deliveryMetrics, currentSnapshot = null }: Props = $props()
+  const {
+    user,
+    userSkills = [],
+    deliveryMetrics,
+    currentSnapshot = null,
+    reviewHistory = null,
+  }: Props = $props()
   const { t } = useTranslation()
 
   const settings = $derived(readProfileSettings(user as Record<string, unknown>))
@@ -62,7 +72,7 @@
       t(
         'user.profile_overview.headline_fallback',
         { status: profileStatusName },
-        `${profileStatusName} · Capability profile synthesized from reviews and task assignment history`
+        `${profileStatusName} · Capability profile based on finalized review evidence and demonstrated work`
       )
   )
 
@@ -137,9 +147,11 @@
   const capabilityVerifiedScore = $derived(
     capabilitySummary.verified_average_score ?? deliveryMetrics.skill_aggregation.avg_percentage
   )
-  const completedTasks = $derived(
-    snapshotInsights.total_tasks_completed ?? deliveryMetrics.delivery.total_tasks_completed
-  )
+  // Delivery is a live profile projection. A published snapshot is historical
+  // and may predate the final Task Review Board decision, so it must not make
+  // an unfinished/resolved review look profile-eligible.
+  const completedTasks = $derived(deliveryMetrics.delivery.total_tasks_completed)
+  const receivedReviewCount = $derived(reviewHistory?.received?.length ?? 0)
   const deliveryReliability = $derived(
     completedTasks > 0
       ? snapshotInsights.on_time_delivery_rate ??
@@ -323,8 +335,8 @@
         <p class="mt-1 text-xl font-black">{totalSkillCount}</p>
       </div>
       <div class="rounded-lg border border-border bg-secondary/20 px-3 py-2">
-        <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">{t('user.profile_overview.reviews', {}, 'Reviews')}</p>
-        <p class="mt-1 text-xl font-black">{formatCompactNumber(credibilityMetrics.total_reviews_given, 0)}</p>
+        <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">{t('user.profile_overview.review_history', {}, 'Review history')}</p>
+        <p class="mt-1 text-xl font-black">{formatCompactNumber(receivedReviewCount, 0)}</p>
       </div>
     </div>
   </div>

@@ -2,6 +2,8 @@
   import { Link } from '@inertiajs/svelte'
   import { ArrowRight } from 'lucide-svelte'
 
+  import UnifiedOffsetPagination from '@/apps/user/shared/ui/unified_offset_pagination.svelte'
+  import { buildOffsetPagination, paginateOffsetItems } from '@/apps/user/shared/lib/pagination'
   import {
     findFrontendCanonicalProficiencyLevelOption,
     getFrontendCanonicalProficiencyLevelLabel,
@@ -46,6 +48,9 @@
   let sentFilter = $state<HistoryFilter>('all')
   let receivedSort = $state<HistorySortMode>('recent')
   let sentSort = $state<HistorySortMode>('recent')
+  let receivedPage = $state(1)
+  let sentPage = $state(1)
+  const reviewItemsPerPage = 2
 
   const hasReviewHistory = $derived(!!reviewHistory)
   const documentLocale = $derived(currentDocumentLocale() === 'vi' ? 'vi-VN' : 'en-US')
@@ -93,6 +98,9 @@
       awaiting_response: 'Awaiting response',
       disputed: 'Disputed',
       reported: 'Reported',
+      ai_reviewing: 'AI reviewing',
+      admin_reviewing: 'Admin reviewing',
+      resolved: 'Resolved — awaiting final completion',
       done: 'Done',
       pending: 'Pending',
       submitted: 'Submitted',
@@ -167,8 +175,44 @@
   function setLaneFilter(lane: ReviewLane, value: HistoryFilter) {
     if (lane === 'received') {
       receivedFilter = value
+      receivedPage = 1
     } else {
       sentFilter = value
+      sentPage = 1
+    }
+  }
+
+  function setLaneSort(lane: ReviewLane, value: HistorySortMode) {
+    if (lane === 'received') {
+      receivedSort = value
+      receivedPage = 1
+    } else {
+      sentSort = value
+      sentPage = 1
+    }
+  }
+
+  function lanePage(lane: ReviewLane): number {
+    return lane === 'received' ? receivedPage : sentPage
+  }
+
+  function lanePagination(lane: ReviewLane) {
+    return buildOffsetPagination({
+      total: laneItems(lane).length,
+      perPage: reviewItemsPerPage,
+      page: lanePage(lane),
+    })
+  }
+
+  function paginatedLaneItems(lane: ReviewLane): UserReviewHistoryItem[] {
+    return paginateOffsetItems(laneItems(lane), lanePagination(lane))
+  }
+
+  function setLanePage(lane: ReviewLane, page: number) {
+    if (lane === 'received') {
+      receivedPage = page
+    } else {
+      sentPage = page
     }
   }
 
@@ -216,7 +260,7 @@
   </div>
 
   {#if hasReviewHistory}
-    <div class="grid gap-3 lg:grid-cols-2">
+    <div class="grid gap-3 lg:grid-cols-2 lg:items-stretch">
       {#each [
         {
           lane: 'received' as const,
@@ -248,7 +292,7 @@
         },
       ] as laneConfig (laneConfig.lane)}
         <section
-          class={`rounded-xl border border-border p-4 ${laneConfig.lane === 'sent' ? 'bg-primary/5' : 'bg-card'}`}
+          class={`flex h-full flex-col rounded-xl border border-border p-4 ${laneConfig.lane === 'sent' ? 'bg-primary/5' : 'bg-card'}`}
           aria-labelledby={`profile-${laneConfig.lane}-reviews-title`}
         >
           <div class="flex items-start justify-between gap-3">
@@ -282,9 +326,9 @@
                 onchange={(event) => {
                   const value = (event.currentTarget as HTMLSelectElement).value as HistorySortMode
                   if (laneConfig.lane === 'received') {
-                    receivedSort = value
+                    setLaneSort('received', value)
                   } else {
-                    sentSort = value
+                    setLaneSort('sent', value)
                   }
                 }}
               >
@@ -296,7 +340,7 @@
             </label>
           </div>
 
-          <div class="mt-4 space-y-3">
+          <div class="mt-4 flex flex-1 flex-col space-y-3">
             {#if laneItems(laneConfig.lane).length === 0}
               <div class="rounded-xl border border-dashed border-border bg-background/70 px-4 py-8 text-center text-sm text-muted-foreground">
                 {laneConfig.lane === 'received'
@@ -304,8 +348,8 @@
                   : t('user.profile_reviews.empty_sent', {}, 'No reviews authored yet.')}
               </div>
             {:else}
-              {#each laneItems(laneConfig.lane) as item (item.id)}
-                <article class="grid gap-3 rounded-xl border border-border bg-background p-3 sm:grid-cols-[3.25rem_minmax(0,1fr)_auto] sm:items-start">
+              {#each paginatedLaneItems(laneConfig.lane) as item (item.id)}
+                <article class="grid min-h-[168px] gap-3 rounded-xl border border-border bg-background p-3 sm:grid-cols-[3.25rem_minmax(0,1fr)_auto] sm:items-start">
                   <div class="grid h-12 w-12 place-items-center rounded-xl border border-foreground bg-primary text-sm font-black text-primary-foreground">
                     {typeof item.rating === 'number'
                       ? item.rating.toFixed(1)
@@ -342,6 +386,16 @@
                   </Link>
                 </article>
               {/each}
+            {/if}
+          </div>
+
+          <div class="mt-auto flex min-h-[72px] items-end border-t border-border">
+            {#if lanePagination(laneConfig.lane).lastPage > 1}
+              <UnifiedOffsetPagination
+                pagination={lanePagination(laneConfig.lane)}
+                onPageChange={(page: number) => setLanePage(laneConfig.lane, page)}
+                class="w-full"
+              />
             {/if}
           </div>
         </section>

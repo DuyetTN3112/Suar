@@ -147,6 +147,10 @@
       0
     )
   )
+  // Charts aggregate reviewed capability signals. Rendering a zero-data
+  // radar for self-declared or missing skills makes absence look like a
+  // measured result, which is misleading on a talent profile.
+  const shouldRenderCharts = $derived(showCharts && totalReviewedSkills > 0)
   const detailedInventoryGroups = $derived.by(() => {
     const groupedByCode = new Map(groupedSkills.map((group) => [group.code, group]))
     const canonicalGroups = PROFILE_CATEGORY_ORDER.map((categoryCode) => {
@@ -276,13 +280,13 @@
       <p class="text-xs font-bold uppercase tracking-[0.16em] text-muted-foreground">{t('user.profile_skills.empty_eyebrow', {}, 'Capability evidence')}</p>
       <h3 class="mt-2 text-xl font-black text-foreground">{t('user.profile_skills.empty_title', {}, 'No verified skills yet')}</h3>
       <p class="mx-auto mt-2 max-w-xl text-sm text-muted-foreground">
-        {t('user.profile_skills.empty_description', {}, 'After tasks are reviewed and confirmed, skill evidence appears here.')}
+        {t('user.profile_skills.empty_description', {}, 'Verified skills appear only after a profile-eligible task has structured evidence and its review reaches final completion. Review history alone does not create a skill level.')}
       </p>
     </div>
-  {/if}
+  {:else}
 
-  <div class={showCharts ? "grid gap-4 xl:grid-cols-[minmax(0,1.18fr)_minmax(22rem,0.82fr)]" : "w-full"}>
-    <div class={`${neoBrutalCard} rounded-[28px] border border-border bg-card p-5 shadow-suar-md ${showCharts ? "" : "w-full"}`}>
+  <div class={shouldRenderCharts ? "grid gap-4 xl:grid-cols-[minmax(0,1.18fr)_minmax(22rem,0.82fr)]" : "w-full"}>
+    <div class={`${neoBrutalCard} rounded-[28px] border border-border bg-card p-5 shadow-suar-md ${shouldRenderCharts ? "" : "w-full"}`}>
       <div class="mb-4 flex flex-wrap items-end justify-between gap-3">
         <div>
           <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">{t('user.profile_skills.inventory_eyebrow', {}, 'Detailed inventory')}</p>
@@ -430,7 +434,7 @@
       </div>
     </div>
 
-    {#if showCharts}
+    {#if shouldRenderCharts}
       <div class="space-y-4">
         {#each chartCards as card (card.categoryCode)}
           <ProfileSpiderChartCard
@@ -446,4 +450,5 @@
       </div>
     {/if}
   </div>
+  {/if}
 </section>

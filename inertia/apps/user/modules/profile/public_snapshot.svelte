@@ -22,6 +22,20 @@
     was_on_time?: boolean | null
     completedAt?: string | null
     completed_at?: string | null
+    taskType?: string | null
+    task_type?: string | null
+    businessDomain?: string | null
+    business_domain?: string | null
+    problemCategory?: string | null
+    problem_category?: string | null
+    roleInTask?: string | null
+    role_in_task?: string | null
+    collaborationType?: string | null
+    collaboration_type?: string | null
+    verification?: {
+      status?: 'review_confirmed' | 'retrospective'
+      confidence?: 'high' | 'limited'
+    }
   }
 
   interface PublicProfileSnapshot {
@@ -113,8 +127,26 @@
     return formatDate(work.completedAt ?? work.completed_at)
   }
 
-  function workQuality(work: PublicSnapshotWorkHighlight): string {
-    return formatPercent(work.overallQualityScore ?? work.overall_quality_score)
+  function workVerificationStatus(work: PublicSnapshotWorkHighlight): string {
+    return work.verification?.status === 'review_confirmed'
+      ? t('user.public_snapshot.review_confirmed', {}, 'Review confirmed')
+      : t('user.public_snapshot.retrospective', {}, 'Retrospective')
+  }
+
+  function workVerificationConfidence(work: PublicSnapshotWorkHighlight): string {
+    return work.verification?.confidence === 'high'
+      ? t('user.public_snapshot.high_confidence', {}, 'high')
+      : t('user.public_snapshot.limited_confidence', {}, 'limited')
+  }
+
+  function workContextTags(work: PublicSnapshotWorkHighlight): string[] {
+    return [
+      work.taskType ?? work.task_type,
+      work.businessDomain ?? work.business_domain,
+      work.problemCategory ?? work.problem_category,
+      work.roleInTask ?? work.role_in_task,
+      work.collaborationType ?? work.collaboration_type,
+    ].filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
   }
 </script>
 
@@ -149,26 +181,41 @@
       </div>
     </div>
 
-    <div class="grid gap-3 md:grid-cols-3">
-      <article class="rounded-xl border border-border bg-card p-4">
-        <p class="text-xs font-bold uppercase tracking-[0.14em] text-muted-foreground">
-          {t('user.public_snapshot.verified_skills', {}, 'Verified skills')}
+    <section class="rounded-2xl border border-border bg-card p-5">
+      <p class="text-xs font-black uppercase tracking-[0.18em] text-muted-foreground">
+        {t('user.public_snapshot.work_eyebrow', {}, 'Demonstrated work')}
+      </p>
+      <h2 class="mt-2 text-2xl font-black">{t('user.public_snapshot.work_title', {}, 'Work highlights')}</h2>
+      <p class="mt-2 max-w-3xl text-sm text-muted-foreground">
+        {t('user.public_snapshot.work_description', {}, 'Work context is shown before aggregate statistics. Verification labels explain how strongly each record can support a public claim.')}
+      </p>
+
+      {#if workHighlights.length === 0}
+        <p class="mt-4 rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">
+          {t('user.public_snapshot.no_work', {}, 'No work highlights in this snapshot.')}
         </p>
-        <p class="mt-2 text-3xl font-black">{verifiedSkillCount}</p>
-      </article>
-      <article class="rounded-xl border border-border bg-card p-4">
-        <p class="text-xs font-bold uppercase tracking-[0.14em] text-muted-foreground">
-          {t('user.public_snapshot.trust_tier', {}, 'Trust tier')}
-        </p>
-        <p class="mt-2 text-3xl font-black capitalize">{trustTier}</p>
-      </article>
-      <article class="rounded-xl border border-border bg-card p-4">
-        <p class="text-xs font-bold uppercase tracking-[0.14em] text-muted-foreground">
-          {t('user.public_snapshot.completed_tasks', {}, 'Completed tasks')}
-        </p>
-        <p class="mt-2 text-3xl font-black">{completedTaskCount}</p>
-      </article>
-    </div>
+      {:else}
+        <div class="mt-4 grid gap-3 md:grid-cols-2">
+          {#each workHighlights as work, index (`${taskTitle(work)}-${index}`)}
+            <article class="rounded-xl border border-border bg-background p-4">
+              <p class="font-black">{taskTitle(work)}</p>
+              <div class="mt-3 flex flex-wrap gap-2 text-xs font-semibold text-muted-foreground">
+                <span>{workCompletedAt(work)}</span>
+                <span>{workVerificationStatus(work)}</span>
+                <span>{workVerificationConfidence(work)}</span>
+              </div>
+              {#if workContextTags(work).length > 0}
+                <div class="mt-3 flex flex-wrap gap-2 text-xs font-semibold text-muted-foreground">
+                  {#each workContextTags(work) as tag}
+                    <span class="rounded-full border border-border px-2 py-1">{tag}</span>
+                  {/each}
+                </div>
+              {/if}
+            </article>
+          {/each}
+        </div>
+      {/if}
+    </section>
 
     <section class="rounded-2xl border border-border bg-card p-5">
       <div class="flex flex-wrap items-end justify-between gap-3">
@@ -204,25 +251,29 @@
     </section>
 
     <section class="rounded-2xl border border-border bg-card p-5">
-      <h2 class="text-2xl font-black">{t('user.public_snapshot.work_title', {}, 'Work highlights')}</h2>
-
-      {#if workHighlights.length === 0}
-        <p class="mt-4 rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">
-          {t('user.public_snapshot.no_work', {}, 'No work highlights in this snapshot.')}
-        </p>
-      {:else}
-        <div class="mt-4 grid gap-3 md:grid-cols-2">
-          {#each workHighlights as work, index (`${taskTitle(work)}-${index}`)}
-            <article class="rounded-xl border border-border bg-background p-4">
-              <p class="font-black">{taskTitle(work)}</p>
-              <div class="mt-3 flex flex-wrap gap-2 text-xs font-semibold text-muted-foreground">
-                <span>{workCompletedAt(work)}</span>
-                <span>{t('user.public_snapshot.quality_score', {}, 'Quality')}: {workQuality(work)}</span>
-              </div>
-            </article>
-          {/each}
-        </div>
-      {/if}
+      <p class="text-xs font-black uppercase tracking-[0.18em] text-muted-foreground">
+        {t('user.public_snapshot.summary_eyebrow', {}, 'Supporting statistics')}
+      </p>
+      <div class="mt-3 grid gap-3 md:grid-cols-3">
+        <article class="rounded-xl border border-border bg-background p-4">
+          <p class="text-xs font-bold uppercase tracking-[0.14em] text-muted-foreground">
+            {t('user.public_snapshot.verified_skills', {}, 'Verified skills')}
+          </p>
+          <p class="mt-2 text-3xl font-black">{verifiedSkillCount}</p>
+        </article>
+        <article class="rounded-xl border border-border bg-background p-4">
+          <p class="text-xs font-bold uppercase tracking-[0.14em] text-muted-foreground">
+            {t('user.public_snapshot.trust_tier', {}, 'Trust tier')}
+          </p>
+          <p class="mt-2 text-3xl font-black capitalize">{trustTier}</p>
+        </article>
+        <article class="rounded-xl border border-border bg-background p-4">
+          <p class="text-xs font-bold uppercase tracking-[0.14em] text-muted-foreground">
+            {t('user.public_snapshot.completed_tasks', {}, 'Completed tasks')}
+          </p>
+          <p class="mt-2 text-3xl font-black">{completedTaskCount}</p>
+        </article>
+      </div>
     </section>
   </section>
 </main>

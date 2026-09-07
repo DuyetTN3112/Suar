@@ -5,8 +5,10 @@
   */
   import { router } from '@inertiajs/svelte'
   import { X } from 'lucide-svelte'
+  import { onMount } from 'svelte'
 
 
+  import FilterDrawer from '@/apps/shared/filtering/components/filter_drawer.svelte'
   import { useTranslation } from '@/apps/user/shared/stores/translation.svelte'
   import { TASK_VERIFICATION_METHOD_OPTIONS } from '@/apps/user/modules/tasks/lib/rules/task_verification_methods'
   import {
@@ -42,6 +44,7 @@
   let keyword = $state('')
   let selectedSkillCategories = $state<string[]>([])
   let selectedSkillIds = $state<string[]>([])
+  let skillMatch = $state<'any' | 'all'>('any')
   let difficulty = $state('')
   let taskType = $state('')
   let businessDomain = $state('')
@@ -55,11 +58,14 @@
   let sortOrder = $state('desc')
   let validationError = $state('')
   let advancedOpen = $state(false)
+  let mobileDrawerOpen = $state(false)
+  let isMobile = $state(false)
 
-  $effect(() => {
+  function syncDraftFromFilters(): void {
     keyword = filters.keyword ?? ''
     selectedSkillCategories = filters.skill_categories ?? []
     selectedSkillIds = filters.skill_ids ?? []
+    skillMatch = filters.skill_match ?? 'any'
     difficulty = filters.difficulty ?? ''
     taskType = filters.task_type ?? ''
     businessDomain = filters.business_domain ?? ''
@@ -71,6 +77,57 @@
     acceptingApplications = filters.accepting_applications ?? ''
     sortBy = !allowRecommendedSort && filters.sort_by === 'recommended' ? 'created_at' : filters.sort_by
     sortOrder = filters.sort_order
+  }
+
+  function filterSignature(values: {
+    keyword?: string | null
+    skillCategories?: readonly string[] | null
+    skillIds?: readonly string[] | null
+    skillMatch?: 'any' | 'all' | null
+    difficulty?: string | null
+    taskType?: string | null
+    businessDomain?: string | null
+    problemCategory?: string | null
+    roleInTask?: string | null
+    verificationMethod?: string | null
+    techStack?: string | null
+    domainTags?: string | null
+    acceptingApplications?: string | null
+    sortBy: string
+    sortOrder: string
+  }): string {
+    return JSON.stringify({
+      keyword: values.keyword?.trim() ?? '',
+      skillCategories: [...(values.skillCategories ?? [])].sort(),
+      skillIds: [...(values.skillIds ?? [])].sort(),
+      skillMatch: values.skillMatch ?? 'any',
+      difficulty: values.difficulty ?? '',
+      taskType: values.taskType ?? '',
+      businessDomain: values.businessDomain ?? '',
+      problemCategory: values.problemCategory ?? '',
+      roleInTask: values.roleInTask ?? '',
+      verificationMethod: values.verificationMethod ?? '',
+      techStack: values.techStack?.trim() ?? '',
+      domainTags: values.domainTags?.trim() ?? '',
+      acceptingApplications: values.acceptingApplications ?? '',
+      sortBy: values.sortBy,
+      sortOrder: values.sortOrder,
+    })
+  }
+
+  onMount(() => {
+    const mediaQuery = window.matchMedia('(max-width: 767px)')
+    const updateViewport = () => {
+      isMobile = mediaQuery.matches
+      if (!isMobile) mobileDrawerOpen = false
+    }
+    updateViewport()
+    mediaQuery.addEventListener('change', updateViewport)
+    return () => mediaQuery.removeEventListener('change', updateViewport)
+  })
+
+  $effect(() => {
+    syncDraftFromFilters()
   })
 
   function skillsForCategories(categories: string[]): SerializedSkill[] {
@@ -89,14 +146,19 @@
     )
   }
 
+  function skillOptionLabel(skill: SerializedSkill): string {
+    const label = `${skill.skill_name}${skill.category_code ? ` · ${categoryLabel(skill.category_code)}` : ''}`
+    return isMobile && label.length > 30 ? `${label.slice(0, 27)}…` : label
+  }
+
   function validateFilters(): boolean {
     validationError = ''
     return true
   }
 
-  function applyFilters() {
+  function applyFilters(): Promise<void> {
     if (!validateFilters()) {
-      return
+      return Promise.resolve()
     }
 
     const params: Record<string, string | number | string[]> = {
@@ -108,6 +170,7 @@
     }
     if (selectedSkillIds.length) {
       Object.assign(params, { skill_ids: selectedSkillIds })
+      Object.assign(params, { skill_match: skillMatch })
     }
     if (keyword.trim()) params.keyword = keyword.trim()
     if (difficulty) params.difficulty = difficulty
@@ -120,9 +183,13 @@
     if (domainTags.trim()) params.domain_tags = domainTags.trim()
     if (acceptingApplications) params.accepting_applications = acceptingApplications
 
-    router.get('/marketplace/tasks', params, {
-      preserveScroll: true,
-      preserveState: true,
+    return new Promise((resolve) => {
+      router.get('/marketplace/tasks', params, {
+        preserveScroll: true,
+        preserveState: true,
+        replace: false,
+        onFinish: () => resolve(),
+      })
     })
   }
 
@@ -130,6 +197,7 @@
     keyword = ''
     selectedSkillCategories = []
     selectedSkillIds = []
+    skillMatch = 'any'
     difficulty = ''
     taskType = ''
     businessDomain = ''
@@ -142,12 +210,51 @@
     sortBy = 'created_at'
     sortOrder = 'desc'
     validationError = ''
+    if (isMobile) return
     router.get('/marketplace/tasks', {}, { preserveScroll: true })
   }
+
+  const hasDraftChanges = $derived(
+    filterSignature({
+      keyword,
+      skillCategories: selectedSkillCategories,
+      skillIds: selectedSkillIds,
+      skillMatch,
+      difficulty,
+      taskType,
+      businessDomain,
+      problemCategory,
+      roleInTask,
+      verificationMethod,
+      techStack,
+      domainTags,
+      acceptingApplications,
+      sortBy,
+      sortOrder,
+    }) !==
+      filterSignature({
+        keyword: filters.keyword,
+        skillCategories: filters.skill_categories,
+        skillIds: filters.skill_ids,
+        skillMatch: filters.skill_match,
+        difficulty: filters.difficulty,
+        taskType: filters.task_type,
+        businessDomain: filters.business_domain,
+        problemCategory: filters.problem_category,
+        roleInTask: filters.role_in_task,
+        verificationMethod: filters.verification_method,
+        techStack: filters.tech_stack,
+        domainTags: filters.domain_tags,
+        acceptingApplications: filters.accepting_applications,
+        sortBy: !allowRecommendedSort && filters.sort_by === 'recommended' ? 'created_at' : filters.sort_by,
+        sortOrder: filters.sort_order,
+      })
+  )
 
   const hasActiveFilters = $derived(
     selectedSkillCategories.length > 0 ||
       selectedSkillIds.length > 0 ||
+      (selectedSkillIds.length > 0 && skillMatch !== 'any') ||
       !!keyword.trim() ||
       !!difficulty ||
       !!taskType ||
@@ -196,7 +303,6 @@
       selectedSkillIds = selectedSkillIds.filter((skillId) => visibleSkillIds.has(skillId))
     }
 
-    applyFilters()
   }
 </script>
 
@@ -252,30 +358,51 @@
     <label for="skill-filter" class="text-[11px] font-black uppercase tracking-wider text-muted-foreground">
       {t('task.marketplace_filters.skill_label', {}, 'Skill')}
     </label>
-    <select
-      id="skill-filter"
-      class="flex h-10 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm transition-all focus:border-foreground focus:outline-hidden cursor-pointer"
-      value={selectedSkillIds[0] ?? ''}
-      onchange={(event) => {
-        const value = event.currentTarget.value
-        selectedSkillIds = value ? [value] : []
-        applyFilters()
-      }}
-    >
-      <option value="">{t('task.marketplace_filters.all_skills', {}, 'All skills')}</option>
-      {#each filteredAvailableSkills as skill (skill.id)}
-        <option value={skill.id}>
-          {skill.skill_name}{skill.category_code ? ` · ${categoryLabel(skill.category_code)}` : ''}
-        </option>
-      {/each}
-    </select>
+    <div class="w-full min-w-0 max-w-full overflow-hidden">
+      <select
+        id="skill-filter"
+        class="flex h-10 w-full max-w-full min-w-0 overflow-hidden rounded-xl border border-border bg-background px-3 py-2 text-sm transition-all focus:border-foreground focus:outline-hidden cursor-pointer"
+        style="contain: inline-size paint"
+        multiple
+        size="4"
+        onchange={(event) => {
+          selectedSkillIds = Array.from(event.currentTarget.selectedOptions).map(({ value }) => value)
+        }}
+      >
+        {#each filteredAvailableSkills as skill (skill.id)}
+          <option value={skill.id}>
+            {skillOptionLabel(skill)}
+          </option>
+        {/each}
+      </select>
+    </div>
+    {#if selectedSkillIds.length > 0}
+      <label for="skill-match-filter" class="text-[11px] font-black uppercase tracking-wider text-muted-foreground">
+        {t('task.marketplace_filters.skill_match', {}, 'Skill match')}
+      </label>
+      <select
+        id="skill-match-filter"
+        class="flex h-10 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm transition-all focus:border-foreground focus:outline-hidden cursor-pointer"
+        bind:value={skillMatch}
+      >
+        <option value="any">{t('task.marketplace_filters.skill_match_any', {}, 'Any skill')}</option>
+        <option value="all">{t('task.marketplace_filters.all_skills', {}, 'All skills')}</option>
+      </select>
+    {/if}
   </div>
 
   <button
     class="flex h-10 items-center justify-center rounded-xl border border-border bg-background px-4 py-2 text-sm font-bold text-foreground transition-all hover:bg-muted/50 cursor-pointer"
     type="button"
-    aria-expanded={advancedOpen}
-    onclick={() => (advancedOpen = !advancedOpen)}
+    aria-expanded={isMobile ? mobileDrawerOpen : advancedOpen}
+    aria-controls="marketplace-filter-drawer"
+    onclick={() => {
+      if (isMobile) {
+        mobileDrawerOpen = true
+      } else {
+        advancedOpen = !advancedOpen
+      }
+    }}
   >
     {advancedOpen
       ? t('task.marketplace_filters.toggle_less', {}, 'Hide filters')
@@ -291,9 +418,13 @@
   </button>
   </div>
 
-  {#if advancedOpen}
+  {#if advancedOpen && !isMobile}
+    {@render advancedFilters()}
+  {/if}
+
+  {#snippet advancedFilters()}
     <div class="mt-3 grid items-end gap-3 border-t border-border pt-3 sm:grid-cols-2 lg:grid-cols-4">
-  <div class="space-y-1.5 flex flex-col min-w-[140px]">
+  <div class="space-y-1.5 flex flex-col min-w-0 sm:min-w-[140px]">
     <label for="difficulty-filter" class="text-[11px] font-black uppercase tracking-wider text-muted-foreground">
       {t('task.marketplace_filters.difficulty_label', {}, 'Difficulty')}
     </label>
@@ -301,7 +432,6 @@
       id="difficulty-filter"
       class="flex h-10 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm transition-all focus:border-foreground focus:outline-hidden cursor-pointer"
       bind:value={difficulty}
-      onchange={applyFilters}
     >
       <option value="">{t('task.marketplace_filters.all', {}, 'All')}</option>
       {#each difficulties as value}
@@ -310,7 +440,7 @@
     </select>
   </div>
 
-  <div class="space-y-1.5 flex flex-col min-w-[180px]">
+  <div class="space-y-1.5 flex flex-col min-w-0 sm:min-w-[180px]">
     <label for="task-type-filter" class="text-[11px] font-black uppercase tracking-wider text-muted-foreground">
       {t('task.marketplace_filters.task_type', {}, 'Task type')}
     </label>
@@ -318,7 +448,6 @@
       id="task-type-filter"
       class="flex h-10 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm transition-all focus:border-foreground focus:outline-hidden cursor-pointer"
       bind:value={taskType}
-      onchange={applyFilters}
     >
       <option value="">{t('task.marketplace_filters.all', {}, 'All')}</option>
       {#each TASK_TYPE_OPTIONS as option (option.value)}
@@ -327,7 +456,7 @@
     </select>
   </div>
 
-  <div class="space-y-1.5 flex flex-col min-w-[190px]">
+  <div class="space-y-1.5 flex flex-col min-w-0 sm:min-w-[190px]">
     <label for="verification-method-filter" class="text-[11px] font-black uppercase tracking-wider text-muted-foreground">
       {t('task.marketplace_filters.verification_method', {}, 'Verification')}
     </label>
@@ -335,7 +464,6 @@
       id="verification-method-filter"
       class="flex h-10 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm transition-all focus:border-foreground focus:outline-hidden cursor-pointer"
       bind:value={verificationMethod}
-      onchange={applyFilters}
     >
       <option value="">{t('task.marketplace_filters.all', {}, 'All')}</option>
       {#each TASK_VERIFICATION_METHOD_OPTIONS as option (option.value)}
@@ -344,7 +472,7 @@
     </select>
   </div>
 
-  <div class="space-y-1.5 flex flex-col min-w-[170px]">
+  <div class="space-y-1.5 flex flex-col min-w-0 sm:min-w-[170px]">
     <label for="accepting-applications-filter" class="text-[11px] font-black uppercase tracking-wider text-muted-foreground">
       {t('task.marketplace_filters.accepting_applications_label', {}, 'Applications')}
     </label>
@@ -352,7 +480,6 @@
       id="accepting-applications-filter"
       class="flex h-10 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm transition-all focus:border-foreground focus:outline-hidden cursor-pointer"
       bind:value={acceptingApplications}
-      onchange={applyFilters}
     >
       <option value="">{t('task.marketplace_filters.all', {}, 'All')}</option>
       <option value="open">{t('task.marketplace_filters.accepting_applications.open', {}, 'Open')}</option>
@@ -360,7 +487,7 @@
     </select>
   </div>
 
-  <div class="space-y-1.5 flex flex-col min-w-[170px]">
+  <div class="space-y-1.5 flex flex-col min-w-0 sm:min-w-[170px]">
     <label for="business-domain-filter" class="text-[11px] font-black uppercase tracking-wider text-muted-foreground">
       {t('task.marketplace_filters.business_domain', {}, 'Business domain')}
     </label>
@@ -368,7 +495,6 @@
       id="business-domain-filter"
       class="flex h-10 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm transition-all focus:border-foreground focus:outline-hidden cursor-pointer"
       bind:value={businessDomain}
-      onchange={applyFilters}
     >
       <option value="">{t('task.marketplace_filters.all', {}, 'All')}</option>
       {#each BUSINESS_DOMAIN_OPTIONS as option (option.value)}
@@ -377,7 +503,7 @@
     </select>
   </div>
 
-  <div class="space-y-1.5 flex flex-col min-w-[170px]">
+  <div class="space-y-1.5 flex flex-col min-w-0 sm:min-w-[170px]">
     <label for="problem-category-filter" class="text-[11px] font-black uppercase tracking-wider text-muted-foreground">
       {t('task.marketplace_filters.problem_category', {}, 'Problem type')}
     </label>
@@ -385,7 +511,6 @@
       id="problem-category-filter"
       class="flex h-10 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm transition-all focus:border-foreground focus:outline-hidden cursor-pointer"
       bind:value={problemCategory}
-      onchange={applyFilters}
     >
       <option value="">{t('task.marketplace_filters.all', {}, 'All')}</option>
       {#each PROBLEM_CATEGORY_OPTIONS as option (option.value)}
@@ -394,7 +519,7 @@
     </select>
   </div>
 
-  <div class="space-y-1.5 flex flex-col min-w-[160px]">
+  <div class="space-y-1.5 flex flex-col min-w-0 sm:min-w-[160px]">
     <label for="role-in-task-filter" class="text-[11px] font-black uppercase tracking-wider text-muted-foreground">
       {t('task.marketplace_filters.role_in_task', {}, 'Role')}
     </label>
@@ -402,7 +527,6 @@
       id="role-in-task-filter"
       class="flex h-10 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm transition-all focus:border-foreground focus:outline-hidden cursor-pointer"
       bind:value={roleInTask}
-      onchange={applyFilters}
     >
       <option value="">{t('task.marketplace_filters.all', {}, 'All')}</option>
       {#each ROLE_IN_TASK_OPTIONS as option (option.value)}
@@ -411,7 +535,7 @@
     </select>
   </div>
 
-  <div class="space-y-1.5 flex flex-col min-w-[170px]">
+  <div class="space-y-1.5 flex flex-col min-w-0 sm:min-w-[170px]">
     <label for="tech-stack-filter" class="text-[11px] font-black uppercase tracking-wider text-muted-foreground">
       {t('ui_misc.marketplace_filters.tech_stack_label', {}, 'Tech stack')}
     </label>
@@ -434,7 +558,7 @@
     />
   </div>
 
-  <div class="space-y-1.5 flex flex-col min-w-[170px]">
+  <div class="space-y-1.5 flex flex-col min-w-0 sm:min-w-[170px]">
     <label for="domain-tags-filter" class="text-[11px] font-black uppercase tracking-wider text-muted-foreground">
       {t('ui_misc.marketplace_filters.domain_tags_label', {}, 'Domain tags')}
     </label>
@@ -457,7 +581,7 @@
     />
   </div>
 
-  <div class="space-y-1.5 flex flex-col min-w-[140px]">
+  <div class="space-y-1.5 flex flex-col min-w-0 sm:min-w-[140px]">
     <label for="sort-filter" class="text-[11px] font-black uppercase tracking-wider text-muted-foreground">
       {t('task.marketplace_filters.sort_label', {}, 'Sort')}
     </label>
@@ -465,7 +589,6 @@
       id="sort-filter"
       class="flex h-10 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm transition-all focus:border-foreground focus:outline-hidden cursor-pointer"
       bind:value={sortBy}
-      onchange={applyFilters}
     >
       {#each visibleSortOptions as opt}
         <option value={opt.value}>{sortLabel(opt.value, opt.label)}</option>
@@ -476,7 +599,7 @@
   <button
     class="flex h-10 items-center justify-center rounded-xl border border-border bg-background px-4 py-2 text-sm font-semibold text-foreground transition-all hover:bg-muted/50 cursor-pointer"
     type="button"
-    onclick={() => { sortOrder = sortOrder === 'desc' ? 'asc' : 'desc'; applyFilters() }}
+    onclick={() => { sortOrder = sortOrder === 'desc' ? 'asc' : 'desc' }}
   >
     {sortOrder === 'desc'
       ? t('task.marketplace_filters.sort.desc', {}, '↓ Descending')
@@ -502,6 +625,19 @@
     </button>
   {/if}
     </div>
+  {/snippet}
+
+  {#if isMobile}
+    <FilterDrawer
+      bind:open={mobileDrawerOpen}
+      id="marketplace-filter-drawer"
+      title={t('task.marketplace_filters.title', {}, 'Marketplace filters')}
+      dirty={hasDraftChanges}
+      onCancel={syncDraftFromFilters}
+      onApply={applyFilters}
+    >
+      {@render advancedFilters()}
+    </FilterDrawer>
   {/if}
 
   {#if validationError}

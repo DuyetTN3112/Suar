@@ -39,9 +39,6 @@
   const currentProjectName = $derived(
     user?.current_project?.name ?? t('user.dashboard.no_project', {}, 'No project selected')
   )
-  const currentProjectBase = $derived(
-    user?.current_project?.id ? `/projects/${user.current_project.id}` : '/projects'
-  )
   const organizationCount = $derived(user?.organizations?.length ?? 0)
   const pageTitle = $derived(t('user.dashboard.page_title', {}, 'Personal overview'))
 
@@ -53,7 +50,7 @@
         {},
         'Handle task reviews by status column.'
       ),
-      href: user?.current_project?.id ? `${currentProjectBase}/reviews/tasks` : currentProjectBase,
+      href: '/reviews/tasks',
       icon: FolderKanban,
     },
     {
@@ -63,9 +60,7 @@
         {},
         'Opens automatically after the previous sprint closes.'
       ),
-      href: user?.current_project?.id
-        ? `${currentProjectBase}/reviews/assigners`
-        : currentProjectBase,
+      href: '/reviews/assigners',
       icon: UserCircle,
     },
     {
@@ -75,9 +70,7 @@
         {},
         'Rate the project, organization, and collaboration after a sprint.'
       ),
-      href: user?.current_project?.id
-        ? `${currentProjectBase}/reviews/environment`
-        : currentProjectBase,
+      href: '/reviews/environment',
       icon: LayoutDashboard,
     },
   ])
@@ -90,7 +83,7 @@
         {},
         'Track tasks you are working on and tasks awaiting review.'
       ),
-      href: user?.current_project?.id ? `${currentProjectBase}/tasks` : currentProjectBase,
+      href: '/tasks',
       icon: SquareCheckBig,
     },
     {
@@ -133,7 +126,7 @@
         {},
         'Open the shared review boards for the selected project.'
       ),
-      href: user?.current_project?.id ? `${currentProjectBase}/reviews/tasks` : currentProjectBase,
+      href: '/reviews/tasks',
       icon: FolderKanban,
     },
     {
@@ -187,7 +180,7 @@
           {t('user.dashboard.needs_attention', {}, 'Needs attention')}
         </h2>
         <Link
-          href={user?.current_project?.id ? `${currentProjectBase}/reviews/tasks` : currentProjectBase}
+          href="/reviews/tasks"
           class="inline-flex items-center gap-1 text-sm font-semibold text-primary"
         >
           {t('user.dashboard.open_review_board', {}, 'Open review board')}
