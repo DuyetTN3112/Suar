@@ -24,7 +24,7 @@ export function canSeeOrganizationManagementNavigation(
   return viewer.organizationRole === 'org_owner' || viewer.organizationRole === 'org_admin'
 }
 
-const RETIRED_OR_BROKEN_ORG_URLS = new Set(['/org/departments', '/org/tasks/workflow'])
+const RETIRED_OR_BROKEN_ORG_URLS = new Set(['/org/departments'])
 
 const MEMBER_SAFE_ORG_URLS = new Set([
   '/org',
