@@ -16,8 +16,10 @@
     | 'disputed'
     | 'reported'
     | 'ai_reviewing'
+    | 'admin_reviewing'
     | 'resolved'
     | 'done'
+  type UserVisibleStatus = Exclude<Status, 'ai_reviewing' | 'resolved'>
   type TargetType = 'assigner' | 'environment'
 
   interface Card {
@@ -85,6 +87,7 @@
     reviewWindow: ReviewWindow | null
     reviewType: 'manager' | 'environment'
     targetType: TargetType
+    workspaceMode?: 'personal' | 'project'
     board: {
       assigner: BoardSection
       environment: BoardSection
@@ -105,16 +108,16 @@
     targetType,
     board,
     projectContext,
+    workspaceMode = 'project',
   }: Props = $props()
   const { t } = useTranslation()
-  const statuses: Status[] = [
+  const statuses: UserVisibleStatus[] = [
     'awaiting_review',
     'in_review',
     'awaiting_response',
     'disputed',
     'reported',
-    'ai_reviewing',
-    'resolved',
+    'admin_reviewing',
     'done',
   ]
   let hydratedWorkflowId = $state<string | null>(null)
@@ -131,8 +134,15 @@
       : t('task.sprint_reverse_board.title.assigner', {}, 'Assigner review')
   )
   const projectId = $derived(reviewWindow?.projectId ?? projectContext?.selectedProject?.id ?? null)
+  const boardRoute = $derived(
+    workspaceMode === 'project' && projectId
+      ? `/projects/${encodeURIComponent(projectId)}/reviews/${reviewType === 'environment' ? 'environment' : 'assigners'}`
+      : reviewType === 'environment'
+        ? '/reviews/environment'
+        : '/reviews/assigners'
+  )
   const section = $derived(targetType === 'environment' ? board.environment : board.assigner)
-  const cards = $derived(statuses.flatMap((status) => section.columns[status].cards))
+  const cards = $derived(statuses.flatMap((status) => section.columns[status]?.cards ?? []))
   const selectedCard = $derived(cards.find((card) => card.id === selectedId) ?? null)
   const actorIsReviewer = $derived(!!actorUserId && selectedCard?.reviewer_id === actorUserId)
   const actorIsResponder = $derived(!!actorUserId && selectedCard?.responder_id === actorUserId)
@@ -153,17 +163,17 @@
     disputed: 'border-destructive/30 bg-destructive/10 text-destructive',
     reported: 'border-border bg-muted text-muted-foreground',
     ai_reviewing: 'border-primary/30 bg-primary/10 text-primary',
+    admin_reviewing: 'border-border bg-background text-foreground',
     resolved: 'border-border bg-card text-foreground',
     done: 'border-primary/30 bg-primary/10 text-primary',
   }
-  const laneTone: Record<Status, string> = {
+  const laneTone: Record<UserVisibleStatus, string> = {
     awaiting_review: 'border-t-muted-foreground',
     in_review: 'border-t-primary',
     awaiting_response: 'border-t-accent-foreground',
     disputed: 'border-t-destructive',
     reported: 'border-t-muted-foreground',
-    ai_reviewing: 'border-t-primary',
-    resolved: 'border-t-foreground',
+    admin_reviewing: 'border-t-foreground',
     done: 'border-t-primary',
   }
 
@@ -186,7 +196,9 @@
     if (projectId) {
       const boardName = reviewType === 'environment' ? 'environment' : 'assigners'
       router.get(
-        `/projects/${encodeURIComponent(projectId)}/reviews/${boardName}`,
+        workspaceMode === 'project'
+          ? `/projects/${encodeURIComponent(projectId)}/reviews/${boardName}`
+          : boardRoute,
         {
           ...(reviewWindow?.sprintId ? { sprint_id: reviewWindow.sprintId } : {}),
           workflow_id: card.id,
@@ -204,7 +216,9 @@
     if (projectId) {
       const boardName = reviewType === 'environment' ? 'environment' : 'assigners'
       router.get(
-        `/projects/${encodeURIComponent(projectId)}/reviews/${boardName}`,
+        workspaceMode === 'project'
+          ? `/projects/${encodeURIComponent(projectId)}/reviews/${boardName}`
+          : boardRoute,
         reviewWindow?.sprintId ? { sprint_id: reviewWindow.sprintId } : {},
         { preserveScroll: true, preserveState: true, replace: true }
       )
@@ -278,7 +292,7 @@
   <title>{pageTitle}</title>
 </svelte:head>
 
-<AppLayout title={pageTitle} workspaceMode="project">
+<AppLayout title={pageTitle} {workspaceMode}>
   <div class="task-control-page space-y-4">
     <section class="task-board-surface min-h-[calc(100vh-60px)] rounded-3xl border border-border bg-card p-4 shadow-xs md:p-5" aria-label={pageTitle}>
       <header class="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
@@ -304,12 +318,12 @@
                   <div class="flex items-center justify-between gap-2">
                     <h2 class="truncate text-sm font-extrabold tracking-[0.03em] text-foreground">{statusLabel(status)}</h2>
                     <span class="inline-flex items-center justify-center rounded-full border border-border bg-muted px-2 py-0.5 text-[11px] font-bold text-foreground">
-                      {section.columns[status].cards.length}
+                      {section.columns[status]?.cards.length ?? 0}
                     </span>
                   </div>
                 </div>
                 <div class="flex min-h-[120px] flex-1 flex-col gap-2.5 overflow-y-auto p-3">
-                  {#each section.columns[status].cards as card}
+                  {#each section.columns[status]?.cards ?? [] as card}
                     <button
                       class={`relative rounded-xl border bg-background px-3 py-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${detailDialogOpen && selectedCard?.id === card.id ? 'border-primary ring-2 ring-primary/20' : 'border-border'}`}
                       type="button"
@@ -418,7 +432,9 @@
                         {#each selectedCard.related_tasks as task}
                           <a
                             class="block rounded-md border border-border bg-card px-3 py-2 hover:border-primary/50"
-                            href={`/projects/${encodeURIComponent(projectId ?? '')}/tasks?task_id=${encodeURIComponent(task.id)}`}
+                            href={workspaceMode === 'project'
+                              ? `/projects/${encodeURIComponent(projectId ?? '')}/tasks?task_id=${encodeURIComponent(task.id)}`
+                              : `/tasks?task_id=${encodeURIComponent(task.id)}`}
                           >
                             <span class="block truncate font-bold text-foreground">{task.title}</span>
                             <span class="mt-0.5 block text-xs text-muted-foreground">{task.status} · {t('task.sprint_reverse_board.read_only_status', {}, 'read-only')}</span>

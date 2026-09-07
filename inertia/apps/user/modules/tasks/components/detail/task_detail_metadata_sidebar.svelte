@@ -5,7 +5,6 @@
     Tag,
     CircleAlert,
     User,
-    Building2,
   } from 'lucide-svelte'
 
   import Badge from '@/apps/user/shared/ui/badge.svelte'
@@ -80,6 +79,18 @@
 
 <aside class="overflow-y-auto border-l bg-muted/10 p-4">
   <div class="space-y-5">
+    <div class="space-y-2">
+      <h3 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        {t('task.detail_panel.identity', {}, 'Thông tin task')}
+      </h3>
+      <div class="flex items-center justify-between gap-3 text-sm">
+        <span class="text-muted-foreground">{t('task.detail_panel.task_code', {}, 'Mã Task')}</span>
+        <span class="font-mono text-xs" title={task.id}>{task.id.slice(0, 8)}</span>
+      </div>
+    </div>
+
+    <Separator />
+
     <div>
       <h3 class="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
         {t('task.status', {}, 'Status')}
@@ -209,15 +220,6 @@
         </div>
       {/if}
 
-      {#if task.organization}
-        <div class="flex items-center justify-between gap-3">
-          <span class="text-muted-foreground">{t('task.organization', {}, 'Organization')}</span>
-          <span class="inline-flex items-center gap-1 text-xs">
-            <Building2 class="h-3.5 w-3.5" />
-            {task.organization.name}
-          </span>
-        </div>
-      {/if}
     </div>
   </div>
 </aside>

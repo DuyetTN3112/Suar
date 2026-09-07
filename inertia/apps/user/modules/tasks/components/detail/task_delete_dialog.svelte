@@ -13,6 +13,7 @@
     open: boolean
     deleting: boolean
     taskTitle: string
+    draftOnly?: boolean
     onConfirmDelete: () => void
     onOpenChange: (open: boolean) => void
   }
@@ -21,6 +22,7 @@
     open,
     deleting,
     taskTitle,
+    draftOnly = false,
     onConfirmDelete,
     onOpenChange,
   }: Props = $props()
@@ -32,10 +34,14 @@
   <AlertDialogContent>
     <AlertDialogHeader>
       <AlertDialogTitle>
-        {t('task.confirm_delete', {}, 'Confirm task deletion')}
+        {draftOnly
+          ? t('task.confirm_discard_draft', {}, 'Xóa bản nháp')
+          : t('task.confirm_delete', {}, 'Confirm task deletion')}
       </AlertDialogTitle>
       <AlertDialogDescription>
-        {t('task.confirm_delete_description', {}, 'Are you sure you want to delete task')} "{taskTitle}"?
+        {draftOnly
+          ? t('task.confirm_discard_draft_description', {}, 'Bạn có chắc muốn xóa bản nháp')
+          : t('task.confirm_delete_description', {}, 'Are you sure you want to delete task')} "{taskTitle}"?
         {t('task.action_irreversible', {}, 'This action cannot be undone.')}
       </AlertDialogDescription>
     </AlertDialogHeader>
@@ -43,7 +49,11 @@
       <AlertDialogCancel>{t('common.cancel', {}, 'Cancel')}</AlertDialogCancel>
       <AlertDialogAction class="bg-destructive text-destructive-foreground hover:bg-destructive/90">
         <button onclick={onConfirmDelete} disabled={deleting} class="w-full h-full">
-          {deleting ? t('common.deleting', {}, 'Deleting...') : t('common.delete', {}, 'Delete')}
+          {deleting
+            ? t('common.deleting', {}, 'Deleting...')
+            : draftOnly
+              ? t('task.discard_draft', {}, 'Xóa nháp')
+              : t('common.delete', {}, 'Delete')}
         </button>
       </AlertDialogAction>
     </AlertDialogFooter>

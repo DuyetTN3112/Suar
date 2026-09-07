@@ -131,7 +131,7 @@
       <ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
     </Button>
   </PopoverTrigger>
-  <PopoverContent class="w-80 p-0" align="start">
+  <PopoverContent class="z-[200] w-80 p-0" align="start">
     <Command shouldFilter={false}>
       <CommandInput
         bind:value={search}

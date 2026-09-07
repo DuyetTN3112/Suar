@@ -1,11 +1,10 @@
 <script lang="ts">
+  import { router } from '@inertiajs/svelte'
+
   import Badge from '@/apps/user/shared/ui/badge.svelte'
   import Card from '@/apps/user/shared/ui/card.svelte'
   import CardContent from '@/apps/user/shared/ui/card_content.svelte'
-  import CardHeader from '@/apps/user/shared/ui/card_header.svelte'
-  import CardTitle from '@/apps/user/shared/ui/card_title.svelte'
   import { useTranslation } from '@/apps/user/shared/stores/translation.svelte'
-  import { formatTaskVerificationMethodForDisplay } from '@/apps/user/modules/tasks/lib/rules/task_verification_methods'
   import type { TaskDetail } from '@/apps/user/modules/tasks/types/index.svelte'
   import TaskExecutionBrief from '@/apps/user/modules/tasks/components/detail/task_execution_brief.svelte'
 
@@ -15,7 +14,10 @@
 
   const { task }: Props = $props()
   const { t } = useTranslation()
-  const verificationMethods = $derived(formatTaskVerificationMethodForDisplay(task.verification_method, t))
+
+  function reloadBrief(): void {
+    router.reload({ only: ['task'] })
+  }
 
   const hasContextCard = $derived(
     Boolean(
@@ -24,7 +26,6 @@
         task.verification_method ??
         task.context_background ??
         (task.tech_stack?.length ? 'tech-stack' : null) ??
-        (task.learning_objectives?.length ? 'learning-objectives' : null) ??
         (task.domain_tags?.length ? 'domain-tags' : null) ??
         task.environment ??
         task.collaboration_type ??
@@ -33,43 +34,17 @@
         task.autonomy_level ??
         task.problem_category ??
         task.business_domain ??
-        task.estimated_users_affected
+        task.estimated_users_affected ??
+        task.resolved_brief ??
+        (Array.isArray(task.expected_deliverables) && task.expected_deliverables.length > 0)
     )
   )
 </script>
 
-{#if hasContextCard}
+  {#if hasContextCard}
   <Card>
-    <CardHeader>
-      <CardTitle>{t('task.context_card.title', {}, 'Context')}</CardTitle>
-    </CardHeader>
     <CardContent class="space-y-6">
-      {#if task.context_background}
-        <div class="space-y-1">
-          <h4 class="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t('task.context_card.context_background', {}, 'Context')}</h4>
-          <p class="rounded-md border border-border/50 bg-muted/30 p-3 text-sm whitespace-pre-wrap">{task.context_background}</p>
-        </div>
-      {/if}
-
-      {#if task.acceptance_criteria}
-        <div class="space-y-1">
-          <h4 class="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t('task.context_card.acceptance', {}, 'Acceptance')}</h4>
-          <p class="rounded-md border border-border/50 bg-muted/30 p-3 text-sm whitespace-pre-wrap">{task.acceptance_criteria}</p>
-        </div>
-      {/if}
-
-      {#if task.verification_method}
-        <div class="space-y-1">
-          <h4 class="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t('task.context_card.verification', {}, 'Verification')}</h4>
-          <div class="rounded-md border border-border/50 bg-muted/30 p-3 text-sm">
-            <ul class="list-disc space-y-1 pl-4">
-              {#each verificationMethods as method}
-                <li>{method}</li>
-              {/each}
-            </ul>
-          </div>
-        </div>
-      {/if}
+      <TaskExecutionBrief {task} resolvedBrief={task.resolved_brief} onReloadBrief={reloadBrief} />
 
       <div class="grid gap-4 md:grid-cols-2">
         {#if task.tech_stack && task.tech_stack.length > 0}
@@ -94,17 +69,6 @@
           </div>
         {/if}
       </div>
-
-      {#if task.learning_objectives && task.learning_objectives.length > 0}
-        <div class="space-y-1">
-          <h4 class="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t('task.context_card.learning_objectives', {}, 'Learning objectives')}</h4>
-          <ul class="list-disc list-inside space-y-1 pl-1 text-sm text-muted-foreground">
-            {#each task.learning_objectives as obj}
-              <li><span class="text-foreground">{obj}</span></li>
-            {/each}
-          </ul>
-        </div>
-      {/if}
 
       <div class="border-t pt-4">
         <h4 class="mb-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">{t('task.context_card.more_info', {}, 'More information')}</h4>
@@ -166,7 +130,6 @@
         </div>
       </div>
 
-      <TaskExecutionBrief {task} />
     </CardContent>
   </Card>
 {/if}
