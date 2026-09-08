@@ -20,7 +20,6 @@ TARGET_BRANCH = sys.argv[2] if len(sys.argv) > 2 else "history/semantic-commit-c
 START_DATE = date(2025, 5, 22)
 END_DATE = date(2026, 9, 8)
 SEED = 20260908
-MIN_COMMITS_PER_DAY = 5
 MAX_COMMITS_PER_DAY = 15
 
 
@@ -43,38 +42,14 @@ if not hashes:
 rng = random.Random(SEED)
 days = [START_DATE + timedelta(days=i) for i in range((END_DATE - START_DATE).days + 1)]
 
-if len(hashes) < MIN_COMMITS_PER_DAY:
-    raise SystemExit(
-        f"{len(hashes)} commits cannot create even one day with "
-        f"{MIN_COMMITS_PER_DAY} commits"
-    )
-
-# If the history is too short to cover every calendar day, use evenly spaced
-# active days. Empty days are preferable to violating the 5-commit minimum.
-max_active_days = len(hashes) // MIN_COMMITS_PER_DAY
-min_active_days = (len(hashes) + MAX_COMMITS_PER_DAY - 1) // MAX_COMMITS_PER_DAY
-active_day_count = min(len(days), max_active_days)
-if active_day_count < min_active_days:
-    raise SystemExit("commit count cannot satisfy the 5-15 commits/day bounds")
-
-if active_day_count == 1:
-    active_indices = [0]
-else:
-    active_indices = [
-        (i * (len(days) - 1)) // (active_day_count - 1)
-        for i in range(active_day_count)
-    ]
-
-counts = [0] * len(days)
-for index in active_indices:
-    counts[index] = MIN_COMMITS_PER_DAY
-
-remaining = len(hashes) - sum(counts)
-while remaining:
-    eligible = [i for i in active_indices if counts[i] < MAX_COMMITS_PER_DAY]
-    index = rng.choice(eligible)
+# Use the fewest possible commits and distribute them evenly across the full
+# date range. Empty days are allowed; no artificial minimum creates commits.
+if len(hashes) > MAX_COMMITS_PER_DAY * len(days):
+    raise SystemExit("commit count exceeds the configured daily maximum")
+base, remainder = divmod(len(hashes), len(days))
+counts = [base] * len(days)
+for index in rng.sample(range(len(days)), remainder):
     counts[index] += 1
-    remaining -= 1
 
 date_values: list[str] = []
 for day, count in zip(days, counts):
