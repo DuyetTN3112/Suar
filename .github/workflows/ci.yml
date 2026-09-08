@@ -44,7 +44,7 @@ jobs:
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
 
-      - uses: pnpm/action-setup@a3252b78c470c02df07e9d59298aecedc3ccdd6d
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
         with:
           version: ${{ env.PNPM_VERSION }}
 
@@ -72,7 +72,7 @@ jobs:
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
 
-      - uses: pnpm/action-setup@a3252b78c470c02df07e9d59298aecedc3ccdd6d
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
         with:
           version: ${{ env.PNPM_VERSION }}
 
@@ -111,7 +111,7 @@ jobs:
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
 
-      - uses: pnpm/action-setup@a3252b78c470c02df07e9d59298aecedc3ccdd6d
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
         with:
           version: ${{ env.PNPM_VERSION }}
 
@@ -199,7 +199,7 @@ jobs:
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
 
-      - uses: pnpm/action-setup@a3252b78c470c02df07e9d59298aecedc3ccdd6d
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
         with:
           version: ${{ env.PNPM_VERSION }}
 
@@ -277,7 +277,7 @@ jobs:
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
 
-      - uses: pnpm/action-setup@a3252b78c470c02df07e9d59298aecedc3ccdd6d
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
         with:
           version: ${{ env.PNPM_VERSION }}
 
@@ -333,7 +333,7 @@ jobs:
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
 
-      - uses: pnpm/action-setup@a3252b78c470c02df07e9d59298aecedc3ccdd6d
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
         with:
           version: ${{ env.PNPM_VERSION }}
 
@@ -357,7 +357,7 @@ jobs:
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
 
-      - uses: pnpm/action-setup@a3252b78c470c02df07e9d59298aecedc3ccdd6d
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
         with:
           version: ${{ env.PNPM_VERSION }}
 
@@ -462,7 +462,7 @@ jobs:
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
 
-      - uses: pnpm/action-setup@a3252b78c470c02df07e9d59298aecedc3ccdd6d
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
         with:
           version: ${{ env.PNPM_VERSION }}
 
@@ -498,7 +498,7 @@ jobs:
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
 
-      - uses: pnpm/action-setup@a3252b78c470c02df07e9d59298aecedc3ccdd6d
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
         with:
           version: ${{ env.PNPM_VERSION }}
 
