@@ -45,8 +45,94 @@ function makeDataTransfer() {
 }
 
 describe('Kanban status management', () => {
-  it('refuses done moves without submission and offers Submit work', async () => {
-    const onTaskClick = vi.fn()
+  it('persists a status column moved before another column', async () => {
+    const onReorderStatuses = vi.fn()
+    const dataTransfer = makeDataTransfer()
+
+    render(KanbanBoard, {
+      props: {
+        store: makeStore(),
+        metadata: {
+          statuses: [
+            { value: 'todo-id', label: 'Todo', color: '#64748B' },
+            { value: 'in-progress-id', label: 'In progress', color: '#2563EB' },
+          ],
+          labels: [],
+          priorities: [],
+          users: [],
+        },
+        canManageStatuses: true,
+        canCreateTask: true,
+        canDeleteStatus: () => true,
+        onReorderStatuses,
+      },
+    })
+
+    const dragHandles = screen.getAllByRole('button', {
+      name: 'Kéo để đổi vị trí cột trạng thái',
+    })
+    const todoColumn = screen.getByRole('region', { name: 'Cột Todo' })
+
+    await fireEvent.dragStart(dragHandles[1] as Element, { dataTransfer })
+    await fireEvent.drop(todoColumn, { dataTransfer })
+
+    expect(onReorderStatuses).toHaveBeenCalledWith({
+      orderedStatusIds: ['in-progress-id', 'todo-id'],
+      previousStatusIds: ['todo-id', 'in-progress-id'],
+    })
+  })
+
+  it('keeps a task visible while a pre-migration status ID is replaced by the project workflow', () => {
+    const task = {
+      id: 'task-from-cached-board',
+      title: 'Recovered after workflow migration',
+      description: 'desc',
+      status: 'in_progress',
+      task_status_id: 'legacy-status-id',
+      label: 'feature' as const,
+      priority: 'medium' as const,
+      creator_id: 'creator-1',
+      due_date: null,
+      created_at: '2026-07-09T00:00:00.000Z',
+      updated_at: '2026-07-09T00:00:00.000Z',
+      organization_id: 'org-1',
+      project_id: 'project-1',
+    }
+    const store = {
+      ...makeStore(),
+      tasksByStatus: {},
+      sortedTasks: [task],
+      totalCount: 1,
+      filteredCount: 1,
+      getTaskById: vi.fn(),
+    }
+
+    render(KanbanBoard, {
+      props: {
+        store,
+        metadata: {
+          statuses: [
+            {
+              value: 'project-in-progress-id',
+              label: 'In progress',
+              slug: 'in_progress',
+              category: 'in_progress',
+            },
+          ],
+          labels: [],
+          priorities: [],
+          users: [],
+        },
+        canManageStatuses: false,
+        canCreateTask: false,
+        canDeleteStatus: () => false,
+      },
+    })
+
+    expect(screen.getByRole('button', { name: /Recovered after workflow migration/ })).toBeInTheDocument()
+  })
+
+  it('moves a task to Done without requiring a submission', async () => {
     const task = {
       id: 'task-1',
       title: 'Needs submission',
@@ -79,17 +165,19 @@ describe('Kanban status management', () => {
       },
     }
 
+    const store = {
+      ...makeStore(),
+      tasksByStatus: {
+        todo: [task],
+        done: [],
+      },
+      sortedTasks: [task],
+      getTaskById: (taskId: string) => (taskId === task.id ? task : undefined),
+    }
+
     render(KanbanBoard, {
       props: {
-        store: {
-          ...makeStore(),
-          tasksByStatus: {
-            todo: [task],
-            done: [],
-          },
-          sortedTasks: [task],
-          getTaskById: (taskId: string) => (taskId === task.id ? task : undefined),
-        },
+        store,
         metadata: {
           statuses: [
             {
@@ -110,7 +198,7 @@ describe('Kanban status management', () => {
         canManageStatuses: false,
         canCreateTask: false,
         canDeleteStatus: () => false,
-        onTaskClick,
+        onTaskClick: vi.fn(),
       },
     })
 
@@ -121,9 +209,57 @@ describe('Kanban status management', () => {
     await fireEvent.dragStart(card, { dataTransfer })
     await fireEvent.drop(doneColumn, { dataTransfer })
 
-    expect(screen.getByRole('status')).toHaveTextContent(/Hãy nộp bài/i)
-    expect(screen.getByRole('button', { name: /Nộp bài/i })).toBeInTheDocument()
-    await fireEvent.click(screen.getByRole('button', { name: /Nộp bài/i }))
-    expect(onTaskClick).toHaveBeenCalledWith(task)
+    expect(screen.queryByText(/Hãy nộp bài/i)).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Nộp bài/i })).not.toBeInTheDocument()
+    expect(store.moveTaskStatus).toHaveBeenCalledWith(task.id, 'done', expect.any(Number))
+  })
+
+  it('keeps a Docs item in its permanent board column', async () => {
+    const task = {
+      id: 'docs-item-1',
+      title: 'Quy ước triển khai',
+      description: 'https://example.test/docs/deployment',
+      status: 'todo',
+      task_status_id: 'docs',
+      label: 'documentation' as const,
+      priority: 'medium' as const,
+      creator_id: 'creator-1',
+      due_date: null,
+      created_at: '2026-08-13T00:00:00.000Z',
+      updated_at: '2026-08-13T00:00:00.000Z',
+      organization_id: 'org-1',
+      project_id: 'project-1',
+    }
+    const store = {
+      ...makeStore(),
+      tasksByStatus: { docs: [task], todo: [] },
+      sortedTasks: [task],
+      getTaskById: (taskId: string) => (taskId === task.id ? task : undefined),
+    }
+
+    render(KanbanBoard, {
+      props: {
+        store,
+        metadata: {
+          statuses: [
+            { value: 'docs', label: 'Docs', slug: 'docs', category: 'todo' },
+            { value: 'todo', label: 'To do', slug: 'todo', category: 'todo' },
+          ],
+          labels: [],
+          priorities: [],
+          users: [],
+        },
+        canCreateTask: true,
+      },
+    })
+
+    const card = screen.getByRole('button', { name: /Quy ước triển khai/ })
+    const todoColumn = screen.getByRole('region', { name: 'Cột To do' })
+    const dataTransfer = makeDataTransfer()
+
+    await fireEvent.dragStart(card, { dataTransfer })
+    await fireEvent.drop(todoColumn, { dataTransfer })
+
+    expect(store.moveTaskStatus).not.toHaveBeenCalled()
   })
 })

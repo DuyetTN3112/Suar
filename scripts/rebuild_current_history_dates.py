@@ -43,17 +43,35 @@ if not hashes:
 rng = random.Random(SEED)
 days = [START_DATE + timedelta(days=i) for i in range((END_DATE - START_DATE).days + 1)]
 
-if not MIN_COMMITS_PER_DAY * len(days) <= len(hashes) <= MAX_COMMITS_PER_DAY * len(days):
+if len(hashes) < MIN_COMMITS_PER_DAY:
     raise SystemExit(
-        f"{len(hashes)} commits cannot fit {len(days)} days at "
-        f"{MIN_COMMITS_PER_DAY}-{MAX_COMMITS_PER_DAY} commits/day"
+        f"{len(hashes)} commits cannot create even one day with "
+        f"{MIN_COMMITS_PER_DAY} commits"
     )
 
-# Allocate a bounded, deterministic number of commits to every calendar day.
-counts = [MIN_COMMITS_PER_DAY] * len(days)
+# If the history is too short to cover every calendar day, use evenly spaced
+# active days. Empty days are preferable to violating the 5-commit minimum.
+max_active_days = len(hashes) // MIN_COMMITS_PER_DAY
+min_active_days = (len(hashes) + MAX_COMMITS_PER_DAY - 1) // MAX_COMMITS_PER_DAY
+active_day_count = min(len(days), max_active_days)
+if active_day_count < min_active_days:
+    raise SystemExit("commit count cannot satisfy the 5-15 commits/day bounds")
+
+if active_day_count == 1:
+    active_indices = [0]
+else:
+    active_indices = [
+        (i * (len(days) - 1)) // (active_day_count - 1)
+        for i in range(active_day_count)
+    ]
+
+counts = [0] * len(days)
+for index in active_indices:
+    counts[index] = MIN_COMMITS_PER_DAY
+
 remaining = len(hashes) - sum(counts)
 while remaining:
-    eligible = [i for i, count in enumerate(counts) if count < MAX_COMMITS_PER_DAY]
+    eligible = [i for i in active_indices if counts[i] < MAX_COMMITS_PER_DAY]
     index = rng.choice(eligible)
     counts[index] += 1
     remaining -= 1

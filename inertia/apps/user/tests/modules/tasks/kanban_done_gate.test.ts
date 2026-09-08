@@ -102,10 +102,9 @@ function buildStore(task: TaskDetail, moveTaskStatus = vi.fn()): TaskStore {
   } as unknown as TaskStore
 }
 
-describe('KanbanBoard done gate', () => {
-  it('refuses a done-category drop without PATCH and opens the task drawer CTA', async () => {
+describe('KanbanBoard done transition', () => {
+  it('moves a done-category task without a submission or submission CTA', async () => {
     const moveTaskStatus = vi.fn()
-    const onTaskClick = vi.fn()
     render(KanbanBoard, {
       props: {
         store: buildStore(baseTask, moveTaskStatus),
@@ -118,7 +117,6 @@ describe('KanbanBoard done gate', () => {
           priorities: [{ value: 'medium', label: 'Medium' }],
           users: [],
         },
-        onTaskClick,
         canCreateTask: true,
         hasProjectOptions: true,
       },
@@ -131,10 +129,8 @@ describe('KanbanBoard done gate', () => {
     expect(doneColumn).not.toBeNull()
     await fireEvent.drop(doneColumn as HTMLElement, { dataTransfer })
 
-    expect(moveTaskStatus).not.toHaveBeenCalled()
-    expect(screen.getByRole('status')).toHaveTextContent(/submit work before moving/i)
-
-    await fireEvent.click(screen.getByRole('button', { name: /submit work/i }))
-    expect(onTaskClick).toHaveBeenCalledWith(baseTask)
+    expect(moveTaskStatus).toHaveBeenCalledWith(baseTask.id, 'done', expect.any(Number))
+    expect(screen.queryByText(/submit work before moving/i)).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /submit work/i })).not.toBeInTheDocument()
   })
 })

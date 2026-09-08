@@ -24,6 +24,33 @@ describe('profile and settings navigation', () => {
     )
   })
 
+  it('keeps task and review boards available inside Personal Workspace', () => {
+    expect(mainOverviewSection.items).toContainEqual(
+      expect.objectContaining({
+        title: 'Task board',
+        url: FRONTEND_ROUTES.TASKS,
+      })
+    )
+    expect(mainOverviewSection.items).toContainEqual(
+      expect.objectContaining({
+        title: 'Task review board',
+        url: '/reviews/tasks',
+      })
+    )
+    expect(mainOverviewSection.items).toContainEqual(
+      expect.objectContaining({
+        title: 'Assigner review',
+        url: '/reviews/assigners',
+      })
+    )
+    expect(mainOverviewSection.items).toContainEqual(
+      expect.objectContaining({
+        title: 'Work environment review',
+        url: '/reviews/environment',
+      })
+    )
+  })
+
   it('keeps profile-edit settings inside the account settings surface', () => {
     expect(mainSettingsSection.items).not.toContainEqual(
       expect.objectContaining({

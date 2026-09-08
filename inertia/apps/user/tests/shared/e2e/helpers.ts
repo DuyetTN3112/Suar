@@ -44,6 +44,14 @@ interface TestingBootstrapResult {
   reason?: string
 }
 
+export interface SeedTaskCreateFlowResult {
+  organizationId: string
+  projectId: string
+  ownerEmail: string
+  assigneeEmail: string
+  assigneeUsername: string
+}
+
 interface TestingHealthResponse {
   data?: {
     database?: string | null
@@ -419,6 +427,40 @@ export async function createProject(
 
   console.warn('No project ID found')
   return ''
+}
+
+/**
+ * Create an isolated organization/project with canonical task statuses for
+ * task-authoring browser journeys.
+ */
+export async function seedTaskCreateFlow(page: Page): Promise<SeedTaskCreateFlowResult> {
+  const response = await page.request.post(`${BASE_URL}/api/testing/seed-task-create-flow`, {
+    data: {
+      timestamp: Date.now(),
+      nonce: Math.random().toString(36).slice(2, 10),
+    },
+  })
+
+  if (!response.ok()) {
+    const body = await response.text().catch(() => 'no body')
+    throw new Error(`Task create flow seed failed with ${response.status()}: ${body}`)
+  }
+
+  const payload = (await response.json()) as {
+    data?: Partial<SeedTaskCreateFlowResult>
+  }
+  const data = payload.data
+  if (!data?.organizationId || !data.projectId || !data.ownerEmail || !data.assigneeEmail || !data.assigneeUsername) {
+    throw new Error('Task create flow seed returned incomplete identifiers')
+  }
+
+  return {
+    organizationId: data.organizationId,
+    projectId: data.projectId,
+    ownerEmail: data.ownerEmail,
+    assigneeEmail: data.assigneeEmail,
+    assigneeUsername: data.assigneeUsername,
+  }
 }
 
 /**

@@ -148,7 +148,9 @@ describe('TaskShowPage apply action', () => {
         },
       ])
     })
-    expect(inertiaMocks.router.reload.mock.calls.length).toBeGreaterThan(0)
+    expect(inertiaMocks.router.reload).toHaveBeenCalledWith({
+      only: ['task', 'permissions', 'auditLogs', 'taskReviewDetail', 'flash'],
+    })
   })
 
   it('keeps public marketplace viewers out of task work tabs', () => {
