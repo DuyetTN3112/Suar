@@ -1,7 +1,8 @@
 <script lang="ts">
-  import { Plus, Trash2, GripVertical } from 'lucide-svelte'
+  import { Pencil, Plus, Trash2, GripVertical } from 'lucide-svelte'
 
   import type { TaskDisplayProperties } from '@/apps/user/modules/tasks/stores/tasks.svelte'
+  import { isDocumentationTaskStatusId } from '@/apps/shared/tasks/documentation_task_status'
 
   import type { TaskDetail } from '@/apps/user/modules/tasks/types/index.svelte'
 
@@ -22,6 +23,7 @@
     onDropTask: (taskId: string, newStatus: string, sortOrder: number) => void
     onCreateTask?: (status: string) => void
     onDeleteStatus?: (status: string, label: string, taskCount: number) => void
+    onRenameStatus?: (status: string, label: string) => void
     onColumnDragStart?: (event: DragEvent, status: string) => void
     onColumnDragEnd?: () => void
     isBoardMutationLocked?: boolean
@@ -48,6 +50,7 @@
     onDropTask,
     onCreateTask,
     onDeleteStatus,
+    onRenameStatus,
     onColumnDragStart,
     onColumnDragEnd,
     isBoardMutationLocked = false,
@@ -73,6 +76,10 @@
     const laneKey = statusOption?.category ?? statusOption?.slug ?? status
     return statusLaneClasses[laneKey] ?? statusLaneClasses[status] ?? 'border-t-primary'
   })
+  const statusColor = $derived(
+    metadata.statuses.find((statusOption) => statusOption.value === status)?.color ?? null
+  )
+  const isDocumentationColumn = $derived(isDocumentationTaskStatusId(status, metadata.statuses))
 
   function isKanbanDebugEnabled(): boolean {
     if (import.meta.env.DEV) return true
@@ -90,9 +97,10 @@
   function handleDragStart(e: DragEvent, task: TaskDetail) {
     e.stopPropagation()
 
-    if (isTaskMutating(task.id) || isBoardMutationLocked) {
+    if (isDocumentationColumn || isTaskMutating(task.id) || isBoardMutationLocked) {
       debugKanbanDnD('drag-start blocked', {
         taskId: task.id,
+        isDocumentationColumn,
         isTaskMutating: isTaskMutating(task.id),
         isBoardMutationLocked,
       })
@@ -121,9 +129,13 @@
   }
 
   function handleDragOver(e: DragEvent) {
+    if (!isTaskDrag(e)) {
+      return
+    }
+
     e.stopPropagation()
 
-    if (isBoardMutationLocked) {
+    if (isDocumentationColumn || isBoardMutationLocked) {
       debugKanbanDnD('drag-over blocked by board lock')
       return
     }
@@ -140,6 +152,10 @@
   }
 
   function handleDrop(e: DragEvent) {
+    if (!isTaskDrag(e)) {
+      return
+    }
+
     e.stopPropagation()
     e.preventDefault()
     isDragOver = false
@@ -169,7 +185,7 @@
       }
 
       const { taskId, fromStatus } = data
-      if (isTaskMutating(taskId) || isBoardMutationLocked) {
+      if (isDocumentationColumn || isTaskMutating(taskId) || isBoardMutationLocked) {
         debugKanbanDnD('drop blocked', {
           taskId,
           fromStatus,
@@ -203,6 +219,10 @@
     return dataTransfer.getData(TASK_DRAG_DATA_TYPE) || dataTransfer.getData('text/plain')
   }
 
+  function isTaskDrag(event: DragEvent): boolean {
+    return Array.from(event.dataTransfer?.types ?? []).includes(TASK_DRAG_DATA_TYPE)
+  }
+
   function isKanbanTaskPayload(value: unknown): value is KanbanTaskPayload {
     if (!value || typeof value !== 'object') {
       return false
@@ -214,9 +234,10 @@
 </script>
 
 <section
-  class={`flex min-h-[420px] w-full flex-col overflow-hidden rounded-2xl border border-t-4 bg-muted/30 shadow-sm ${laneClass} ${
+  class={`flex min-h-[640px] w-full flex-col overflow-hidden rounded-2xl border border-t-4 bg-muted/30 shadow-sm ${laneClass} ${
     isDragOver ? 'border-primary bg-primary/10' : 'border-border'
   }`}
+  style:border-top-color={isDragOver ? 'var(--primary)' : statusColor ?? undefined}
   aria-label={t('ui_misc.tasks.kanban.column_aria', { label }, ':label column')}
   ondragover={handleDragOver}
   ondragleave={handleDragLeave}
@@ -253,6 +274,17 @@
         aria-label={t('task.workflow.delete_status_button', {}, 'Delete status')}
       >
         <Trash2 class="h-3.5 w-3.5" />
+      </button>
+    {/if}
+    {#if canManageStatus}
+      <button
+        type="button"
+        class="inline-grid place-items-center rounded-lg p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+        onclick={() => onRenameStatus?.(status, label)}
+        title={t('task.workflow.rename_status_button', { label }, 'Rename status :label')}
+        aria-label={t('task.workflow.rename_status_button', { label }, 'Rename status :label')}
+      >
+        <Pencil class="h-3.5 w-3.5" />
       </button>
     {/if}
   </div>

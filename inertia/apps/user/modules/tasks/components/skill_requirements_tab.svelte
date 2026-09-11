@@ -1,6 +1,6 @@
 <script lang="ts">
   import axios from 'axios'
-  import { CircleQuestionMark, LoaderCircle, Plus, RefreshCw, Trash2 } from 'lucide-svelte'
+  import { CircleQuestionMark, LoaderCircle, Plus, Trash2 } from 'lucide-svelte'
 
   import ConfirmDialog from '@/apps/user/shared/components/confirm_dialog.svelte'
   import Button from '@/apps/user/shared/ui/button.svelte'
@@ -11,7 +11,6 @@
   import { uiToast } from '@/apps/user/shared/lib/ui_toast'
   import { useTranslation } from '@/apps/user/shared/stores/translation.svelte'
 
-  import TaskSkillPrefillDialog from '@/apps/user/modules/tasks/components/task_skill_prefill_dialog.svelte'
   import TaskSkillAddDialog from '@/apps/user/modules/tasks/components/task_skill_add_dialog.svelte'
   import TaskSkillEditDialog from '@/apps/user/modules/tasks/components/task_skill_edit_dialog.svelte'
   import TaskSkillHistory from '@/apps/user/modules/tasks/components/task_skill_history.svelte'
@@ -35,14 +34,10 @@
     id: string
     skill: Skill
     isActive: boolean
+    isSelectableForTasks?: boolean
     rubricVersionId?: string | null
-  }
-
-  interface ProjectRole {
-    id: string
-    code: string
-    name: string
-    isActive: boolean
+    minimumTaskRequirementLevelId?: string | null
+    maximumTaskRequirementLevelId?: string | null
   }
 
   interface TaskRequirement {
@@ -51,8 +46,6 @@
     projectSkillId?: string | null
     sourceProjectProfessionalRoleId?: string | null
     minimumLevelId?: string | null
-    targetLevelId?: string | null
-    assessmentCeilingLevelId?: string | null
     rubricVersionId?: string | null
     isMandatory: boolean
     importance: 'low' | 'medium' | 'high' | 'critical'
@@ -62,8 +55,6 @@
     // Populated
     skill?: Skill
     minimumLevel?: ProficiencyLevel
-    targetLevel?: ProficiencyLevel
-    assessmentCeilingLevel?: ProficiencyLevel
   }
 
   interface RequirementVersion {
@@ -92,12 +83,10 @@
   let requirements = $state<TaskRequirement[]>([])
   let versions = $state<RequirementVersion[]>([])
   let projectSkills = $state<ProjectSkill[]>([])
-  let projectRoles = $state<ProjectRole[]>([])
   let proficiencyLevels = $state<ProficiencyLevel[]>([])
   let loading = $state(true)
 
   // Dialog open states
-  let prefillOpen = $state(false)
   let addOpen = $state(false)
   let editOpen = $state(false)
   let removeDialogOpen = $state(false)
@@ -122,13 +111,11 @@
       versions = versionsRes.data.data
 
       if (projectId) {
-        const [skillsRes, rolesRes, scalesRes] = await Promise.all([
+        const [skillsRes, scalesRes] = await Promise.all([
           axios.get<{ data: ProjectSkill[] }>(`/api/v1/projects/${projectId}/skills`),
-          axios.get<{ data: ProjectRole[] }>(`/api/v1/projects/${projectId}/professional-roles`),
           axios.get<{ data: { levels?: ProficiencyLevel[] } }>('/api/v1/proficiency-scales'),
         ])
         projectSkills = skillsRes.data.data
-        projectRoles = rolesRes.data.data
         proficiencyLevels = scalesRes.data.data.levels ?? []
       }
     } catch {
@@ -139,7 +126,13 @@
   }
 
   const activeProjectSkills = $derived(
-    projectSkills.filter((ps) => ps.isActive && !requirements.some((r) => r.projectSkillId === ps.id))
+    projectSkills.filter(
+      (ps) =>
+        ps.isActive &&
+        ps.isSelectableForTasks !== false &&
+        Boolean(ps.minimumTaskRequirementLevelId && ps.maximumTaskRequirementLevelId) &&
+        !requirements.some((r) => r.projectSkillId === ps.id)
+    )
   )
 
   const importanceColors: Record<string, string> = {
@@ -166,7 +159,7 @@
 
   const completeness = $derived(() => {
     if (requirements.length === 0) return null
-    const configured = requirements.filter((r) => r.minimumLevelId && r.targetLevelId).length
+    const configured = requirements.filter((r) => r.minimumLevelId).length
     return Math.round((configured / requirements.length) * 100)
   })
 
@@ -223,7 +216,7 @@
               <CircleQuestionMark class="h-3.5 w-3.5 text-muted-foreground cursor-help" />
             </TooltipTrigger>
             <TooltipContent class="font-normal normal-case">
-              {t('task.skill_requirements.completeness_help', {}, 'Share of skills with both minimum and target levels configured.')}
+              {t('task.skill_requirements.completeness_help', {}, 'Share of skills with a minimum level required to receive the task.')}
             </TooltipContent>
           </Tooltip>
         </div>
@@ -232,13 +225,6 @@
 
     {#if canEdit}
       <div class="flex gap-2">
-        {#if projectId && projectRoles.filter((r) => r.isActive).length > 0}
-          <Button size="sm" variant="outline" onclick={() => { prefillOpen = true }} class="gap-1.5">
-            <RefreshCw class="h-4 w-4" />
-            {t('task.skill_requirements.apply_role', {}, 'Apply role')}
-          </Button>
-        {/if}
-
         {#if projectId && activeProjectSkills.length > 0}
           <Button size="sm" onclick={() => { addOpen = true }} class="gap-1.5">
             <Plus class="h-4 w-4" />
@@ -289,13 +275,8 @@
               {/if}
             </div>
             <div class="flex items-center gap-1 mt-1">
+              <span class="text-xs text-muted-foreground">Mức tối thiểu:</span>
               <ProficiencyLevelBadge level={req.minimumLevel} size="xs" />
-              <span class="text-muted-foreground text-xs">→</span>
-              <ProficiencyLevelBadge level={req.targetLevel} size="xs" />
-              {#if req.assessmentCeilingLevel}
-                <span class="text-muted-foreground text-xs">≤</span>
-                <ProficiencyLevelBadge level={req.assessmentCeilingLevel} size="xs" />
-              {/if}
             </div>
           </div>
 
@@ -344,14 +325,6 @@
     void confirmRemoveRequirement()
   }}
   isLoading={Boolean(removingId)}
-/>
-
-<!-- Prefill role dialog -->
-<TaskSkillPrefillDialog
-  bind:open={prefillOpen}
-  {projectRoles}
-  {taskId}
-  onPrefillSuccess={fetchAll}
 />
 
 <!-- Add skill dialog -->
