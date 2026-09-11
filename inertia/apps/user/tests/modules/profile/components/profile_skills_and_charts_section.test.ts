@@ -203,7 +203,7 @@ describe('ProfileSkillsAndChartsSection', () => {
     expect(screen.getAllByText('No skills in this group yet.')).toHaveLength(3)
   })
 
-  it('keeps the four-category inventory visible for an empty skill profile', () => {
+  it('shows only the eligibility explanation for an empty skill profile', () => {
     render(ProfileSkillsAndChartsSection, {
       props: {
         groupedSkills: [],
@@ -219,11 +219,11 @@ describe('ProfileSkillsAndChartsSection', () => {
     })
 
     expect(screen.getByRole('heading', { name: 'No verified skills yet' })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'All skills by group' })).toBeInTheDocument()
-    expect(screen.getByText('Technology')).toBeInTheDocument()
-    expect(screen.getByText('Software engineering')).toBeInTheDocument()
-    expect(screen.getByText('Soft skills')).toBeInTheDocument()
-    expect(screen.getByText('Delivery')).toBeInTheDocument()
-    expect(screen.getAllByText('No skills in this group yet.')).toHaveLength(4)
+    expect(screen.queryByRole('heading', { name: 'All skills by group' })).not.toBeInTheDocument()
+    expect(screen.queryByText('Technology')).not.toBeInTheDocument()
+    expect(screen.queryByText('Software engineering')).not.toBeInTheDocument()
+    expect(screen.queryByText('Soft skills')).not.toBeInTheDocument()
+    expect(screen.queryByText('Delivery')).not.toBeInTheDocument()
+    expect(screen.queryByText('No skills in this group yet.')).not.toBeInTheDocument()
   })
 })

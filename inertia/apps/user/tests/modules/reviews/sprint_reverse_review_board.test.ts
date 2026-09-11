@@ -91,7 +91,7 @@ function makeColumns(cardsByStatus: Partial<Record<Status, ReturnType<typeof mak
 }
 
 describe('User sprint reverse review board', () => {
-  it('renders AI reviewing and resolved workflow cards instead of dropping them', () => {
+  it('hides AI reviewing and resolved workflow cards from user review boards', () => {
     render(SprintReverseReviewBoard, {
       props: {
         actorUserId: 'reviewer-1',
@@ -120,8 +120,8 @@ describe('User sprint reverse review board', () => {
       },
     })
 
-    expect(screen.getByText('AI queued case')).toBeInTheDocument()
-    expect(screen.getByText('Resolved case')).toBeInTheDocument()
+    expect(screen.queryByText('AI queued case')).not.toBeInTheDocument()
+    expect(screen.queryByText('Resolved case')).not.toBeInTheDocument()
   })
 
   it('does not show responder actions to the reviewer on an awaiting-response card', () => {

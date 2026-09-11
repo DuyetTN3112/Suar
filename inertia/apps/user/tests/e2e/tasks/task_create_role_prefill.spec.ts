@@ -5,12 +5,8 @@ import { createProject, login } from '../../shared/e2e/helpers.js'
 const E2E_USER = 'tranngocduyet31@gmail.com'
 
 async function expectTaskCreateReady(page: Page) {
-  await expect(page.getByRole('heading', { name: /Tạo nhiệm vụ mới/i }).last()).toBeVisible()
+  await expect(page.getByRole('heading', { name: /^(New Task|Tạo nhiệm vụ mới)$/i }).last()).toBeVisible()
   await expect(page.locator('input[name="title"]')).toBeVisible()
-}
-
-function getProjectSummary(page: Page) {
-  return page.getByText('Project', { exact: true }).first()
 }
 
 function isAbortedNavigation(error: unknown): boolean {
@@ -55,9 +51,8 @@ test.describe('Task Create Role Prefill E2E', () => {
     const projectId = await createProject(page, 'E2E Task Board Modal', { navigate: false })
     await gotoTaskCreate(page, projectId)
 
-    await expect(getProjectSummary(page)).toBeVisible()
-    await expect(page.getByText('Task access')).toBeVisible()
-    await expect(page.getByText(/Task visibility:/)).toBeVisible()
+    await expect(page.getByText('Task visibility', { exact: true })).toBeVisible()
+    await expect(page.locator('select[name="project_id"]')).toHaveCount(0)
   })
 
   test('selecting a project triggers role picker visibility', async ({ page }) => {
@@ -76,7 +71,7 @@ test.describe('Task Create Role Prefill E2E', () => {
     // Role picker visibility depends on project having roles
     // This may or may not be visible depending on whether the project has professional roles
     // The key thing is the page doesn't crash
-    await expect(page.getByRole('heading', { name: /Tạo nhiệm vụ mới/i }).last()).toBeVisible()
+    await expect(page.getByRole('heading', { name: /^(New Task|Tạo nhiệm vụ mới)$/i }).last()).toBeVisible()
   })
 
   test('task create form has required fields', async ({ page }) => {
@@ -88,8 +83,30 @@ test.describe('Task Create Role Prefill E2E', () => {
     await expect(page.locator('input[name="title"]')).toBeVisible()
     await expect(page.locator('textarea[name="description"]')).toBeVisible()
 
-    await expect(page.getByText('Project', { exact: true }).first()).toBeVisible()
-    await expect(page.locator('main').getByText('E2E Form Fields Test').first()).toBeVisible()
+    await expect(page.getByText('Task visibility', { exact: true })).toBeVisible()
+    await expect(page.locator('select[name="project_id"]')).toHaveCount(0)
+  })
+
+  test('due date picker opens when the field is clicked', async ({ page }) => {
+    const projectId = await createProject(page, 'E2E Due Date Picker Test', { navigate: false })
+    await expect(page).toHaveURL(/\/org\/projects$/)
+    await gotoTaskCreate(page, projectId)
+
+    const trigger = page.getByTestId('due-date-trigger')
+    await expect(trigger).toBeVisible()
+    await trigger.click()
+
+    const popover = page.getByTestId('due-date-popover')
+    await expect(popover).toBeVisible()
+    await expect(popover).toHaveAttribute('data-state', 'open')
+    await page.waitForTimeout(200)
+    const popoverIsTopmost = await popover.evaluate((element) => {
+      const box = element.getBoundingClientRect()
+      const topmost = document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2)
+      return topmost === element || Boolean(topmost && element.contains(topmost))
+    })
+    expect(popoverIsTopmost).toBe(true)
+    await expect(popover.getByRole('button').first()).toBeVisible()
   })
 
   test('task create form validation rejects empty title', async ({ page }) => {
@@ -98,7 +115,7 @@ test.describe('Task Create Role Prefill E2E', () => {
     await gotoTaskCreate(page, projectId)
 
     // Try to submit without title
-    await page.click('button:has-text("Tạo nhiệm vụ")')
+    await page.getByRole('button', { name: /^(Create task|Create and assign|Tạo nhiệm vụ|Đăng và giao task)$/i }).click()
 
     // Should show validation error, stay on form
     await expect(page.locator('input[name="title"]')).toBeVisible()
@@ -114,10 +131,11 @@ test.describe('Task Create Role Prefill E2E', () => {
     await page.fill('input[name="title"]', 'Task Without Skills')
 
     // Try to submit
-    await page.click('button:has-text("Tạo nhiệm vụ")')
+    await page.getByRole('button', { name: /^(Create task|Create and assign|Tạo nhiệm vụ|Đăng và giao task)$/i }).click()
 
     // Should stay on form with error
     await expect(page.locator('input[name="title"]')).toBeVisible()
     expect(page.url()).toContain(`/projects/${projectId}/tasks`)
   })
+
 })

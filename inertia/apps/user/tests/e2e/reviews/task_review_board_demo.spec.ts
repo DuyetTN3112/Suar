@@ -20,6 +20,8 @@ async function submitVisibleReview(page: Page) {
 }
 
 async function captureBoardScreenshot(page: Page, path: string) {
+  await page.waitForLoadState('domcontentloaded')
+  await page.waitForLoadState('networkidle', { timeout: 10_000 }).catch(() => undefined)
   await page.evaluate(() => {
     const style = document.createElement('style')
     style.id = 'e2e-review-screenshot-style'
@@ -29,8 +31,9 @@ async function captureBoardScreenshot(page: Page, path: string) {
     window.scrollTo(0, 0)
   })
   await page.screenshot({ path, fullPage: true })
-  await page.evaluate(() => window.scrollTo(0, 0))
-  await page.evaluate(() => document.getElementById('e2e-review-screenshot-style')?.remove())
+  await page.waitForLoadState('domcontentloaded').catch(() => undefined)
+  await page.evaluate(() => window.scrollTo(0, 0)).catch(() => undefined)
+  await page.evaluate(() => document.getElementById('e2e-review-screenshot-style')?.remove()).catch(() => undefined)
 }
 
 interface SeedResponse {
@@ -105,7 +108,7 @@ test.describe('Task review board demo flow', () => {
     await page.goto(`/projects/${projectId}/reviews/tasks?task_id=${workerTaskId}`)
     await expect(page.getByRole('button', { name: /Đồng ý review|Accept review/i })).toBeVisible()
     await page.getByRole('button', { name: /Đồng ý review|Accept review/i }).click()
-    await expect(page.getByText('Đã đồng ý review, task chuyển Done').first()).toBeVisible()
+    await expect(page.getByText('2/2 · done').first()).toBeVisible()
     await captureBoardScreenshot(page, `${SCREENSHOT_DIR}/03-worker-done.png`)
   })
 

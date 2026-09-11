@@ -113,14 +113,48 @@ const baseProps = {
 }
 
 describe('User ProjectShowPage', () => {
-  it('exposes operating model and sprint tabs for project owners outside org admin', () => {
+  it('does not render review governance on project management tabs', () => {
+    inertiaPage.url = '/projects/project-1?focus=members'
+
+    render(ProjectShowPage, {
+      props: {
+        ...baseProps,
+        review_governance: {
+          total_sessions: 12,
+          pending_sessions: 4,
+          overdue_sessions: 2,
+          disputed_sessions: 1,
+          completed_sessions: 6,
+          required_pending_assignments: 3,
+          fallback_pending_assignments: 1,
+          completion_rate: 50,
+        },
+      },
+    })
+
+    expect(screen.queryByText(/review governance|quản trị đánh giá/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/review sessions|phiên đánh giá/i)).not.toBeInTheDocument()
+    expect(screen.queryByRole('tablist')).not.toBeInTheDocument()
+  })
+
+  it('keeps project identity in the sidebar instead of repeating the large detail card', () => {
     inertiaPage.url = '/projects/project-1'
 
     render(ProjectShowPage, { props: baseProps })
 
-    expect(screen.getAllByRole('tab')).toHaveLength(6)
-    expect(screen.getByRole('tab', { name: /operating model|mô hình/i })).toBeInTheDocument()
-    expect(screen.getByRole('tab', { name: /sprints|sprint/i })).toBeInTheDocument()
+    expect(screen.queryByText('User project detail')).not.toBeInTheDocument()
+    expect(screen.queryByText('Org project detail')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /edit|sửa/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /delete|xóa/i })).not.toBeInTheDocument()
+  })
+
+  it('keeps project management navigation out of the page body', () => {
+    inertiaPage.url = '/projects/project-1'
+
+    render(ProjectShowPage, { props: baseProps })
+
+    expect(screen.queryByRole('tablist')).not.toBeInTheDocument()
+    expect(screen.queryAllByRole('tab')).toHaveLength(0)
   })
 
   it('opens the sprint panel from the user-shell focus URL', () => {
@@ -129,6 +163,6 @@ describe('User ProjectShowPage', () => {
     render(ProjectShowPage, { props: baseProps })
 
     expect(screen.getByTestId('project-sprint-controls')).toBeInTheDocument()
-    expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1)
+    expect(screen.queryAllByRole('heading', { level: 1 })).toHaveLength(0)
   })
 })

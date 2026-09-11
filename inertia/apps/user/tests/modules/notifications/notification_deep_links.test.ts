@@ -162,6 +162,15 @@ describe('notification deep-link resolver', () => {
       },
       {
         shell: 'user',
+        notification: item({
+          type: 'organization_join_request',
+          relatedEntityType: 'organization',
+          relatedEntityId: 'org-1',
+        }),
+        url: '/org/invitations/requests',
+      },
+      {
+        shell: 'user',
         notification: item({ relatedEntityType: 'organization', relatedEntityId: 'org-1' }),
         url: '/organizations/org-1',
       },
