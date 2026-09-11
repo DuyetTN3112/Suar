@@ -8,14 +8,20 @@
   import CardHeader from '@/apps/user/shared/ui/card_header.svelte'
   import CardTitle from '@/apps/user/shared/ui/card_title.svelte'
   import { useTranslation } from '@/apps/user/shared/stores/translation.svelte'
-  import { formatTaskVerificationMethodForDisplay } from '@/apps/user/modules/tasks/lib/rules/task_verification_methods'
+  import {
+    formatTaskVerificationMethodForDisplay,
+  } from '@/apps/user/modules/tasks/lib/rules/task_verification_methods'
 
   import TaskSubmissionView from '@/apps/user/modules/tasks/components/detail/task_submission_view.svelte'
   import TaskSubmissionForm from '@/apps/user/modules/tasks/components/detail/task_submission_form.svelte'
+  import TaskCompletionReportNativeForm from '@/apps/shared/tasks/task_completion_report_native_form.svelte'
+  import type { NativeCompletionBrief } from '@/apps/shared/tasks/task_completion_report_native_form.types'
 
   interface TaskDetailSummary {
     verification_method?: string | null
     acceptance_criteria?: string | null
+    assigneeId?: string | null
+    resolved_brief?: NativeCompletionBrief | null
   }
 
   interface SubmissionEvidence {
@@ -63,11 +69,7 @@
   const { t } = useTranslation()
   const submissionApiBase = $derived(props.apiBase ?? '/api/v1/tasks')
   const submissionEndpoint = $derived(`${submissionApiBase}/${props.taskId}/submission`)
-  const evidenceApiBase = $derived(
-    submissionApiBase === '/work/api/tasks'
-      ? `${submissionApiBase}/submissions`
-      : submissionApiBase.replace(/\/tasks$/, '/task-submissions')
-  )
+  const evidenceApiBase = $derived(submissionApiBase.replace(/\/tasks$/, '/task-submissions'))
   const evidenceEndpoint = (submissionId: string) =>
     `${evidenceApiBase}/${submissionId}/evidences`
   const verificationMethods = $derived(
@@ -91,6 +93,7 @@
   }
 
   let loading = $state(true)
+  let nativeReportOpen = $state(false)
   let submission = $state<TaskSubmission | null>(null)
   let evidences = $state<SubmissionEvidence[]>([])
   let error = $state('')
@@ -98,6 +101,7 @@
   let saving = $state(false)
   let submitting = $state(false)
   let locking = $state(false)
+  let legacyLoadStarted = $state(false)
 
   let summary = $state('')
   let implementationNotes = $state('')
@@ -195,6 +199,11 @@
     return false
   }
 
+  function validateSubmit() {
+    // This optional report never becomes a proof gate for the task workflow.
+    return validateSummary()
+  }
+
   async function handleSaveDraft() {
     if (!validateSummary()) {
       return
@@ -221,7 +230,7 @@
   }
 
   async function handleSubmitPackage() {
-    if (!validateSummary()) {
+    if (!validateSubmit()) {
       return
     }
 
@@ -278,6 +287,12 @@
   const canEdit = $derived(
     props.isAssignee && submission?.status !== 'locked' && submission?.status !== 'submitted'
   )
+  const reportReadiness = $derived({
+    summary: summary.trim().length > 0,
+    testNotes: testNotes.trim().length > 0,
+    evidence: evidences.length > 0,
+  })
+  const nativeMode = $derived(Boolean(props.isAssignee && props.task.resolved_brief?.assignmentId))
 
   onMount(() => {
     loading = props.initialLoading ?? props.initialSubmission === undefined
@@ -285,10 +300,21 @@
     evidences = props.initialEvidences ?? []
     error = props.initialError ?? ''
     syncForm(props.initialSubmission ?? null)
+  })
 
-    if (props.initialSubmission === undefined) {
-      void loadSubmissionData()
+  $effect(() => {
+    if (nativeMode) {
+      if (!nativeReportOpen) loading = false
       return
+    }
+
+    if (props.initialLoading) {
+      return
+    }
+
+    if (props.initialSubmission === undefined && !legacyLoadStarted) {
+      legacyLoadStarted = true
+      void loadSubmissionData()
     }
   })
 </script>
@@ -296,7 +322,10 @@
 <Card class="rounded-xl border border-border/70 bg-card/70 shadow-sm">
   <CardHeader class="space-y-3 border-b border-border/50">
     <div class="flex items-center justify-between gap-3">
-      <CardTitle class="text-lg">{t('task.submission_panel.title', {}, 'Task completion report')}</CardTitle>
+      <div>
+        <CardTitle class="text-lg">{t('task.submission_panel.title', {}, 'Optional completion report')}</CardTitle>
+        <p class="mt-1 text-xs text-muted-foreground">{t('task.submission_panel.optional_help', {}, 'This is optional governance data. It never blocks moving a task to Done or lets a tester decide pass/fail.')}</p>
+      </div>
 
       {#if submission}
         <Badge class={statusClasses[submission.status]}>
@@ -307,11 +336,40 @@
   </CardHeader>
 
   <CardContent class="space-y-6 pt-6">
-    {#if loading}
+    {#if nativeMode}
+      {#if nativeReportOpen}
+        <TaskCompletionReportNativeForm
+          taskId={props.taskId}
+          assigneeId={props.task.assigneeId}
+          brief={props.task.resolved_brief!}
+          translate={t}
+        />
+      {:else}
+        <div class="rounded-lg border border-primary/20 bg-primary/5 p-4">
+          <h3 class="text-sm font-semibold">
+            {t('task.submission_panel.native.optional_title', {}, 'Optional governance report')}
+          </h3>
+          <p class="mt-1 text-sm text-muted-foreground">
+            {t('task.submission_panel.native.optional_description', {}, 'You can add a structured report for governance or profile purposes, but it is not required to finish the task or move it through the project statuses.')}
+          </p>
+          <button
+            type="button"
+            class="mt-4 inline-flex h-10 items-center justify-center rounded-xl border border-border bg-background px-4 text-sm font-bold hover:bg-secondary"
+            onclick={() => { nativeReportOpen = true }}
+          >
+            {t('task.submission_panel.native.start_optional', {}, 'Add optional report')}
+          </button>
+        </div>
+      {/if}
+    {:else if loading}
       <p class="text-sm text-muted-foreground">{t('task.submission_panel.loading', {}, 'Loading submission information...')}</p>
     {:else}
       {#if error}
-        <div class="rounded-lg border border-destructive/20 bg-destructive/5 px-3 py-2 text-sm text-destructive font-sans">
+        <div
+          class="rounded-lg border border-destructive/20 bg-destructive/5 px-3 py-2 text-sm text-destructive font-sans"
+          role="alert"
+          aria-live="assertive"
+        >
           {error}
         </div>
       {/if}
@@ -348,6 +406,45 @@
         </div>
       </div>
 
+      {#if props.isAssignee && canEdit}
+        <section
+          aria-labelledby="submission-readiness-heading"
+          class="rounded-lg border border-border/60 bg-background/70 p-4"
+        >
+          <div class="flex items-center justify-between gap-3">
+            <h3 id="submission-readiness-heading" class="text-sm font-semibold">
+              {t('task.submission_panel.readiness_title', {}, 'Report readiness')}
+            </h3>
+            <span class="text-xs text-muted-foreground">
+              {reportReadiness.summary && reportReadiness.testNotes
+                ? t('task.submission_panel.readiness_ready', {}, 'Ready to review')
+                : t('task.submission_panel.readiness_draft', {}, 'Draft can be saved')}
+            </span>
+          </div>
+          <ul class="mt-3 grid gap-2 text-sm sm:grid-cols-3">
+            <li class={reportReadiness.summary ? 'text-primary' : 'text-muted-foreground'}>
+              {reportReadiness.summary ? '✓' : '○'}
+              {t('task.submission_panel.readiness_summary', {}, 'Result summary')}
+            </li>
+            <li class={reportReadiness.testNotes ? 'text-primary' : 'text-muted-foreground'}>
+              {reportReadiness.testNotes ? '✓' : '○'}
+              {t('task.submission_panel.readiness_tests', {}, 'Test notes')}
+            </li>
+            <li class={reportReadiness.evidence ? 'text-primary' : 'text-muted-foreground'}>
+              {reportReadiness.evidence ? '✓' : '○'}
+              {t('task.submission_panel.readiness_evidence', {}, 'Evidence attached')}
+            </li>
+          </ul>
+          <p class="mt-3 text-xs text-muted-foreground">
+            {t(
+              'task.submission_panel.readiness_explanation',
+              {},
+              'This report is optional. If you choose to submit it, the configured governance policy may validate its fields; task status changes do not depend on this report.'
+            )}
+          </p>
+        </section>
+      {/if}
+
       {#if !props.isAssignee}
         {#if submission}
           <TaskSubmissionView
@@ -360,7 +457,7 @@
           />
         {:else}
           <div class="rounded-lg border border-dashed border-border/70 bg-muted/10 px-4 py-8 text-center text-sm text-muted-foreground">
-            {t('task.submission_panel.empty_submission', {}, 'No completion report yet.')}
+            {t('task.submission_panel.empty_submission', {}, 'No optional governance report yet.')}
           </div>
         {/if}
       {:else if canEdit}
@@ -379,6 +476,7 @@
           onSubmitPackage={handleSubmitPackage}
           onAddEvidence={handleAddEvidence}
           onRemoveEvidence={handleRemoveEvidence}
+          acceptanceCriteria={props.task.acceptance_criteria}
         />
       {:else if submission}
         <TaskSubmissionView

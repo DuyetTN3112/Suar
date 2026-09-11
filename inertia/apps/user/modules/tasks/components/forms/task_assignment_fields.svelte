@@ -67,7 +67,7 @@
       project_id: string
       assigned_to: string
       parent_task_id: string
-      task_visibility: 'internal' | 'external' | 'all'
+      task_visibility: 'project' | 'internal' | 'external' | 'all'
     }
     projects?: ProjectOption[]
     users: UserOption[]
@@ -75,6 +75,7 @@
     taskId: string
     canAssign: boolean
     projectError?: string
+    showProjectContext?: boolean
     onSelectChange: (name: string, value: string) => void
   }
 
@@ -86,6 +87,7 @@
     taskId,
     canAssign,
     projectError,
+    showProjectContext = true,
     onSelectChange,
   }: Props = $props()
 
@@ -183,15 +185,17 @@
 </script>
 
 <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-  <div class="grid gap-2">
-    <Label class="font-bold">{t('task.assignment_fields.project', {}, 'Project')}</Label>
-    <div class="rounded-md border bg-muted/20 px-3 py-2 text-sm">
-      {selectedProject?.name ?? t('task.assignment_fields.no_current_project', {}, 'No current project')}
+  {#if showProjectContext}
+    <div class="grid gap-2">
+      <Label class="font-bold">{t('task.assignment_fields.project', {}, 'Project')}</Label>
+      <div class="rounded-md border bg-muted/20 px-3 py-2 text-sm">
+        {selectedProject?.name ?? t('task.assignment_fields.no_current_project', {}, 'No current project')}
+      </div>
+      {#if projectError}
+        <p class="text-xs font-bold text-destructive">{projectError}</p>
+      {/if}
     </div>
-    {#if projectError}
-      <p class="text-xs font-bold text-destructive">{projectError}</p>
-    {/if}
-  </div>
+  {/if}
 
   <div class="grid gap-2">
     <Label for="assigned_to" class="font-bold">{t('task.assigned_to', {}, 'Assignee')}</Label>
@@ -205,7 +209,7 @@
         onSelectChange('assigned_to', value)
       }}
     />
-    {#if selectedProject}
+    {#if selectedProject && showProjectContext}
       <p class="text-xs text-muted-foreground">
         {t('ui_misc.tasks.assignment.project', {}, 'Project')}:
         <span class="font-medium text-foreground">{selectedProject.name}</span>
