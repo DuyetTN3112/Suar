@@ -47,4 +47,13 @@ describe('TaskSubmissionForm', () => {
     expect(screen.queryByText('PR gốc')).not.toBeInTheDocument()
     expect(screen.getByText('Chưa có bằng chứng nào được đính kèm.')).toBeInTheDocument()
   })
+
+  it('shows a non-persistent coverage guide from the assignment snapshot', () => {
+    render(TaskSubmissionFormHarness)
+
+    expect(screen.getByRole('heading', { name: /Completion coverage guide|Hướng dẫn bao phủ hoàn thành/i })).toBeInTheDocument()
+    expect(screen.getByText('Automated tests pass')).toBeInTheDocument()
+    expect(screen.getByText('Document the user-visible result')).toBeInTheDocument()
+    expect(screen.getByText(/This guide is not saved as criterion results|Hướng dẫn này không được lưu thành kết quả từng tiêu chí/i)).toBeInTheDocument()
+  })
 })
