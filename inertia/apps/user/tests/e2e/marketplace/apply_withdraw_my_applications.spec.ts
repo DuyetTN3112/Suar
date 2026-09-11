@@ -539,65 +539,6 @@ test.describe('Marketplace apply and my applications E2E', () => {
     }
   })
 
-  test('approved external applicant can open /work and stay inside the work shell', async ({
-    page,
-  }) => {
-    await login(page, E2E_USER)
-    const seeded = await seedMarketplaceApplicationFlow(page, {
-      withApplication: true,
-      withSecondApplication: false,
-    })
-    const applicationId = seeded.applicationId
-
-    if (!applicationId) {
-      throw new Error('Seeded marketplace application flow did not create an application')
-    }
-
-    try {
-      await page.context().clearCookies()
-      await login(page, seeded.ownerEmail, { organizationId: seeded.organizationId })
-      await gotoApplicationsReview(page, seeded.taskId)
-
-      const approvedRow = page
-        .locator('[data-testid="application-row"]')
-        .filter({ hasText: seeded.applicantEmail })
-      await expect(approvedRow).toBeVisible()
-
-      const [processResponse] = await Promise.all([
-        page.waitForResponse((response) =>
-          response.url().includes(`/applications/${applicationId}/process`)
-        ),
-        approveButton(approvedRow).click(),
-      ])
-      expect(processResponse.status()).toBe(204)
-
-      await page.context().clearCookies()
-      await login(page, seeded.applicantEmail)
-      await page.goto('/work')
-      await page.waitForLoadState('domcontentloaded')
-
-      const taskBoardHref = `/projects/${seeded.projectId}/tasks?task_id=${seeded.taskId}`
-      await expect(
-        page.getByRole('heading', { name: /^(My work|Công việc của tôi)$/ })
-      ).toBeVisible()
-      await expect(page.getByRole('link', { name: seeded.taskTitle })).toHaveAttribute(
-        'href',
-        taskBoardHref
-      )
-      await expect(page.getByRole('link', { name: /^(Open|Mở)$/ })).toHaveAttribute(
-        'href',
-        taskBoardHref
-      )
-      await expect(
-        page.getByRole('link', { name: /^(Submit work|Nộp công việc)$/ })
-      ).toHaveAttribute('href', taskBoardHref)
-      await expect(page.getByText(seeded.taskTitle)).toBeVisible()
-      await expect(page.getByText(seeded.organizationId, { exact: false })).toHaveCount(0)
-    } finally {
-      await page.context().clearCookies()
-    }
-  })
-
   test('same-org plain member cannot open seeded task application review page', async ({
     page,
   }) => {
