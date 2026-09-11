@@ -34,6 +34,7 @@
     auth?: {
       user?: {
         current_project?: ProjectLike | null
+        projects?: ProjectLike[] | null
       } | null
     }
   }
@@ -42,34 +43,51 @@
   const { t } = $derived(useTranslation())
   const pageData = $derived(page.props as unknown as ProjectPageProps)
 
-  const canManageOrganization = $derived(
-    pageData.workspaceAccess?.organization?.canEnterManagement ?? false
-  )
   const project = $derived.by<ProjectLike | null>(() => {
     const selectedProject = pageData.projectContext?.selectedProject
-    if (selectedProject?.id) return selectedProject
-    if (pageData.project?.id) return pageData.project
-    if (pageData.reviewWindow?.projectId) {
+    if (selectedProject?.id && selectedProject?.name) return selectedProject
+    if (pageData.project?.id && pageData.project?.name) return pageData.project
+
+    const targetProjectId =
+      selectedProject?.id ??
+      pageData.project?.id ??
+      pageData.reviewWindow?.projectId ??
+      pageData.projectId ??
+      pageData.auth?.user?.current_project?.id ??
+      null
+
+    if (!targetProjectId) return null
+
+    const targetProjectName =
+      selectedProject?.name ??
+      pageData.project?.name ??
+      pageData.reviewWindow?.projectName ??
+      null
+
+    if (targetProjectName) {
+      return { id: targetProjectId, name: targetProjectName }
+    }
+
+    const userProjects = pageData.auth?.user?.projects ?? []
+    const matchedProject = userProjects.find((p) => p.id === targetProjectId)
+    if (matchedProject?.name) {
+      return { id: targetProjectId, name: matchedProject.name }
+    }
+
+    if (pageData.auth?.user?.current_project?.id === targetProjectId) {
       return {
-        id: pageData.reviewWindow.projectId,
-        name: pageData.reviewWindow.projectName ?? null,
+        id: targetProjectId,
+        name: pageData.auth?.user?.current_project?.name ?? null,
       }
     }
-    if (pageData.projectId) {
-      const currentProject = pageData.auth?.user?.current_project
-      return {
-        id: pageData.projectId,
-        name: currentProject?.id === pageData.projectId ? currentProject.name : null,
-      }
-    }
-    return pageData.auth?.user?.current_project ?? null
+
+    return { id: targetProjectId, name: null }
   })
 
   const navigation = $derived.by(() =>
     project?.id
       ? buildProjectNavigationSections(
-          { id: project.id, name: project.name ?? null },
-          canManageOrganization
+          { id: project.id, name: project.name ?? null }
         ).map((group) => mapNavGroup(group))
       : []
   )

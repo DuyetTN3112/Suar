@@ -23,6 +23,7 @@ export interface TaskReviewWorkflowDetail {
   reviewers: TaskReviewWorkflowReviewer[]
   comments: TaskReviewWorkflowMessage[]
   reviewMessages: TaskReviewWorkflowMessage[]
+  reviewAuthoringContext?: Record<string, unknown> | null
 }
 
 export interface TaskShowProps {
@@ -37,6 +38,7 @@ export interface TaskShowProps {
     canDelete: boolean
     canAssign: boolean
     canChangeStatus: boolean
+    canComment?: boolean
     canApply: boolean
     canReviewApplications?: boolean
   }

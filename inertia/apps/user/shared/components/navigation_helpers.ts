@@ -63,7 +63,7 @@ export function isNavUrlActive(currentUrl: string, targetUrl: string): boolean {
     return [...targetParams.entries()].every(([key, value]) => currentParams.get(key) === value)
   }
 
-  return true
+  return currentQuery === ''
 }
 
 export function isNavItemActive(currentUrl: string, item: NavItem): boolean {

@@ -115,7 +115,7 @@
     })
   }
 
-  // ── Org switch: reload current page, no redirect ──
+  // ── Org switch: reload page to target surface ──
   let isSwitching = $state(false)
   async function handleSwitchOrg(orgId: string) {
     if (!orgId || isSwitching || orgId === currentOrgId) return
@@ -126,9 +126,8 @@
         currentPath: currentUrl,
       })
       uiToast.success(result.message ?? t('common.switch_organization_success', {}, 'Organization switched'))
-      visitWorkspaceRedirect(result.redirect ?? currentUrl, () => {
-        isSwitching = false
-      })
+      const targetUrl = result.redirect ?? currentUrl
+      window.location.assign(targetUrl)
     } catch (error) {
       uiToast.error(error instanceof Error ? error.message : t('common.switch_organization_error', {}, 'Unable to switch organization'))
       isSwitching = false
@@ -139,20 +138,22 @@
   const currentProjectId = $derived(authUser?.current_project?.id ?? null)
   const currentProject = $derived(authUser?.current_project ?? null)
   const projects = $derived(authUser?.projects ?? [])
-  const enterableProjects = $derived(workspaceAccess?.projects ?? [])
-  const canEnterProjectWorkspace = $derived(enterableProjects.length > 0)
-  const currentWorkspaceProjectId = $derived.by(() => {
-    if (
-      currentProjectId &&
-      enterableProjects.some((project) => project.id === currentProjectId)
-    ) {
-      return currentProjectId
-    }
-
-    return enterableProjects[0]?.id ?? null
-  })
+  const contextProjects = $derived(workspaceAccess?.projects ?? [])
+  const enterableProjects = $derived(contextProjects.filter((project) => project.canEnter))
+  const projectWorkspaceProject = $derived(
+    contextProjects.find((project) => project.id === currentProjectId && project.canEnter) ??
+      enterableProjects[0] ??
+      null
+  )
+  const canEnterProjectWorkspace = $derived(projectWorkspaceProject !== null)
   const canEnterOrganizationWorkspace = $derived(
     workspaceAccess?.organization?.canEnterManagement ?? false
+  )
+  // Personal workspace is for a member context only. An account that can work
+  // in the current project's shared workspace or manage the current
+  // organization must stay in that operational context instead.
+  const showPersonalWorkspace = $derived(
+    !canEnterProjectWorkspace && !canEnterOrganizationWorkspace
   )
   
   let isSwitchingProject = $state(false)
@@ -170,6 +171,31 @@
       })
     } catch (error) {
       uiToast.error(error instanceof Error ? error.message : t('common.switch_project_error', {}, 'Unable to switch project'))
+      isSwitchingProject = false
+    }
+  }
+
+  async function enterProjectWorkspace() {
+    const targetProject = projectWorkspaceProject
+    if (!targetProject || isSwitchingProject) return
+
+    isSwitchingProject = true
+    try {
+      const targetUrl = `/projects/${encodeURIComponent(targetProject.id)}/tasks`
+      const result = await requestProjectSwitch({
+        projectId: targetProject.id,
+        currentPath: targetUrl,
+      })
+      visitWorkspaceRedirect(result.redirect ?? targetUrl, () => {
+        isSwitchingProject = false
+        onClose?.()
+      })
+    } catch (error) {
+      uiToast.error(
+        error instanceof Error
+          ? error.message
+          : t('common.switch_project_error', {}, 'Unable to switch project')
+      )
       isSwitchingProject = false
     }
   }
@@ -202,35 +228,38 @@
         </div>
       </div>
 
-      <div
-        class={`mt-2 grid gap-1 rounded-lg border border-border bg-background p-1 ${
-          canEnterProjectWorkspace ? 'grid-cols-2' : 'grid-cols-1'
-        }`}
-      >
-        <button
-          type="button"
-          class={`rounded-md px-2 py-1 text-[10px] font-black uppercase tracking-wide transition ${workspaceMode === 'personal' ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground'}`}
-          onclick={() => visitWorkspaceRedirect('/dashboard', () => onClose?.())}
-        >
-          {t('common.sidebar.personal_workspace', {}, 'Personal')}
-        </button>
-        {#if canEnterProjectWorkspace && currentWorkspaceProjectId}
+      <div class="mt-2 flex flex-wrap gap-1 rounded-lg border border-border bg-background p-1">
+        {#if showPersonalWorkspace}
           <button
             type="button"
-            class={`rounded-md px-2 py-1 text-[10px] font-black uppercase tracking-wide transition ${workspaceMode === 'project' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
-            onclick={() =>
-              visitWorkspaceRedirect(
-                `/projects/${encodeURIComponent(currentWorkspaceProjectId)}/tasks`,
-                () => onClose?.()
-              )}
+            class={`flex-1 rounded-md px-2 py-1 text-[10px] font-black uppercase tracking-wide transition ${
+              workspaceMode === 'personal'
+                ? 'bg-foreground text-background hover:opacity-90'
+                : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
+            }`}
+            onclick={() => visitWorkspaceRedirect('/dashboard', () => onClose?.())}
           >
-            {t('common.sidebar.project_workspace', {}, 'Project')}
+            {t('common.sidebar.personal_workspace', {}, 'Personal workspace')}
+          </button>
+        {/if}
+        {#if canEnterProjectWorkspace}
+          <button
+            type="button"
+            class={`flex-1 rounded-md px-2 py-1 text-[10px] font-black uppercase tracking-wide transition ${
+              workspaceMode === 'project'
+                ? 'bg-foreground text-background hover:opacity-90'
+                : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
+            }`}
+            onclick={() => void enterProjectWorkspace()}
+            disabled={isSwitchingProject}
+          >
+            {t('common.sidebar.project_workspace', {}, 'Project workspace')}
           </button>
         {/if}
         {#if canEnterOrganizationWorkspace}
           <button
             type="button"
-            class={`${canEnterProjectWorkspace ? 'col-span-2' : ''} rounded-md px-2 py-1 text-[10px] font-black uppercase tracking-wide text-muted-foreground transition hover:text-foreground`}
+            class="flex-1 rounded-md px-2 py-1 text-[10px] font-black uppercase tracking-wide text-muted-foreground transition hover:bg-secondary hover:text-foreground"
             onclick={() => visitWorkspaceRedirect('/org', () => onClose?.())}
           >
             {t('common.sidebar.organization_workspace', {}, 'Organization management')}
@@ -272,7 +301,7 @@
         </div>
       </details>
 
-      {#if currentOrg && showProjectSwitcher && canEnterProjectWorkspace}
+      {#if currentOrg && showProjectSwitcher && contextProjects.length > 0}
         <!-- Project switcher -->
         <details class="mt-2" data-disabled={isSwitchingProject ? "true" : undefined}>
           <summary class="flex cursor-pointer select-none items-center justify-between rounded-lg border border-border bg-secondary px-3 py-1 text-xs font-medium">

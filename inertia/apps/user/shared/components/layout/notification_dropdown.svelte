@@ -13,6 +13,7 @@
   import { FRONTEND_NOTIFICATION_TYPES } from '@/apps/user/modules/notifications/constants/notifications'
   import { dateFnsLocale, dateTimePattern } from '@/apps/user/shared/lib/date_locale'
   import { postUiTelemetry } from '@/apps/user/shared/lib/ui_telemetry'
+  import { requestOrganizationSwitch } from '@/apps/user/shared/lib/workspace_switcher'
   import { useNotifications } from '@/apps/user/modules/notifications/stores/notifications.svelte'
   import {
     notificationInboxUrl,
@@ -80,7 +81,7 @@
     return resolveNotificationDeepLink(notification, notificationShell)
   }
 
-  function handleNotificationClick(notification: typeof notificationState.notifications[number]) {
+  async function handleNotificationClick(notification: typeof notificationState.notifications[number]) {
     const dropdownSessionId = activeDropdownSessionId
     void postUiTelemetry({
       eventName: 'notifications.ui.item_clicked',
@@ -105,6 +106,24 @@
     const { url } = getNotificationResolution(notification)
     if (url) {
       open = false
+
+      if (
+        notification.type === 'organization_join_request' &&
+        notification.relatedEntityType === 'organization' &&
+        notification.relatedEntityId
+      ) {
+        try {
+          const result = await requestOrganizationSwitch({
+            organizationId: notification.relatedEntityId,
+            currentPath: url,
+          })
+          window.location.assign(result.redirect ?? url)
+        } catch (error) {
+          console.error('Failed to switch organization for notification navigation:', error)
+        }
+        return
+      }
+
       router.visit(url)
     }
   }
@@ -132,7 +151,7 @@
     }
   }}
 >
-  <DropdownMenuTrigger>
+  <DropdownMenuTrigger aria-label={t('notifications.open', {}, 'Open notifications')}>
     <div class="relative inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground {className}">
       <Bell class="h-5 w-5" />
       {#if notificationState.unreadCount > 0}
@@ -171,7 +190,7 @@
           {#each notificationState.notifications as notification}
             <DropdownMenuItem
               class="flex flex-col items-start p-4 cursor-pointer focus:bg-muted/50 {notification.isRead ? 'bg-muted/50' : 'bg-background'}"
-              onclick={() => { handleNotificationClick(notification) }}
+              onclick={() => { void handleNotificationClick(notification) }}
             >
               <div class="w-full">
                 <div class="flex justify-between items-start">

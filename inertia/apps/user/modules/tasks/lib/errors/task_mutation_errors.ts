@@ -36,9 +36,11 @@ export function normalizeTaskMutationError(
   const code = problem.code === 'E_UNKNOWN' ? undefined : problem.code
   const message = problem.networkError
     ? networkFallback
-    : problem.code === 'E_UNKNOWN'
+    : status !== undefined && status >= 500
       ? fallback
-      : problem.detail
+      : problem.code === 'E_UNKNOWN'
+        ? fallback
+        : problem.detail
 
   return {
     message,

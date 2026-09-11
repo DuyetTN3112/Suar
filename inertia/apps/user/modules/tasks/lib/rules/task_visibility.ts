@@ -1,11 +1,18 @@
 export const TASK_VISIBILITY_OPTIONS = [
   {
+    value: 'project',
+    labelKey: 'task.visibility.options.project.label',
+    label: 'Project only',
+    descriptionKey: 'task.visibility.options.project.description',
+    description: 'Only project members can see and receive this task. It is not listed on the marketplace.',
+  },
+  {
     value: 'internal',
     labelKey: 'task.visibility.options.internal.label',
-    label: 'Organization only',
+    label: 'Entire organization',
     descriptionKey: 'task.visibility.options.internal.description',
     description:
-      'No marketplace listing. Anyone in the current organization can be assigned directly, including members outside the project.',
+      'The task is not publicly listed on the marketplace. Organization members can apply through the internal opportunity flow; it is not directly assigned.',
   },
   {
     value: 'external',
@@ -13,15 +20,15 @@ export const TASK_VISIBILITY_OPTIONS = [
     label: 'Marketplace',
     descriptionKey: 'task.visibility.options.external.description',
     description:
-      'Task appears on the marketplace for people outside the organization. Organization members can still be assigned directly.',
+      'Task appears on the marketplace for people outside the organization. Eligible people apply; it is not directly assigned.',
   },
   {
     value: 'all',
     labelKey: 'task.visibility.options.all.label',
-    label: 'Hybrid: internal + marketplace',
+    label: 'Organization + outside contributors via Marketplace',
     descriptionKey: 'task.visibility.options.all.description',
     description:
-      'Current runtime is close to Marketplace: it remains public outside the organization and still allows internal assignment. The main difference is the hybrid operating label.',
+      'The task opens an organization application route and a Marketplace route for people outside the organization; it is not directly assigned.',
   },
 ] as const
 
@@ -67,12 +74,14 @@ export function getTaskVisibilityAssignmentRule(
   }
 
   switch (value) {
+    case 'project':
+      return translate(t, 'task.visibility.assignment.project', 'Only project members can be assigned directly. There is no marketplace application flow.')
     case 'internal':
-      return translate(t, 'task.visibility.assignment.internal', 'Can directly assign any organization member, including members outside the project. No external organization application flow.')
+      return translate(t, 'task.visibility.assignment.internal', 'Organization members can submit an application through the internal opportunity flow. Direct assignment is unavailable.')
     case 'external':
-      return translate(t, 'task.visibility.assignment.external', 'Task is listed on the marketplace. Organization members can still be assigned directly; outside contributors go through applications.')
+      return translate(t, 'task.visibility.assignment.external', 'Task is listed on the marketplace. Eligible people go through applications; direct assignment is unavailable.')
     case 'all':
-      return translate(t, 'task.visibility.assignment.all', 'Current runtime is close to Marketplace: it is listed publicly and still allows direct assignment to organization members.')
+      return translate(t, 'task.visibility.assignment.all', 'Organization members and outside contributors go through applications; direct assignment is unavailable.')
   }
 
   return translate(t, 'task.visibility.assignment.unknown', 'No display rule configured.')
@@ -87,12 +96,14 @@ export function getTaskVisibilityMarketplaceRule(
   }
 
   switch (value) {
+    case 'project':
+      return translate(t, 'task.visibility.marketplace.project', 'No marketplace listing. The task stays inside the project.')
     case 'internal':
-      return translate(t, 'task.visibility.marketplace.internal', 'No marketplace listing, so there is no application flow.')
+      return translate(t, 'task.visibility.marketplace.internal', 'No public marketplace listing. The task appears in the organization internal opportunity flow.')
     case 'external':
-      return translate(t, 'task.visibility.marketplace.external', 'Public marketplace listing is available outside the organization. Organization members can still see the task through internal channels or be assigned directly.')
+      return translate(t, 'task.visibility.marketplace.external', 'Public marketplace listing is available outside the organization. Eligible people apply through the listing.')
     case 'all':
-      return translate(t, 'task.visibility.marketplace.all', 'Also has a public marketplace listing like Marketplace. The current difference is mostly the hybrid mode label, not a separate application scope.')
+      return translate(t, 'task.visibility.marketplace.all', 'A public Marketplace listing and internal application flow are available; direct assignment is unavailable.')
   }
 
   return translate(t, 'task.visibility.marketplace.unknown', 'No marketplace rule configured.')

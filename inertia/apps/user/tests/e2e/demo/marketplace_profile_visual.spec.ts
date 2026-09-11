@@ -9,7 +9,7 @@ import { login } from '../../shared/e2e/helpers.js'
 const BASE_URL = `http://127.0.0.1:${process.env.PORT ?? '3333'}`
 const SCREENSHOT_DIR = resolve('test-results/e2e-visual/marketplace-profile-demo')
 const REGULAR_USER = 'tranngocduyet31@gmail.com'
-const PROFILE_CATEGORY_LABELS = ['Công nghệ', 'Kỹ thuật phần mềm', 'Kỹ năng mềm', 'Thực thi']
+const PROFILE_CATEGORY_LABELS = ['Công nghệ', 'Kỹ thuật phần mềm', 'Kỹ năng mềm', 'Quản lý công việc']
 
 interface SeededMarketplaceApplicationContext {
   organizationId: string

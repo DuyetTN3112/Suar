@@ -27,23 +27,25 @@
   const shouldShowControls = true
 </script>
 
-<div class={`flex flex-col gap-3 pt-4 sm:flex-row sm:items-center sm:justify-between ${className}`.trim()}>
-  <span class="text-sm text-muted-foreground">{from}-{to} / {pagination.total}</span>
+{#if pagination.total > 0}
+  <div class={`flex flex-col gap-3 pt-4 sm:flex-row sm:items-center sm:justify-between ${className}`.trim()}>
+    <span class="text-sm text-muted-foreground">{from}-{to} / {pagination.total}</span>
 
-  {#if shouldShowControls}
-    <div class="flex flex-col gap-2 sm:items-end">
-      <span class="text-xs font-medium text-muted-foreground">
-        {pagination.page} / {pagination.lastPage}
-      </span>
-      <Pagination
-        {baseUrl}
-        {pageParam}
-        {queryParams}
-        {onPageChange}
-        currentPage={pagination.page}
-        totalPages={pagination.lastPage}
-        class="justify-end"
-      />
-    </div>
-  {/if}
-</div>
+    {#if shouldShowControls}
+      <div class="flex flex-col gap-2 sm:items-end">
+        <span class="text-xs font-medium text-muted-foreground">
+          {pagination.page} / {pagination.lastPage}
+        </span>
+        <Pagination
+          {baseUrl}
+          {pageParam}
+          {queryParams}
+          {onPageChange}
+          currentPage={pagination.page}
+          totalPages={pagination.lastPage}
+          class="justify-end"
+        />
+      </div>
+    {/if}
+  </div>
+{/if}

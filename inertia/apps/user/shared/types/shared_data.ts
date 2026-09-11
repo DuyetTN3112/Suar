@@ -37,7 +37,7 @@ export interface UserWorkspaceAccess {
     role: string | null
     canEnterManagement: boolean
   } | null
-  projects: Array<SharedAuthProject & { canEnter: true }>
+  projects: Array<SharedAuthProject & { canEnter: boolean }>
 }
 
 export interface SharedData {

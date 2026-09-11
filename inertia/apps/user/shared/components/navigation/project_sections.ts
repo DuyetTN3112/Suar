@@ -11,26 +11,9 @@ function projectPath(projectId: string, suffix = ''): string {
 }
 
 export function buildProjectNavigationSections(
-  project: ProjectNavigationContext,
-  canManageOrganization: boolean
+  project: ProjectNavigationContext
 ): NavGroup[] {
   const projectOverview = projectPath(project.id)
-  const leaveItems: NavGroup['items'] = [
-    {
-      title: 'All projects',
-      titleKey: 'common.org.all_projects',
-      url: '/projects',
-      iconName: 'Briefcase',
-    },
-  ]
-  if (canManageOrganization) {
-    leaveItems.push({
-      title: 'Organization management',
-      titleKey: 'common.navigation.organization_management',
-      url: '/org',
-      iconName: 'Building',
-    })
-  }
 
   return [
     {
@@ -73,6 +56,12 @@ export function buildProjectNavigationSections(
           url: `${projectOverview}?focus=sprints`,
           iconName: 'FolderKanban',
         },
+        {
+          title: 'Task workflow',
+          titleKey: 'common.navigation.task_workflow',
+          url: `${projectOverview}?focus=workflow`,
+          iconName: 'GitBranch',
+        },
       ],
     },
     {
@@ -104,11 +93,6 @@ export function buildProjectNavigationSections(
           iconName: 'Building2',
         },
       ],
-    },
-    {
-      title: 'Leave project workspace',
-      titleKey: 'common.navigation.leave_project_workspace',
-      items: leaveItems,
     },
   ]
 }

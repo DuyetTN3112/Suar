@@ -15,14 +15,20 @@
   import DropdownMenuItem from '@/apps/user/shared/ui/dropdown_menu_item.svelte'
   import DropdownMenuTrigger from '@/apps/user/shared/ui/dropdown_menu_trigger.svelte'
 
-  interface Props { onMenuClick?: () => void }
-  const { onMenuClick }: Props = $props()
+  interface Props {
+    onMenuClick?: () => void
+    workspaceMode?: 'personal' | 'project'
+  }
+  const { onMenuClick, workspaceMode = 'personal' }: Props = $props()
 
   const pageProps = $derived(page.props as unknown as SharedData)
   const legacyUser = $derived((pageProps.user as { auth?: { user?: SharedAuthUser } } | undefined)?.auth?.user)
   const user = $derived(pageProps.auth?.user ?? legacyUser)
   const displayName = $derived(user ? ((user.username ?? user.email) ?? 'User') : 'Admin')
   const initials = $derived(displayName.charAt(0).toUpperCase())
+  const projectId = $derived(
+    (pageProps.project as { id?: string } | undefined)?.id ?? user?.current_project?.id ?? null
+  )
 
   let logoutDialogOpen = $state(false)
   let userMenuOpen = $state(false)
@@ -46,7 +52,17 @@
   function handleSearchSubmit(e: SubmitEvent) {
     e.preventDefault()
     const value = searchValue.trim()
-    router.visit(buildSearchPageUrl('app', value))
+    router.visit(
+      buildSearchPageUrl(
+        workspaceMode === 'project' ? 'project' : 'app',
+        value,
+        'all',
+        null,
+        null,
+        null,
+        projectId
+      )
+    )
   }
   function setThemePreference(value: Theme) {
     setTheme(value)
