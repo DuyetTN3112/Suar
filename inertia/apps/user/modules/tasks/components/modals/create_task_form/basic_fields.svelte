@@ -2,104 +2,43 @@
   import Input from '@/apps/user/shared/ui/input.svelte'
   import Label from '@/apps/user/shared/ui/label.svelte'
   import Textarea from '@/apps/user/shared/ui/textarea.svelte'
+  import Select from '@/apps/user/shared/ui/select.svelte'
+  import SelectContent from '@/apps/user/shared/ui/select_content.svelte'
+  import SelectItem from '@/apps/user/shared/ui/select_item.svelte'
+  import SelectTrigger from '@/apps/user/shared/ui/select_trigger.svelte'
   import { useTranslation } from '@/apps/user/shared/stores/translation.svelte'
 
   interface Props {
     formData: {
       title: string
       description: string
+    context_background: string
+    task_status_id: string
     }
-    handleChange: (e: Event) => void
+    handleChange: (event: Event) => void
+    handleSelectChange: (name: string, value: string) => void
+    statuses: { value: string; label: string; slug?: string; category?: string }[]
     errors: Record<string, string>
+    isPublish?: boolean
+    isDocumentationItem?: boolean
   }
 
-  const { formData, handleChange, errors }: Props = $props()
+  const {
+    formData,
+    handleChange,
+    handleSelectChange,
+    statuses,
+    errors,
+    isPublish: _isPublish = true,
+    isDocumentationItem = false,
+  }: Props = $props()
   const { t } = useTranslation()
-
-  let contextDescription = $state('')
-  let concreteRequirements = $state('')
-  let expectedOutcome = $state('')
-  let extraNotes = $state('')
-
-  function buildDescriptionFromSections() {
-    const sections: string[] = []
-
-    if (contextDescription.trim()) {
-      sections.push(`## ${t('task.create.description_context_heading', {}, 'Context description')}\n${contextDescription.trim()}`)
-    }
-
-    if (concreteRequirements.trim()) {
-      sections.push(`## ${t('task.create.concrete_requirements', {}, 'Concrete requirements')}\n${concreteRequirements.trim()}`)
-    }
-
-    if (expectedOutcome.trim()) {
-      sections.push(`## ${t('task.create.expected_outcome', {}, 'Expected outcome')}\n${expectedOutcome.trim()}`)
-    }
-
-    if (extraNotes.trim()) {
-      sections.push(`## ${t('task.create.extra_notes', {}, 'Extra notes')}\n${extraNotes.trim()}`)
-    }
-
-    return sections.join('\n\n')
-  }
-
-  function syncDescriptionFromSections() {
-    const nextValue = buildDescriptionFromSections()
-
-    handleChange({
-      target: {
-        name: 'description',
-        value: nextValue,
-      },
-    } as unknown as Event)
-  }
-
-  function clearSectionInputs() {
-    contextDescription = ''
-    concreteRequirements = ''
-    expectedOutcome = ''
-    extraNotes = ''
-
-    handleChange({
-      target: {
-        name: 'description',
-        value: '',
-      },
-    } as unknown as Event)
-  }
-
-  function handleSectionInput(
-    setter: (value: string) => void
-  ) {
-    return (event: Event) => {
-      const target = event.currentTarget as HTMLTextAreaElement | null
-
-      if (!target) return
-
-      setter(target.value)
-    }
-  }
-
-  const handleContextDescriptionInput = handleSectionInput((value) => {
-    contextDescription = value
-  })
-
-  const handleConcreteRequirementsInput = handleSectionInput((value) => {
-    concreteRequirements = value
-  })
-
-  const handleExpectedOutcomeInput = handleSectionInput((value) => {
-    expectedOutcome = value
-  })
-
-  const handleExtraNotesInput = handleSectionInput((value) => {
-    extraNotes = value
-  })
+  const descriptionError = $derived(errors.description)
 </script>
 
 <div class="grid gap-2">
   <Label for="title">
-    {t('task.title', {}, 'Title')}<span class="ml-1 text-destructive">*</span>
+    {t('task.title', {}, 'Title')}<span class="ml-1 text-[#ef4444]">*</span>
   </Label>
   <Input
     id="title"
@@ -108,65 +47,58 @@
     oninput={handleChange}
     placeholder={t('task.enter_title', {}, 'Enter task title')}
     class={errors.title ? 'border-destructive' : ''}
+    required
+    minlength="3"
+    maxlength="255"
+    aria-invalid={errors.title ? 'true' : undefined}
+    aria-describedby={errors.title ? 'title-error' : undefined}
     autofocus
   />
   {#if errors.title}
-    <p class="text-xs text-destructive">{errors.title}</p>
+    <p id="title-error" class="text-xs font-medium text-destructive" role="alert">{errors.title}</p>
   {/if}
 </div>
 
 <div class="grid gap-2">
-  <Label for="description">{t('task.description', {}, 'Description')}</Label>
-  <div class="rounded-md border p-3 space-y-3 bg-muted/20">
-    <div class="flex flex-wrap items-center justify-between gap-2">
-      <div class="flex items-center gap-2">
-        <button
-          type="button"
-          class="rounded border px-2 py-1 text-xs hover:bg-muted"
-          onclick={syncDescriptionFromSections}
-        >
-          {t('task.create.merge_description', {}, 'Merge into description')}
-        </button>
-        <button
-          type="button"
-          class="rounded border px-2 py-1 text-xs hover:bg-muted"
-          onclick={clearSectionInputs}
-        >
-          {t('task.create.clear_suggestion_content', {}, 'Clear suggestion content')}
-        </button>
-      </div>
-    </div>
+  <Label for="task_status_id">
+    {t('task.status', {}, 'Trạng thái')}<span class="ml-1 text-[#ef4444]" aria-hidden="true">*</span>
+  </Label>
+  <Select
+    value={formData.task_status_id}
+    onValueChange={(value: string) => handleSelectChange('task_status_id', value)}
+  >
+    <SelectTrigger id="task_status_id" aria-required="true" aria-invalid={errors.task_status_id ? 'true' : undefined}>
+      <span>{statuses.find((status) => status.value === formData.task_status_id)?.label ?? t('task.select_status', {}, 'Chọn trạng thái')}</span>
+    </SelectTrigger>
+    <SelectContent>
+      {#each statuses as status (status.value)}
+        <SelectItem value={status.value} label={status.label}>{status.label}</SelectItem>
+      {/each}
+    </SelectContent>
+  </Select>
+  {#if errors.task_status_id}
+    <p class="text-xs font-medium text-destructive" role="alert">{errors.task_status_id}</p>
+  {/if}
+</div>
 
-    <div class="grid gap-3 sm:grid-cols-2">
-      <div class="space-y-1">
-        <Label for="desc_context" class="text-xs">{t('task.create.context_description', {}, 'Context description')}</Label>
-        <Textarea id="desc_context" value={contextDescription} rows={3} oninput={handleContextDescriptionInput} placeholder={t('task.create.context_description_placeholder', {}, 'Current problem, reason this task is needed...')} class="text-sm" />
-      </div>
-
-      <div class="space-y-1">
-        <Label for="desc_requirements" class="text-xs">{t('task.create.concrete_requirements', {}, 'Concrete requirements')}</Label>
-        <Textarea id="desc_requirements" value={concreteRequirements} rows={3} oninput={handleConcreteRequirementsInput} placeholder={t('task.create.concrete_requirements_placeholder', {}, 'Requirement checklist, technical constraints, scope...')} class="text-sm" />
-      </div>
-
-      <div class="space-y-1">
-        <Label for="desc_outcome" class="text-xs">{t('task.create.expected_outcome', {}, 'Expected outcome')}</Label>
-        <Textarea id="desc_outcome" value={expectedOutcome} rows={3} oninput={handleExpectedOutcomeInput} placeholder={t('task.create.expected_outcome_placeholder', {}, 'Definition of done, acceptance criteria, expected output...')} class="text-sm" />
-      </div>
-
-      <div class="space-y-1">
-        <Label for="desc_notes" class="text-xs">{t('task.create.extra_notes', {}, 'Extra notes')}</Label>
-        <Textarea id="desc_notes" value={extraNotes} rows={3} oninput={handleExtraNotesInput} placeholder={t('task.create.extra_notes_placeholder', {}, 'Related docs, implementation notes, dependencies...')} class="text-sm" />
-      </div>
-    </div>
-  </div>
-
+{#if isDocumentationItem}
+<div class="grid gap-2">
+  <Label for="description">
+    {t('task.create.docs_content', {}, 'Nội dung hoặc đường dẫn tài liệu')}<span class="ml-1 text-[#ef4444]" aria-hidden="true">*</span>
+  </Label>
   <Textarea
     id="description"
     name="description"
     value={formData.description}
     oninput={handleChange}
-    placeholder={t('task.create.description_placeholder', {}, 'Task description')}
-    rows={10}
-    class="min-h-[220px] resize-y"
+    placeholder={t('task.create.docs_content_placeholder', {}, 'Nội dung, đường dẫn, hoặc ghi chú cần giữ lại cho dự án')}
+    rows={5}
+    maxlength={5000}
+    required
+    aria-invalid={descriptionError ? 'true' : undefined}
+    aria-describedby={descriptionError ? 'description-error' : undefined}
+    class={`min-h-[120px] resize-y ${descriptionError ? 'border-destructive' : ''}`}
   />
+  {#if descriptionError}<p id="description-error" class="text-xs font-medium text-destructive" role="alert">{descriptionError}</p>{/if}
 </div>
+{/if}
