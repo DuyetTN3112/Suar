@@ -55,7 +55,6 @@ describe('search i18n source guard', () => {
       for (const key of [
         'useTranslation()',
         'search_center.title',
-        'search_center.subtitle',
         'search_center.coverage_value',
         'search_center.match.exact',
         'search_center.placeholder',

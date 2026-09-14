@@ -4,10 +4,17 @@ import { describe, expect, it, vi } from 'vitest'
 import OrgTaskEditPage from '@/apps/org/modules/tasks/edit.svelte'
 import UserTaskEditPage from '@/apps/user/modules/tasks/edit.svelte'
 
+const { routerDelete, routerPut, routerVisit } = vi.hoisted(() => ({
+  routerDelete: vi.fn(),
+  routerPut: vi.fn(),
+  routerVisit: vi.fn(),
+}))
+
 vi.mock('@inertiajs/svelte', () => ({
   router: {
-    visit: vi.fn(),
-    put: vi.fn(),
+    visit: routerVisit,
+    put: routerPut,
+    delete: routerDelete,
   },
 }))
 
@@ -124,19 +131,56 @@ function buildProps(shellMode: 'app' | 'organization') {
 }
 
 describe('TaskEditPage', () => {
-  it('renders an editable visibility select in the user shell', async () => {
+  it('only exposes draft deletion for a persisted task draft', () => {
+    render(UserTaskEditPage, {
+      props: {
+        ...buildProps('app'),
+        task: { ...baseTask, resolved_brief: { state: 'draft' } },
+      },
+    })
+
+    expect(screen.getByRole('button', { name: /xóa nháp|discard draft/i })).toBeInTheDocument()
+  })
+
+  it('renders editable task visibility in the user shell', async () => {
     render(UserTaskEditPage, {
       props: buildProps('app'),
     })
 
-    const select = screen.getByRole('combobox', { name: /quyền truy cập task|task access/i })
-    expect((select as HTMLSelectElement).value).toBe('internal')
+    const internal = screen.getByRole('radio', { name: /toàn tổ chức|entire organization/i })
+    expect(internal).toBeChecked()
 
-    await fireEvent.change(select, { target: { value: 'external' } })
+    const external = screen.getByRole('radio', { name: /mở thêm|marketplace/i })
+    await fireEvent.click(external)
 
-    expect(screen.getByRole('combobox', { name: /quyền truy cập task|task access/i })).toHaveValue(
-      'external'
-    )
+    expect(external).toBeChecked()
+  })
+
+  it('preserves the existing evidence-governed profile contract in the user edit form', async () => {
+    render(UserTaskEditPage, {
+      props: {
+        ...buildProps('app'),
+        task: {
+          ...baseTask,
+          resolved_brief: {
+            state: 'published',
+            resolvedContract: {
+              evidence: {
+                mode: 'evidence_enabled',
+                profileEligibility: true,
+                requirements: [],
+                capabilities: [],
+              },
+            },
+          },
+        },
+      },
+    })
+
+    await fireEvent.click(screen.getByRole('tab', { name: /Yêu cầu & nghiệm thu/i }))
+
+    expect(screen.getByRole('radio', { name: /Có bằng chứng/i })).toBeChecked()
+    expect(screen.getByRole('checkbox', { name: /Đủ điều kiện đưa vào hồ sơ/i })).toBeChecked()
   })
 
   it('renders an editable visibility select in the org shell', async () => {
@@ -153,4 +197,41 @@ describe('TaskEditPage', () => {
       'all'
     )
   })
+
+  it.each([
+    ['user', UserTaskEditPage, 'app'],
+    ['org', OrgTaskEditPage, 'organization'],
+  ] as const)(
+    'persists typed title and description in the %s edit page',
+    async (_shell, Page, shellMode) => {
+      routerPut.mockClear()
+
+      render(Page, {
+        props: {
+          ...buildProps(shellMode),
+          ...(_shell === 'user'
+            ? { task: { ...baseTask, resolved_brief: { state: 'draft' } } }
+            : {}),
+        },
+      })
+
+      await fireEvent.input(screen.getByLabelText(/Tiêu đề|Title/i), {
+        target: { value: 'Updated title. with spaces' },
+      })
+      await fireEvent.input(screen.getByLabelText(/Mô tả|Description/i), {
+        target: { value: 'Context description. with spaces' },
+      })
+      await fireEvent.click(
+        screen.getByRole('button', {
+          name: _shell === 'user' ? /lưu nháp|save draft/i : /lưu|save changes/i,
+        })
+      )
+
+      expect(routerPut).toHaveBeenCalledTimes(1)
+      expect(routerPut.mock.calls[0]?.[1]).toMatchObject({
+        title: 'Updated title. with spaces',
+        description: 'Context description. with spaces',
+      })
+    }
+  )
 })

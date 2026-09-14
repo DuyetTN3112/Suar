@@ -112,6 +112,10 @@ const taskSubmissionPanelSources = [
   'inertia/apps/org/modules/tasks/components/detail/task_submission_panel.svelte',
 ] as const
 
+const nativeCompletionReportSources = [
+  'inertia/apps/shared/tasks/task_completion_report_native_form.svelte',
+] as const
+
 const taskSubmissionViewSources = [
   'inertia/apps/user/modules/tasks/components/detail/task_submission_view.svelte',
   'inertia/apps/org/modules/tasks/components/detail/task_submission_view.svelte',
@@ -155,6 +159,16 @@ const taskFilesTabSources = [
 const taskReviewWorkflowSources = [
   'inertia/apps/user/modules/tasks/components/detail/task_review_workflow_panel.svelte',
   'inertia/apps/org/modules/tasks/components/detail/task_review_workflow_panel.svelte',
+] as const
+
+const taskReviewWorkflowCallerSources = [
+  'inertia/apps/user/modules/tasks/show.svelte',
+  'inertia/apps/org/modules/tasks/show.svelte',
+  'inertia/apps/user/modules/reviews/task-board.svelte',
+] as const
+
+const reviewObservationAuthoringSources = [
+  'inertia/apps/shared/components/review_observation_authoring_panel.svelte',
 ] as const
 
 const taskKanbanCardSources = [
@@ -201,6 +215,33 @@ describe('task i18n source guard', () => {
     expect(flattenKeys(readJson('resources/lang/en/task.json')).sort()).toEqual(
       flattenKeys(readJson('resources/lang/vi/task.json')).sort()
     )
+  })
+
+  it('routes native completion report copy through the caller translation function', () => {
+    for (const sourcePath of nativeCompletionReportSources) {
+      const source = readSource(sourcePath)
+      expect(source).toContain('task.submission_panel.native')
+    }
+
+    for (const sourcePath of taskSubmissionPanelSources) {
+      expect(readSource(sourcePath)).toContain('translate={t}')
+    }
+  })
+
+  it('routes reviewer observation copy through the caller translation function', () => {
+    for (const sourcePath of reviewObservationAuthoringSources) {
+      const source = readSource(sourcePath)
+      expect(source).toContain('translate?.')
+      expect(source).toContain('task.review_observation.')
+    }
+
+    for (const sourcePath of taskReviewWorkflowSources) {
+      expect(readSource(sourcePath)).toContain('{translate}')
+    }
+
+    for (const sourcePath of taskReviewWorkflowCallerSources) {
+      expect(readSource(sourcePath)).toContain('translate={t}')
+    }
   })
 
   it('keeps task taxonomy labels complete and routes every taxonomy consumer through i18n', () => {
@@ -383,14 +424,9 @@ describe('task i18n source guard', () => {
       const source = readSource(sourcePath)
 
       for (const key of [
-        "t('task.create.description_context_heading'",
-        "t('task.create.merge_description'",
-        "t('task.create.clear_suggestion_content'",
-        "t('task.create.context_description'",
-        "t('task.create.concrete_requirements'",
-        "t('task.create.expected_outcome'",
-        "t('task.create.extra_notes'",
-        "t('task.create.description_placeholder'",
+        "t('task.create.task_brief'",
+        "t('task.create.task_brief_help'",
+        "t('task.create.task_brief_placeholder'",
       ]) {
         expect(source).toContain(key)
       }
@@ -406,15 +442,12 @@ describe('task i18n source guard', () => {
       const source = readSource(sourcePath)
 
       for (const key of [
-        "t('task.create.project'",
-        "t('task.create.no_current_project'",
         "t('task.create.task_type'",
         "t('task.create.select_task_type'",
-        "t('task.create.business_domain'",
-        "t('task.create.select_business_domain'",
         "t('task.create.problem_category'",
         "t('task.create.select_problem_category'",
         "t('task.create.role_in_task'",
+        "t('task.create.role_in_task_help'",
         "t('task.create.select_role'",
         "t('task.create.task_visibility'",
         "t('task.create.parent_task'",
@@ -440,23 +473,14 @@ describe('task i18n source guard', () => {
 
       for (const key of [
         'useTranslation()',
-        'getTaskContractPresets(t)',
-        'getTaskContractPreset(formData.task_type, t)',
         "t('task.create.setup_tab'",
         "t('task.create.skills_tab'",
         "t('task.create.contract_tab'",
         "t('task.create.task_info'",
         "t('task.create.contract_details'",
-        "t('task.create.contract_preset'",
-        "t('task.create.apply_current_preset'",
+        "t('task.create.contract_details_help'",
         "t('task.create.acceptance_criteria'",
         "t('task.create.acceptance_criteria_placeholder'",
-        "t('task.create.context_background'",
-        "t('task.create.context_background_placeholder'",
-        "t('task.create.tech_stack'",
-        "t('task.create.domain_tags'",
-        "t('task.create.learning_objectives'",
-        "t('task.create.learning_objectives_placeholder'",
       ]) {
         expect(source).toContain(key)
       }
@@ -474,7 +498,6 @@ describe('task i18n source guard', () => {
       const source = readSource(sourcePath)
 
       for (const key of [
-        'getTaskContractPreset(requestedTaskType, t)',
         "t('task.create.project_required'",
         "t('task.create.acceptance_criteria_required'",
         "t('task.create.no_project_selected'",
@@ -497,7 +520,6 @@ describe('task i18n source guard', () => {
       const source = readSource(sourcePath)
 
       for (const key of [
-        'getTaskContractPreset(inferredTaskType, t)',
         "t('task.create.project_required'",
         "t('task.create.acceptance_criteria_required'",
         "t('task.create.role_prefill_failed'",
@@ -519,7 +541,6 @@ describe('task i18n source guard', () => {
 
       for (const key of [
         'useTranslation()',
-        'getTaskContractPreset(inferredTaskType, t)',
         "t('task.role_prefill.apply_by_role'",
         "t('task.role_prefill.suggested_assignee'",
         "t('task.role_prefill.match_count'",
@@ -669,7 +690,7 @@ describe('task i18n source guard', () => {
         'Công nghệ',
         'Kỹ thuật phần mềm',
         'Kỹ năng mềm',
-        'Thực thi',
+        'Quản lý công việc',
         'Tất cả kỹ năng',
         'Ẩn lọc',
         'Lọc thêm',
@@ -842,7 +863,6 @@ describe('task i18n source guard', () => {
         "t('task.detail_panel.business_context'",
         "t('task.detail_panel.acceptance_criteria'",
         "t('task.detail_panel.verification_method'",
-        "t('task.detail_panel.learning_objectives'",
         "t('task.detail_panel.ai_dispute_info'",
         "t('task.detail_panel.task_type'",
         "t('task.detail_panel.affected_users'",
@@ -1091,7 +1111,6 @@ describe('task i18n source guard', () => {
         "t('task.context_card.verification'",
         "t('task.context_card.tech_stack'",
         "t('task.context_card.domain'",
-        "t('task.context_card.learning_objectives'",
         "t('task.context_card.more_info'",
         "t('task.context_card.task_type'",
         "t('task.context_card.environment'",
@@ -1404,12 +1423,10 @@ describe('task i18n source guard', () => {
       const expectedKeys = sourcePath.endsWith('dispute_resolve_tab.svelte')
         ? [
             'useTranslation()',
-            'currentDocumentLocale',
-            "t('task.disputes.admin_detail.resolve.resolution_status'",
-            "t('task.disputes.admin_detail.resolve.created_at'",
-            "t('task.disputes.admin_detail.resolve.runtime_context'",
-            "t('task.disputes.admin_detail.resolve.decision_readiness'",
-            "t('task.disputes.admin_detail.resolve.ai_support_count'",
+            "t('task.disputes.admin_detail.ai_verdict.title'",
+            "t('task.disputes.admin_detail.ai_verdict.accept'",
+            "t('task.disputes.admin_detail.ai_verdict.custom'",
+            "t('task.disputes.admin_detail.ai_verdict.custom_label'",
           ]
         : sourcePath.endsWith('dispute_evidence_list.svelte')
           ? [
