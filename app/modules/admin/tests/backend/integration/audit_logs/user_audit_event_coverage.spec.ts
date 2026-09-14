@@ -24,9 +24,9 @@ import {
   AdminUserLifecycleWriter,
 } from '#modules/admin/users/actions/ports/outbound/users/admin_user_administration'
 import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
-import DeactivateUserCommand from '#modules/users/actions/commands/user-lifecycle/deactivate_user_command'
 import UpdateUserDetailsCommand from '#modules/users/actions/commands/profile/update_user_details_command'
 import UpdateUserProfileCommand from '#modules/users/actions/commands/profile/update_user_profile_command'
+import DeactivateUserCommand from '#modules/users/actions/commands/user-lifecycle/deactivate_user_command'
 import { UpdateUserDetailsDTO } from '#modules/users/actions/dtos/request/update_user_details_dto'
 import type { UserNotificationStager as NotificationStager } from '#modules/users/actions/ports/outbound/user_notification_stager'
 import { makeSystemUserActionContext } from '#modules/users/actions/user_action_context'

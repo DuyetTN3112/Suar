@@ -1,12 +1,12 @@
 import { test } from '@japa/runner'
 
-import ValidationException from '#modules/errors/public_contracts/validation_exception'
 import {
   buildAdminDisputeDetailRequest,
   buildAdminDisputeListRequest,
 } from '#modules/admin/disputes/controllers/mappers/request/disputes/admin_dispute_list_request_mapper'
 import { buildFlaggedReviewListRequest } from '#modules/admin/reviews/controllers/mappers/request/reviews/flagged_review_list_request_mapper'
 import { buildAdminUserListRequest } from '#modules/admin/users/controllers/mappers/request/users/admin_user_list_request_mapper'
+import ValidationException from '#modules/errors/public_contracts/validation_exception'
 
 function request(values: Record<string, unknown>) {
   return {

@@ -64,17 +64,6 @@ test.group('Unit | Admin read controller aliases', () => {
   test('system audit filters are bounded, allowlisted, and discard an inverted date range', ({
     assert,
   }) => {
-    type AuditInput = {
-      page: number
-      search?: string
-      action?: string
-      severity?: string
-      outcome?: string
-      actorType?: string
-      traceId?: string
-      from?: Date
-      to?: Date
-    }
     const raw = readAuditLogListInput({
       request: fakeRequest({
         search: 's'.repeat(200),
@@ -87,7 +76,7 @@ test.group('Unit | Admin read controller aliases', () => {
         to: '2026-08-01T00:00:00.000Z',
       }),
     })
-    const normalized = normalizeSystemAuditLogListInput(raw as AuditInput)
+    const normalized = normalizeSystemAuditLogListInput(raw)
 
     assert.lengthOf(normalized.search ?? '', 160)
     assert.lengthOf(normalized.action ?? '', 120)

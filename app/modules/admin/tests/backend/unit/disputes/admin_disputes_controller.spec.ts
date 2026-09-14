@@ -18,8 +18,7 @@ test.group('Unit | Admin disputes controller', () => {
       },
       makeGetAiOperatorOverviewQuery() {
         // The factory owns concrete query classes; this controller test only needs its port shape.
-        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-        return {
+        const query = {
           handle() {
             return Promise.resolve({
               disputes: { data: [], meta: {} },
@@ -33,14 +32,21 @@ test.group('Unit | Admin disputes controller', () => {
               },
             })
           },
-        } as never
+        }
+        return query as never
       },
     }
     let rendered: { page: string; props: Record<string, unknown> } | null = null
 
     await new AdminDisputesController(actions).aiOperator(
       toAiOperatorContext({
+        auth: { user: { id: 'admin-1', current_organization_id: null } },
+        currentOrganizationId: null,
+        currentOrganizationRole: null,
+        session: { get: () => null },
         request: {
+          ip: () => '127.0.0.1',
+          header: () => 'test-agent',
           input(key: string, fallback?: unknown) {
             const values: Record<string, unknown> = {
               perPage: 25,

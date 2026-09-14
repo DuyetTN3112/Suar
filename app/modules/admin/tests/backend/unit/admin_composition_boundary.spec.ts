@@ -4,7 +4,7 @@ import { test } from '@japa/runner'
 
 const CONTROLLERS = [
   'app/modules/admin/dashboard/controllers/dashboard/dashboard_controller.ts',
-  'app/modules/admin/disputes/controllers/admin_disputes_controller.ts',
+  'app/modules/admin/disputes/controllers/disputes/admin_disputes_controller.ts',
   'app/modules/admin/organizations/controllers/organizations/list_organizations_controller.ts',
   'app/modules/admin/users/controllers/users/list_users_controller.ts',
   'app/modules/admin/users/controllers/users/show_user_controller.ts',
