@@ -1,10 +1,10 @@
 import type { LogoutUserDTO } from '../../dtos/request/logout_user_dto.js'
 
 import type { AuthActionContext } from '#modules/auth/actions/auth_action_context'
+import { BaseCommand } from '#modules/auth/actions/base_command'
 import type { AuthEventIdentityGenerator } from '#modules/auth/actions/ports/outbound/auth_event_identity_generator'
 import type { AuthLogoutEvent } from '#modules/auth/actions/ports/outbound/auth_logout_event_publisher'
 import type { AuthSessionObservation } from '#modules/auth/domain/session-management/auth_session_observation'
-import { BaseCommand } from '#modules/auth/actions/base_command'
 import loggerService from '#modules/logger/public_contracts/application_logger'
 
 export interface LogoutUserCommandDependencies {

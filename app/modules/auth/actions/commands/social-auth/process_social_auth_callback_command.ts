@@ -1,7 +1,7 @@
 import type SocialLoginCommand from './social_login_command.js'
 
-import { BaseCommand } from '#modules/auth/actions/base_command'
 import type { AuthActionContext } from '#modules/auth/actions/auth_action_context'
+import { BaseCommand } from '#modules/auth/actions/base_command'
 import type { SocialAuthCallbackSource } from '#modules/auth/actions/dtos/request/social-auth/social_auth_callback_source'
 import type { AuthEventIdentityGenerator } from '#modules/auth/actions/ports/outbound/auth_event_identity_generator'
 import type { AuthSessionObservationStager } from '#modules/auth/actions/ports/outbound/auth_session_observation_stager'

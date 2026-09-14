@@ -1,8 +1,8 @@
 import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 
-import { ADMIN_PAGINATION } from '#modules/admin/users/actions/dtos/common/admin_pagination'
-import { AdminUserActionFactory } from '#modules/admin/users/actions/ports/inbound/admin_user_action_factory'
+import { ADMIN_PAGINATION } from '#modules/admin/users/actions/dtos/common/users/admin_pagination'
+import { AdminUserActionFactory } from '#modules/admin/users/actions/ports/inbound/users/admin_user_action_factory'
 import {
   mapAdminUserResponse,
   wrapAdminCollectionResponse,

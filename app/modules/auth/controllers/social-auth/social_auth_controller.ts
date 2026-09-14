@@ -11,8 +11,8 @@ import {
   mapSocialAuthSuccessRedirect,
 } from '../mappers/response/social-auth/social_auth_response_mapper.js'
 
-import ProcessSocialAuthCallbackCommand from '#modules/auth/actions/commands/process_social_auth_callback_command'
-import type { SocialAuthCallbackSource } from '#modules/auth/actions/dtos/request/social_auth_callback_source'
+import ProcessSocialAuthCallbackCommand from '#modules/auth/actions/commands/social-auth/process_social_auth_callback_command'
+import type { SocialAuthCallbackSource } from '#modules/auth/actions/dtos/request/social-auth/social_auth_callback_source'
 import {
   type SocialAuthCallbackConfigurableDriver,
   SocialAuthTransportConfigurator,

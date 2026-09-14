@@ -1,8 +1,6 @@
 import type { Authenticators } from '@adonisjs/auth/types'
 import type { HttpContext } from '@adonisjs/core/http'
 import type { NextFn } from '@adonisjs/core/types/http'
-// import env from '#start/env'
-
 /**
  * Middleware cho người dùng chưa đăng nhập (khách)
  * Sử dụng middleware này cho các route như login, register
@@ -10,13 +8,6 @@ import type { NextFn } from '@adonisjs/core/types/http'
  */
 export default class GuestMiddleware {
   redirectTo = '/tasks'
-  // private isDevMode = env.get('NODE_ENV') === 'development'
-
-  // private log(...args: any[]) {
-  //   if (this.isDevMode) {
-  //     // Removed debug log: console.log(...args)
-  //   }
-  // }
 
   async handle(
     ctx: HttpContext,

@@ -20,12 +20,14 @@ const toAuditSearchPattern = (value: string): string => {
   return `%${escapeRegex(value).replace(/[%_]/g, '\\$&')}%`
 }
 
-const buildAdminAuditLogFilter = (params: AdminAuditLogListParams): ReturnType<typeof db.from> => {
-  let query = db.from('audit_events')
+type AuditQueryBuilder = ReturnType<typeof db.from>
 
-  const actorUserId = params.actorUserId
-  if (params.surface === 'user' && actorUserId) {
-    query = query.where((builder) => {
+const applyUserSurfaceFilter = (
+  query: AuditQueryBuilder,
+  actorUserId: string
+): AuditQueryBuilder => {
+  return query
+    .where((builder) => {
       void builder
         .whereIn(
           'id',
@@ -45,177 +47,236 @@ const buildAdminAuditLogFilter = (params: AdminAuditLogListParams): ReturnType<t
             })
         })
     })
-    query = query.where((builder) => {
+    .where((builder) => {
       void builder
         .whereNull('retention_class')
         .orWhereNotIn('retention_class', ['support_trace', 'transient_runtime'])
     })
-  }
+}
 
-  const organizationId = params.organizationId
-  if (params.surface === 'organization' && organizationId) {
-    query = query.where((builder) => {
-      void builder
-        .whereIn(
-          'id',
-          db
-            .from('audit_event_scopes')
-            .select('event_id')
-            .where('surface', 'organization')
-            .where('organization_id', organizationId)
-        )
-        .orWhere((legacy) => {
-          void legacy
-            .whereNotIn('id', db.from('audit_event_scopes').select('event_id'))
-            .where((legacyOrg) => {
-              void legacyOrg
-                .where((nested) => {
-                  void nested
-                    .where('entity_type', 'organization')
-                    .where('entity_id', organizationId)
-                })
-                .orWhereRaw(
-                  "(old_values->>'organization_id' = ? or new_values->>'organization_id' = ?)",
-                  [organizationId, organizationId]
-                )
+const applyLegacyOrganizationTargets = (
+  legacyOrg: any,
+  organizationId: string,
+  targets: NonNullable<AdminAuditLogListParams['organizationScopedTargets']>
+): void => {
+  void legacyOrg
+    .where((nested: any) => {
+      void nested.where('entity_type', 'organization').where('entity_id', organizationId)
+    })
+    .orWhereRaw("(old_values->>'organization_id' = ? or new_values->>'organization_id' = ?)", [
+      organizationId,
+      organizationId,
+    ])
 
-              for (const targetSet of params.organizationScopedTargets ?? []) {
-                if (targetSet.ids.length === 0) continue
-                void legacyOrg.orWhere((nested) => {
-                  void nested
-                    .where('entity_type', targetSet.type)
-                    .whereIn('entity_id', targetSet.ids)
-                })
-              }
-            })
-        })
+  for (const targetSet of targets) {
+    if (targetSet.ids.length === 0) continue
+    void legacyOrg.orWhere((nested: any) => {
+      void nested.where('entity_type', targetSet.type).whereIn('entity_id', targetSet.ids)
     })
   }
+}
 
-  const action = params.action
-  if (action) {
-    query = query.where((builder) => {
+const applyOrganizationSurfaceFilter = (
+  query: AuditQueryBuilder,
+  organizationId: string,
+  targets: AdminAuditLogListParams['organizationScopedTargets'] = []
+): AuditQueryBuilder => {
+  return query.where((builder) => {
+    void builder
+      .whereIn(
+        'id',
+        db
+          .from('audit_event_scopes')
+          .select('event_id')
+          .where('surface', 'organization')
+          .where('organization_id', organizationId)
+      )
+      .orWhere((legacy) => {
+        void legacy
+          .whereNotIn('id', db.from('audit_event_scopes').select('event_id'))
+          .where((legacyOrg) => {
+            applyLegacyOrganizationTargets(legacyOrg, organizationId, targets ?? [])
+          })
+      })
+  })
+}
+
+const applyMetadataFilters = (
+  query: AuditQueryBuilder,
+  params: AdminAuditLogListParams
+): AuditQueryBuilder => {
+  let filteredQuery = query
+
+  if (params.action) {
+    const action = params.action
+    filteredQuery = filteredQuery.where((builder) => {
       void builder.where('action', action).orWhere('event_name', action)
     })
   }
 
   if (params.resourceType) {
-    query = query.whereRaw('coalesce(target_type, entity_type) = ?', [params.resourceType])
+    filteredQuery = filteredQuery.whereRaw('coalesce(target_type, entity_type) = ?', [params.resourceType])
   }
 
   if (params.module) {
-    query = query.where('module', params.module)
+    filteredQuery = filteredQuery.where('module', params.module)
   }
 
   if (params.workflow) {
-    query = query.where('workflow', params.workflow)
+    filteredQuery = filteredQuery.where('workflow', params.workflow)
   }
 
   if (params.severity) {
-    query = query.where('severity', params.severity)
+    filteredQuery = filteredQuery.where('severity', params.severity)
   }
 
   if (params.outcome) {
     if (params.outcome === 'recorded') {
-      query = query.where((builder) => {
+      filteredQuery = filteredQuery.where((builder) => {
         void builder.whereNull('outcome').orWhereNotIn('outcome', ['success', 'warning', 'failure'])
       })
     } else {
-      query = query.where('outcome', params.outcome)
+      filteredQuery = filteredQuery.where('outcome', params.outcome)
     }
   }
 
   if (params.actorType) {
-    query = query.whereRaw("coalesce(actor_type, 'user') = ?", [params.actorType])
+    filteredQuery = filteredQuery.whereRaw("coalesce(actor_type, 'user') = ?", [params.actorType])
   }
 
   if (params.retentionClass) {
-    query = query.where('retention_class', params.retentionClass)
+    filteredQuery = filteredQuery.where('retention_class', params.retentionClass)
   }
 
   if (params.traceId) {
-    query = query.where('trace_id', params.traceId)
+    filteredQuery = filteredQuery.where('trace_id', params.traceId)
   }
 
   if (params.userId && params.surface !== 'user') {
-    query = query.whereRaw('coalesce(actor_user_id, user_id) = ?', [params.userId])
+    filteredQuery = filteredQuery.whereRaw('coalesce(actor_user_id, user_id) = ?', [params.userId])
   }
 
   if (params.from) {
-    query = query.where('occurred_at', '>=', params.from)
+    filteredQuery = filteredQuery.where('occurred_at', '>=', params.from)
   }
 
   if (params.to) {
-    query = query.where('occurred_at', '<=', params.to)
+    filteredQuery = filteredQuery.where('occurred_at', '<=', params.to)
   }
 
-  const search = params.search?.trim()
-  if (search) {
-    const normalized = toAuditSearchPattern(search)
-    const matchedUserIds = params.searchMatchedUserIds ?? []
-    query = query.where((builder) => {
-      let scopedBuilder = builder
-        .whereILike('action', normalized)
-        .orWhereILike('event_name', normalized)
-        .orWhereILike('event_family', normalized)
-        .orWhereILike('module', normalized)
-        .orWhereILike('entity_type', normalized)
-        .orWhereILike('target_type', normalized)
+  return filteredQuery
+}
 
-      if (params.surface !== 'user') {
-        scopedBuilder = scopedBuilder
-          .orWhereILike('entity_id', normalized)
-          .orWhereILike('target_id', normalized)
-      }
+const applyOrganizationSearchTargets = (
+  scopedBuilder: any,
+  targets: NonNullable<AdminAuditLogListParams['searchMatchedTargets']>,
+  normalized: string
+): any => {
+  let builder = scopedBuilder
+    .orWhereRaw("old_values->>'title' ilike ? escape '\\'", [normalized])
+    .orWhereRaw("new_values->>'title' ilike ? escape '\\'", [normalized])
+    .orWhereRaw("old_values->>'name' ilike ? escape '\\'", [normalized])
+    .orWhereRaw("new_values->>'name' ilike ? escape '\\'", [normalized])
 
-      if (params.surface === 'organization') {
-        scopedBuilder = scopedBuilder
-          .orWhereRaw("old_values->>'title' ilike ? escape '\\'", [normalized])
-          .orWhereRaw("new_values->>'title' ilike ? escape '\\'", [normalized])
-          .orWhereRaw("old_values->>'name' ilike ? escape '\\'", [normalized])
-          .orWhereRaw("new_values->>'name' ilike ? escape '\\'", [normalized])
+  for (const targetSet of targets) {
+    if (targetSet.ids.length === 0) continue
 
-        for (const targetSet of params.searchMatchedTargets ?? []) {
-          if (targetSet.ids.length === 0) continue
-
-          scopedBuilder = scopedBuilder.orWhere((targetBuilder) => {
-            void targetBuilder
-              .whereRaw('coalesce(target_type, entity_type) = ?', [targetSet.type])
-              .where((targetIdBuilder) => {
-                void targetIdBuilder.whereIn('target_id', targetSet.ids).orWhere((legacyTarget) => {
-                  void legacyTarget.whereNull('target_id').whereIn('entity_id', targetSet.ids)
-                })
-              })
+    builder = builder.orWhere((targetBuilder: any) => {
+      void targetBuilder
+        .whereRaw('coalesce(target_type, entity_type) = ?', [targetSet.type])
+        .where((targetIdBuilder: any) => {
+          void targetIdBuilder.whereIn('target_id', targetSet.ids).orWhere((legacyTarget: any) => {
+            void legacyTarget.whereNull('target_id').whereIn('entity_id', targetSet.ids)
           })
-        }
-      }
-
-      if (!params.surface || params.surface === 'system') {
-        scopedBuilder = scopedBuilder
-          .orWhereILike('subsystem', normalized)
-          .orWhereILike('workflow', normalized)
-          .orWhereILike('stage', normalized)
-          .orWhereILike('severity', normalized)
-          .orWhereILike('outcome', normalized)
-          .orWhereILike('actor_type', normalized)
-          .orWhereILike('actor_role_surface', normalized)
-          .orWhereILike('request_id', normalized)
-          .orWhereILike('trace_id', normalized)
-          .orWhereILike('correlation_key', normalized)
-          .orWhereILike('retention_class', normalized)
-          .orWhereILike('ip_address', normalized)
-          .orWhereILike('user_agent', normalized)
-      }
-
-      if (params.surface !== 'user' && matchedUserIds.length > 0) {
-        scopedBuilder = scopedBuilder
-          .orWhereIn('user_id', matchedUserIds)
-          .orWhereIn('actor_user_id', matchedUserIds)
-      }
-
-      return scopedBuilder
+        })
     })
   }
+  return builder
+}
+
+const applySystemSearchFields = (scopedBuilder: any, normalized: string): any => {
+  return scopedBuilder
+    .orWhereILike('subsystem', normalized)
+    .orWhereILike('workflow', normalized)
+    .orWhereILike('stage', normalized)
+    .orWhereILike('severity', normalized)
+    .orWhereILike('outcome', normalized)
+    .orWhereILike('actor_type', normalized)
+    .orWhereILike('actor_role_surface', normalized)
+    .orWhereILike('request_id', normalized)
+    .orWhereILike('trace_id', normalized)
+    .orWhereILike('correlation_key', normalized)
+    .orWhereILike('retention_class', normalized)
+    .orWhereILike('ip_address', normalized)
+    .orWhereILike('user_agent', normalized)
+}
+
+const applyAuditSearchFilter = (
+  query: AuditQueryBuilder,
+  params: AdminAuditLogListParams
+): AuditQueryBuilder => {
+  const search = params.search?.trim()
+  if (!search) {
+    return query
+  }
+
+  const normalized = toAuditSearchPattern(search)
+  const matchedUserIds = params.searchMatchedUserIds ?? []
+
+  return query.where((builder) => {
+    let scopedBuilder = builder
+      .whereILike('action', normalized)
+      .orWhereILike('event_name', normalized)
+      .orWhereILike('event_family', normalized)
+      .orWhereILike('module', normalized)
+      .orWhereILike('entity_type', normalized)
+      .orWhereILike('target_type', normalized)
+
+    if (params.surface !== 'user') {
+      scopedBuilder = scopedBuilder
+        .orWhereILike('entity_id', normalized)
+        .orWhereILike('target_id', normalized)
+    }
+
+    if (params.surface === 'organization') {
+      scopedBuilder = applyOrganizationSearchTargets(
+        scopedBuilder,
+        params.searchMatchedTargets ?? [],
+        normalized
+      )
+    }
+
+    if (!params.surface || params.surface === 'system') {
+      scopedBuilder = applySystemSearchFields(scopedBuilder, normalized)
+    }
+
+    if (params.surface !== 'user' && matchedUserIds.length > 0) {
+      scopedBuilder = scopedBuilder
+        .orWhereIn('user_id', matchedUserIds)
+        .orWhereIn('actor_user_id', matchedUserIds)
+    }
+
+    return scopedBuilder
+  })
+}
+
+const buildAdminAuditLogFilter = (params: AdminAuditLogListParams): AuditQueryBuilder => {
+  let query: AuditQueryBuilder = db.from('audit_events')
+
+  if (params.surface === 'user' && params.actorUserId) {
+    query = applyUserSurfaceFilter(query, params.actorUserId)
+  }
+
+  if (params.surface === 'organization' && params.organizationId) {
+    query = applyOrganizationSurfaceFilter(
+      query,
+      params.organizationId,
+      params.organizationScopedTargets
+    )
+  }
+
+  query = applyMetadataFilters(query, params)
+  query = applyAuditSearchFilter(query, params)
 
   return query
 }

@@ -1,8 +1,8 @@
 import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 
-import { IssueSessionTokenCommand } from '#modules/auth/actions/commands/issue_session_token_command'
-import { RefreshSessionTokenCommand } from '#modules/auth/actions/commands/refresh_session_token_command'
+import { IssueSessionTokenCommand } from '#modules/auth/actions/commands/session-management/issue_session_token_command'
+import { RefreshSessionTokenCommand } from '#modules/auth/actions/commands/session-management/refresh_session_token_command'
 import { ErrorCode, HttpStatus } from '#modules/errors/public_contracts/error_constants'
 import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
 import { emitApiError } from '#modules/http/boundary/http_api_error_emitter'
