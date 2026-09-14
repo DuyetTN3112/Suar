@@ -8,10 +8,6 @@ import type {
 } from '#modules/accomplishments/actions/ports/outbound/publication/accomplishment_publication_facts_store'
 import type { GovernedAccomplishmentPublicationSource } from '#modules/accomplishments/actions/ports/outbound/publication/governed_accomplishment_publication_source_reader'
 import {
-  hashVerifiedAccomplishmentPayload,
-  type AccomplishmentContentHasher,
-} from '#modules/accomplishments/domain/verified-work/accomplishment_projection_identity'
-import {
   hashAccomplishmentDisclosureDecision,
   hashAccomplishmentPublicationConsent,
 } from '#modules/accomplishments/domain/publication/accomplishment_public_projection_identity'
@@ -19,17 +15,21 @@ import type {
   AuthoritativeAccomplishmentDisclosureDecision,
   AuthoritativeAccomplishmentPublicationConsent,
 } from '#modules/accomplishments/domain/publication/accomplishment_public_projection_rules'
-import { parseAccomplishmentCapabilitySignalV1 } from '#modules/accomplishments/public_contracts/verified-work/accomplishment_capability_signal_v1'
+import {
+  hashVerifiedAccomplishmentPayload,
+  type AccomplishmentContentHasher,
+} from '#modules/accomplishments/domain/verified-work/accomplishment_projection_identity'
 import {
   parseAccomplishmentLifecycleRevisionV1,
 } from '#modules/accomplishments/public_contracts/lifecycle/accomplishment_lifecycle_v1'
+import { parseAccomplishmentCapabilitySignalV1 } from '#modules/accomplishments/public_contracts/verified-work/accomplishment_capability_signal_v1'
 import {
   parseVerifiedWorkAccomplishmentV1,
   type VerifiedWorkAccomplishmentV1,
 } from '#modules/accomplishments/public_contracts/verified-work/verified_work_accomplishment_v1'
-import type { TvaSha256 } from '#modules/tasks/public_contracts/task-authoring/primitives'
 import InvariantViolationException from '#modules/errors/public_contracts/invariant_violation_exception'
 import PersistedDataIntegrityException from '#modules/errors/public_contracts/persisted_data_integrity_exception'
+import type { TvaSha256 } from '#modules/tasks/public_contracts/task-authoring/primitives'
 
 const ACCOMPLISHMENT_TABLE = 'verified_work_accomplishments'
 const LIFECYCLE_TABLE = 'accomplishment_lifecycle_revisions'
@@ -244,7 +244,7 @@ export default class LucidAccomplishmentPublicationFactsStore
       ...base,
       disclosureDecision: decision,
       publicationConsent: (() => {
-        const { idempotencyKey: _idempotencyKey, ...publicationConsent } = consent
+        const { idempotencyKey: _omittedKey, ...publicationConsent } = consent
         return publicationConsent
       })(),
     }

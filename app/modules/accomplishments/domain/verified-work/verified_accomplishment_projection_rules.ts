@@ -2,11 +2,11 @@ import type {
   CompletionClaimV1,
   ReviewObservationV1,
 } from '#modules/reviews/public_contracts/observation/completion_review_contracts'
+import type { ReviewEvidenceSufficiencyV1 as ReviewEvidenceSufficiency } from '#modules/reviews/public_contracts/observation/review_governance_primitives'
 import type {
   TvaOwnershipLevel,
   TvaSha256,
 } from '#modules/tasks/public_contracts/task-authoring/primitives'
-import type { ReviewEvidenceSufficiencyV1 as ReviewEvidenceSufficiency } from '#modules/reviews/public_contracts/observation/review_governance_primitives'
 import {
   isCompletionClaimV1,
   isReviewObservationV1,

@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
 import db from '@adonisjs/lucid/services/db'
 
 import type { AccomplishmentTransaction } from '#modules/accomplishments/actions/ports/outbound/accomplishment_transaction'
@@ -20,6 +19,36 @@ import {
   isReviewObservationV1,
   isTaskAssignmentSnapshotV1,
 } from '#modules/tasks/public_contracts/task-authoring/validators'
+
+interface WorkflowRow {
+  task_assignment_id: string
+  status: string
+  required_review_count?: number | string | null
+}
+
+interface SnapshotRow {
+  canonical_snapshot: unknown
+  snapshot_hash: string
+}
+
+interface ReportRow {
+  id: string
+  completion_report_hash: string
+  task_id: string
+  task_assignment_id: string
+  assignment_snapshot_id: string
+  assignment_snapshot_hash: string
+  task_contract_version_id: string
+}
+
+interface ClaimRow {
+  claim_hash: string
+  [key: string]: unknown
+}
+
+interface SpecificationRow {
+  content_hash: string
+}
 
 const hasher = new NodeAccomplishmentContentHasher()
 const hash = (value: unknown): TvaSha256 => hasher.hash(value)
@@ -112,17 +141,17 @@ export default class LucidGovernedAccomplishmentProjectionSourceReader implement
     transaction?: AccomplishmentTransaction
   ): Promise<GovernedAccomplishmentProjectionSource | null> {
     const client = clientFor(transaction)
-    const workflow = await client
+    const workflow = (await client
       .from('task_review_workflows')
       .where({ id: identity.reviewWorkflowId })
-      .first()
+      .first()) as WorkflowRow | null
     // A review observation can exist while a task review is still being
     // discussed, resolved by an administrator, or otherwise not final. It is
     // not allowed to create profile evidence until the Task Review Board has
     // reached its explicit terminal state.
     if (!workflow?.task_assignment_id || workflow.status !== 'done') return null
 
-    const observations = await client
+    const observations = (await client
       .from('review_observation_revisions as revision')
       .join('review_observations as observation', 'observation.id', 'revision.observation_id')
       .select('revision.*')
@@ -134,9 +163,9 @@ export default class LucidGovernedAccomplishmentProjectionSourceReader implement
         'revision.target_ref': identity.completionClaimId,
       })
       .whereColumn('revision.revision_number', 'observation.current_revision_number')
-      .orderBy('revision_number', 'desc')
+      .orderBy('revision_number', 'desc')) as Record<string, unknown>[]
     const latestByObservation = new Map<string, Record<string, unknown>>()
-    for (const row of observations as Record<string, unknown>[]) {
+    for (const row of observations) {
       const key = String(row['observation_id'])
       if (!latestByObservation.has(key)) latestByObservation.set(key, row)
     }
@@ -153,13 +182,13 @@ export default class LucidGovernedAccomplishmentProjectionSourceReader implement
     const firstObservation = observationsV1[0]
     if (!firstObservation) return null
 
-    const snapshotRow = await client
+    const snapshotRow = (await client
       .from('task_assignment_snapshots')
       .where({
         id: firstObservation.assignmentSnapshotId,
         task_assignment_id: workflow.task_assignment_id,
       })
-      .first()
+      .first()) as SnapshotRow | null
     const envelope = asObject(snapshotRow?.canonical_snapshot)
     const snapshot = asObject(envelope?.['snapshot'])
     if (
@@ -172,7 +201,7 @@ export default class LucidGovernedAccomplishmentProjectionSourceReader implement
     const snapshotV1 = snapshot as unknown as TaskAssignmentSnapshotV1
     const resolved = snapshotV1.resolvedContract
     const taxonomy = projectAccomplishmentTaxonomy(snapshotV1, resolved.work.complexityContext)
-    const report = await client
+    const report = (await client
       .from('task_completion_reports')
       .where({
         id: finalRows[0]?.['completion_report_id'],
@@ -180,9 +209,9 @@ export default class LucidGovernedAccomplishmentProjectionSourceReader implement
         assignment_snapshot_id: snapshotV1.id,
         report_status: 'submitted',
       })
-      .first()
+      .first()) as ReportRow | null
     if (!report) return null
-    const claimRow = await client
+    const claimRow = (await client
       .from('task_completion_contributor_claims')
       .where({
         id: identity.completionClaimId,
@@ -190,22 +219,22 @@ export default class LucidGovernedAccomplishmentProjectionSourceReader implement
         contributor_user_id: snapshotV1.assigneeId,
         completion_report_hash: report.completion_report_hash,
       })
-      .first()
-    const claim = claimRow ? claimFromRow(claimRow as Record<string, unknown>) : null
+      .first()) as ClaimRow | null
+    const claim = claimRow ? claimFromRow(claimRow) : null
     if (!claim || claim.id !== identity.completionClaimId) return null
-    const evidenceRows = await client
+    const evidenceRows = (await client
       .from('task_completion_evidence_manifest')
-      .where({ completion_report_id: report.id })
-    const criterionRows = await client
+      .where({ completion_report_id: report.id })) as Record<string, unknown>[]
+    const criterionRows = (await client
       .from('task_completion_criterion_results')
-      .where({ completion_report_id: report.id })
-    const mappingRows = await client
+      .where({ completion_report_id: report.id })) as Record<string, unknown>[]
+    const mappingRows = (await client
       .from('task_completion_evidence_mappings')
-      .where({ completion_report_id: report.id })
-    const specification = await client
+      .where({ completion_report_id: report.id })) as Record<string, unknown>[]
+    const specification = (await client
       .from('task_specification_versions')
       .where({ id: resolved.specification.versionId })
-      .first()
+      .first()) as SpecificationRow | null
     if (!specification) return null
 
     const reviewHash = hash({
@@ -272,7 +301,7 @@ export default class LucidGovernedAccomplishmentProjectionSourceReader implement
         taskContractVersionId: resolved.versionId,
         taskContractHash: resolved.resolvedContentHash,
         completionReportId: report.id,
-        completionReportHash: report.completion_report_hash,
+        completionReportHash: report.completion_report_hash as TvaSha256,
         reviewWorkflowId: identity.reviewWorkflowId,
         reviewHash,
         claim,
@@ -295,21 +324,21 @@ export default class LucidGovernedAccomplishmentProjectionSourceReader implement
       requirementContext: requirement,
       completionReport: {
         id: report.id,
-        completionReportHash: report.completion_report_hash,
+        completionReportHash: report.completion_report_hash as TvaSha256,
         taskId: report.task_id,
         taskAssignmentId: report.task_assignment_id,
         assignmentSnapshotId: report.assignment_snapshot_id,
-        assignmentSnapshotHash: report.assignment_snapshot_hash,
+        assignmentSnapshotHash: report.assignment_snapshot_hash as TvaSha256,
         taskContractVersionId: report.task_contract_version_id,
         claims: [{ claim, claimHash: claimRow?.claim_hash as TvaSha256 }],
-        criterionResults: (criterionRows as Record<string, unknown>[]).map((row) => ({
+        criterionResults: criterionRows.map((row) => ({
           id: String(row['id']),
           completionReportId: String(row['completion_report_id']),
           actualOutcome: String(row['actual_outcome']),
           result: String(row['result']) as 'met' | 'partially_met' | 'not_met' | 'not_applicable',
           explanation: String(row['explanation']),
         })),
-        evidence: (evidenceRows as Record<string, unknown>[]).map((row) => ({
+        evidence: evidenceRows.map((row) => ({
           id: String(row['id']),
           completionReportId: String(row['completion_report_id']),
           evidenceType: String(row['evidence_type']),
@@ -327,7 +356,7 @@ export default class LucidGovernedAccomplishmentProjectionSourceReader implement
             | 'not_disclosed',
           contentHash: row['content_hash'] as TvaSha256 | null,
         })),
-        claimEvidenceMappings: (mappingRows as Record<string, unknown>[]).map((row) => ({
+        claimEvidenceMappings: mappingRows.map((row) => ({
           completionReportId: String(row['completion_report_id']),
           contributorClaimId: String(row['contributor_claim_id']),
           evidenceId: String(row['evidence_item_id']),
