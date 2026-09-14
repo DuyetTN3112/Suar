@@ -1,11 +1,8 @@
-import CalculatePerformanceScoreCommand from '../review-core/calculate_performance_score_command.js'
-import CalculateTrustScoreCommand from '../review-core/calculate_trust_score_command.js'
-import RecalculateRevieweeSkillScoresCommand from '../review-submission/recalculate_reviewee_skill_scores_command.js'
-import UpdateReviewerCredibilityCommand from '../review-submission/update_reviewer_credibility_command.js'
 
 import InvariantViolationException from '#modules/errors/public_contracts/invariant_violation_exception'
 import { DomainEventDeliveryError } from '#modules/events/public_contracts/domain_event_delivery_error'
 import type { DisputeResolvedOutboxPayload } from '#modules/events/public_contracts/domain_event_outbox'
+import { ReputationProjector } from '#modules/reputation/actions/reputation_projector'
 import { BaseCommand } from '#modules/reviews/actions/base_command'
 import type { TransactionalAuditWrite } from '#modules/reviews/actions/dtos/request/transactional_audit_options'
 import type {
@@ -26,16 +23,12 @@ import { makeSystemReviewActionContext } from '#modules/reviews/actions/review_a
 import {
   DisputeResolvedReceiptCollisionException,
   type DisputeResolvedProcessingReceipt,
-} from '#modules/reviews/public_contracts/dispute_resolved_processing_receipt'
+} from '#modules/disputes/public_contracts/dispute_resolved_processing_receipt'
 import {
   buildReviewConfirmedExternalEffectPlan,
   type ReviewConfirmedExternalEffectCheckpoint,
   type ReviewConfirmedExternalEffects,
 } from '#modules/reviews/public_contracts/review_confirmed_processing_receipt'
-import {
-  PROFILE_UPDATE_ACTION,
-  REVIEWER_CREDIBILITY_ACTION,
-} from '#modules/reviews/public_contracts/review_constants'
 
 interface DeliveryContext {
   signal?: AbortSignal
@@ -153,42 +146,24 @@ export default class ProcessDisputeResolvedEventCommand extends BaseCommand<
         deferredAudits.push(write)
       },
     }
-    if (payload.reviewerCredibilityAction === REVIEWER_CREDIBILITY_ACTION.MARK_DISPUTED) {
-      for (const reviewerId of payload.reviewerIds) {
-        signal?.throwIfAborted()
-        await new UpdateReviewerCredibilityCommand(
-          execCtx,
-          this.dependencies.user,
-          this.metricsReader
-        ).handleInTransaction({ user_id: reviewerId }, trx, signal ? { signal } : {})
-      }
-    }
-
-    let skillScoreUpdated: ReviewConfirmedExternalEffects['skillScoreUpdated'] = []
-    if (payload.profileUpdateAction === PROFILE_UPDATE_ACTION.RECALCULATE) {
-      const skillResult = await new RecalculateRevieweeSkillScoresCommand(
-        execCtx,
-        this.dependencies.userSkill,
-        this.metricsReader,
-        this.externalEffects
-      ).handleInTransaction({ userId: payload.revieweeId }, trx, transactionOptions)
-      skillScoreUpdated = [...skillResult.deferredSkillScoreUpdatedEvents]
-      await new CalculatePerformanceScoreCommand(
-        execCtx,
-        this.dependencies.user,
-        this.metricsReader
-      ).handleInTransaction({ userId: payload.revieweeId }, trx, transactionOptions)
-      await new CalculateTrustScoreCommand(
-        execCtx,
-        this.dependencies.organization,
-        this.dependencies.user,
-        this.metricsReader
-      ).handleInTransaction({ userId: payload.revieweeId }, trx, transactionOptions)
-      await this.dependencies.user.refreshProfileAggregates(payload.revieweeId, execCtx, {
-        trx,
-        ...transactionOptions,
-      })
-    }
+    const reputationProjector = new ReputationProjector(
+      this.dependencies,
+      this.metricsReader,
+      this.externalEffects
+    )
+    const projectionResult = await reputationProjector.projectDisputeResolved(
+      {
+        revieweeId: payload.revieweeId,
+        reviewerIds: payload.reviewerIds,
+        reviewerCredibilityAction: payload.reviewerCredibilityAction,
+        profileUpdateAction: payload.profileUpdateAction,
+        resolvedBy: payload.resolvedBy,
+      },
+      execCtx,
+      trx,
+      transactionOptions
+    )
+    const skillScoreUpdated = projectionResult.skillScoreUpdated
 
     signal?.throwIfAborted()
     const projections = await new ListTalentExplainabilityProjectionsV1Query(

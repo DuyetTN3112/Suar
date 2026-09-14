@@ -1,15 +1,13 @@
-import { createHash } from 'node:crypto'
-
 import ForbiddenException from '#modules/errors/public_contracts/forbidden_exception'
 import NotFoundException from '#modules/errors/public_contracts/not_found_exception'
 import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
 import ValidationException from '#modules/errors/public_contracts/validation_exception'
 import { BaseCommand } from '#modules/reviews/actions/base_command'
+import { validateProfileAssessmentProposal } from '#modules/disputes/actions/commands/process_ai_dispute_callback_command'
 import type {
   AiProfileAssessmentApprovalUnitOfWork,
   AiProfileCapabilityApprovalRecord,
 } from '#modules/reviews/actions/ports/outbound/ai_profile_assessment_approval_unit_of_work'
-import { validateProfileAssessmentProposal } from '#modules/reviews/actions/commands/disputes/process_ai_dispute_callback_command'
 import type { ReviewActionContext } from '#modules/reviews/actions/review_action_context'
 import { isCanonicalProficiencyLevelCode } from '#modules/skills/public_contracts/rubric-and-proficiency/proficiency_framework'
 
@@ -82,16 +80,6 @@ function canonicalLevel(value: unknown): string | null {
   return raw && isCanonicalProficiencyLevelCode(raw) ? raw : null
 }
 
-function payloadHash(value: unknown): string {
-  const canonicalize = (input: unknown): unknown => {
-    if (input === null || typeof input !== 'object') return input
-    if (Array.isArray(input)) return input.map(canonicalize)
-    const record = input as Record<string, unknown>
-    return Object.fromEntries(Object.keys(record).sort().map((key) => [key, canonicalize(record[key])]))
-  }
-  return `sha256:${createHash('sha256').update(JSON.stringify(canonicalize(value))).digest('hex')}`
-}
-
 function profileAssessment(verdict: JsonRecord): JsonRecord {
   const assessment = verdict['profile_assessment']
   if (!isRecord(assessment) || assessment['status'] !== 'proposal_ready') {
@@ -112,8 +100,9 @@ function proposalAt(assessment: JsonRecord, proposalIndex: number): ProfileCapab
   if (!Number.isSafeInteger(proposalIndex) || proposalIndex < 0) {
     throw new ValidationException('Chỉ số đề xuất năng lực không hợp lệ')
   }
-  const raw = Array.isArray(assessment['capability_proposals'])
-    ? assessment['capability_proposals'][proposalIndex]
+  const capabilityProposals = assessment['capability_proposals']
+  const raw = Array.isArray(capabilityProposals)
+    ? (capabilityProposals as readonly unknown[])[proposalIndex]
     : undefined
   if (!isRecord(raw)) throw new NotFoundException('Không tìm thấy đề xuất năng lực của AI')
   const capabilityId = nonEmptyString(raw['capability_id'])
@@ -171,8 +160,9 @@ function assertProposalWithinContract(
   if (contract['profile_eligibility'] !== true) {
     throw new ValidationException('Công việc này không được khai báo để tạo dữ liệu hồ sơ')
   }
-  const matched = Array.isArray(contract['capabilities'])
-    ? contract['capabilities'].find(
+  const capabilities = contract['capabilities']
+  const matched = Array.isArray(capabilities)
+    ? (capabilities as readonly unknown[]).find(
         (item) => isRecord(item) && item['capability_id'] === proposal.capabilityId
       )
     : undefined
@@ -271,7 +261,7 @@ export default class ApproveAiProfileCapabilityProposalCommand extends BaseComma
             proposalPayload: proposal.raw,
             evidenceRefs: proposal.evidenceRefs,
             profileEffect: String(assessment['profile_effect']),
-            sourcePayloadHash: payloadHash({ request: candidate.requestPayload, response: candidate.responsePayload }),
+            sourcePayload: { request: candidate.requestPayload, response: candidate.responsePayload },
             approvedBy: actorId,
           },
           this.execCtx

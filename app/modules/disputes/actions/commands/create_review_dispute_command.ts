@@ -10,12 +10,12 @@ import {
   platformWorkflowLogger,
 } from '#modules/observability/public_contracts/platform_observability'
 import { BaseCommand } from '#modules/reviews/actions/base_command'
-import type { ReviewConfirmationDisputeUnitOfWork } from '#modules/reviews/actions/ports/outbound/review_confirmation_dispute_unit_of_work'
+import type { ReviewConfirmationDisputeUnitOfWork } from '#modules/disputes/actions/ports/outbound/review_confirmation_dispute_unit_of_work'
 import type { ReviewActionContext } from '#modules/reviews/actions/review_action_context'
 import {
   canOpenReviewDispute,
   isActiveReviewDisputeStatus,
-} from '#modules/reviews/domain/disputes/review_dispute_rules'
+} from '#modules/disputes/domain/review_dispute_rules'
 import { buildReviewDisputeEvent } from '#modules/reviews/observability/review_event_factory'
 import {
   ReviewDisputeStatus,

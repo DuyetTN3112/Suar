@@ -6,7 +6,7 @@ import type { ReviewCryptography } from '#modules/reviews/actions/ports/outbound
 import type {
   SprintReviewDisputeAuthorContext,
   SprintReviewDisputeUnitOfWork,
-} from '#modules/reviews/actions/ports/outbound/sprint_review_dispute_unit_of_work'
+} from '#modules/disputes/actions/ports/outbound/sprint_review_dispute_unit_of_work'
 import type { ReviewActionContext } from '#modules/reviews/actions/review_action_context'
 
 export interface CreateSprintReviewDisputeCommentDTO {

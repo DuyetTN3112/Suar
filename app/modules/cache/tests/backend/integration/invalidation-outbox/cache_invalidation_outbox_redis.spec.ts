@@ -10,9 +10,9 @@ import {
   CACHE_INVALIDATION_OUTBOX_UP_SQL,
 } from '#database/cache_invalidation_outbox_schema'
 import { cacheGenerationControlKey } from '#modules/cache/domain/cache-runtime/cache_generation_policy'
-import { PostgresCacheInvalidationOutboxRepository } from '#modules/cache/infra/repositories/invalidation-outbox/postgres_cache_invalidation_outbox_repository'
 import RedisCacheStore from '#modules/cache/infra/adapters/cache-runtime/redis_cache_store'
 import { CacheInvalidationOutboxWorker } from '#modules/cache/infra/adapters/invalidation-outbox/cache_invalidation_outbox_worker'
+import { PostgresCacheInvalidationOutboxRepository } from '#modules/cache/infra/repositories/invalidation-outbox/postgres_cache_invalidation_outbox_repository'
 import {
   CACHE_COLLECTION_GENERATION_NAMESPACES,
   entityCacheGenerationNamespaces,

@@ -3,9 +3,9 @@ import type {
   AiDisputeAutoQueueIntentJob,
   AiDisputeAutoQueueIntentRepository,
   AiDisputeAutoQueueProcessor,
-} from '#modules/reviews/actions/ports/outbound/ai_dispute_auto_queue_intent_repository'
+} from '#modules/disputes/actions/ports/outbound/ai_dispute_auto_queue_intent_repository'
 import { makeSystemReviewActionContext } from '#modules/reviews/actions/review_action_context'
-import type { AiDisputeSourceType } from '#modules/reviews/public_contracts/ai_dispute_auto_queue'
+import type { AiDisputeSourceType } from '#modules/disputes/public_contracts/ai_dispute_auto_queue'
 
 export type {
   AiDisputeAutoQueueIntentJob,
@@ -14,7 +14,7 @@ export type {
   ClaimAiDisputeAutoQueueIntentsInput,
   CompleteAiDisputeAutoQueueIntentInput,
   FailAiDisputeAutoQueueIntentInput,
-} from '#modules/reviews/actions/ports/outbound/ai_dispute_auto_queue_intent_repository'
+} from '#modules/disputes/actions/ports/outbound/ai_dispute_auto_queue_intent_repository'
 
 const DEFAULT_BATCH_SIZE = 25
 const DEFAULT_LEASE_MS = 60_000

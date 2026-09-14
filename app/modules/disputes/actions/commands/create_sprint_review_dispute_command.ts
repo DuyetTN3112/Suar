@@ -6,7 +6,7 @@ import UnauthorizedException from '#modules/errors/public_contracts/unauthorized
 import ValidationException from '#modules/errors/public_contracts/validation_exception'
 import { BaseCommand } from '#modules/reviews/actions/base_command'
 import type { ReviewCryptography } from '#modules/reviews/actions/ports/outbound/review_cryptography'
-import type { SprintReviewDisputeUnitOfWork } from '#modules/reviews/actions/ports/outbound/sprint_review_dispute_unit_of_work'
+import type { SprintReviewDisputeUnitOfWork } from '#modules/disputes/actions/ports/outbound/sprint_review_dispute_unit_of_work'
 import type { ReviewActionContext } from '#modules/reviews/actions/review_action_context'
 
 export interface CreateSprintReviewDisputeDTO {

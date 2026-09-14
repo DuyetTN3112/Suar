@@ -1,6 +1,6 @@
 import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
 import { BaseCommand } from '#modules/reviews/actions/base_command'
-import type { ReviewDisputeCaseFileUnitOfWork } from '#modules/reviews/actions/ports/outbound/review_dispute_case_file_unit_of_work'
+import type { ReviewDisputeCaseFileUnitOfWork } from '#modules/disputes/actions/ports/outbound/review_dispute_case_file_unit_of_work'
 import type { ReviewActionContext } from '#modules/reviews/actions/review_action_context'
 
 export interface BuildReviewDisputeCaseFileDTO {
