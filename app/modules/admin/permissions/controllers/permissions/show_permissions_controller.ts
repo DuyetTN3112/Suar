@@ -1,7 +1,7 @@
 import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 
-import { AdminPermissionActionFactory } from '#modules/admin/permissions/actions/ports/inbound/admin_permission_action_factory'
+import { AdminPermissionActionFactory } from '#modules/admin/permissions/actions/ports/inbound/permissions/admin_permission_action_factory'
 import { actionContextFromHttp } from '#modules/http/boundary/http_execution_context'
 
 

@@ -5,7 +5,7 @@ import type {
   ListAdminReviewDisputesInput,
   ListAdminReviewDisputesResult,
   ReviewAdminDisputeExecutionContext,
-} from '#modules/reviews/public_contracts/admin_review_dispute_capability'
+} from '#modules/disputes/public_contracts/admin_review_dispute_capability'
 
 export abstract class ReviewAdminDisputeReadPort {
   abstract list(

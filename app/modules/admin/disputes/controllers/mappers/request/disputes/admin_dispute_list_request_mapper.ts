@@ -89,3 +89,12 @@ export function buildAdminDisputeListRequest(
     ),
   }
 }
+
+export function buildAiOperatorDisputeRequest(request: RequestLike): { page: number; perPage: number } {
+  const pagination = normalizePagination(
+    { page: paginationValue(request.input('page', REVIEW_PAGINATION.DEFAULT_PAGE), 'page'), perPage: 25 },
+    REVIEW_PAGINATION
+  )
+  return { page: pagination.page, perPage: pagination.perPage }
+}
+

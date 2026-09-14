@@ -1,14 +1,17 @@
 import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 
-import { AdminDisputeActionFactory } from '#modules/admin/disputes/actions/ports/inbound/admin_dispute_action_factory'
+import { AdminDisputeActionFactory } from '#modules/admin/disputes/actions/ports/inbound/disputes/admin_dispute_action_factory'
+import {
+  buildAdminDisputeDetailRequest,
+  buildAdminDisputeListRequest,
+  buildAiOperatorDisputeRequest,
+} from '#modules/admin/disputes/controllers/mappers/request/disputes/admin_dispute_list_request_mapper'
 import { actionContextFromHttp } from '#modules/http/boundary/http_execution_context'
 import {
-  normalizePagination,
   fromLegacySnakePagination,
   toCanonicalPagePagination,
 } from '#modules/pagination/public_contracts/pagination_public_api'
-import { REVIEW_PAGINATION } from '#modules/reviews/public_contracts/review_pagination'
 
 interface AgentRuntimeHealth {
   state: 'online' | 'offline' | 'misconfigured'
@@ -38,7 +41,13 @@ async function probeConfiguredClawagent(): Promise<AgentRuntimeHealth> {
     url.pathname = '/healthz'
     url.search = ''
     const response = await fetch(url, { signal: AbortSignal.timeout(3_000) })
-    if (!response.ok) throw new Error(`health probe returned HTTP ${response.status}`)
+    if (!response.ok) {
+      return {
+        state: 'offline',
+        checked_at: new Date().toISOString(),
+        diagnostic: 'agent returned an unhealthy response',
+      }
+    }
     const payload = (await response.json()) as Record<string, unknown>
     const activeEvaluations = Array.isArray(payload['active_evaluations'])
       ? (payload['active_evaluations'] as NonNullable<AgentRuntimeHealth['active_evaluations']>)
@@ -51,11 +60,11 @@ async function probeConfiguredClawagent(): Promise<AgentRuntimeHealth> {
       ...(typeof payload['started_at'] === 'string' ? { started_at: payload['started_at'] } : {}),
       ...(activeEvaluations ? { active_evaluations: activeEvaluations } : {}),
     }
-  } catch (error) {
+  } catch {
     return {
       state: 'offline',
       checked_at: new Date().toISOString(),
-      diagnostic: error instanceof Error ? error.message : 'health probe failed',
+      diagnostic: 'health probe failed',
     }
   }
 }
@@ -66,54 +75,30 @@ export default class AdminDisputesController {
 
   async index(ctx: HttpContext) {
     const { inertia, request } = ctx
-    const after = request.input('after', null) as string | null
-    const before = request.input('before', null) as string | null
-    const status = request.input('status', null) as string | null
-    const search = request.input('search', null) as string | null
-    const requestedOutcome = request.input('requested_outcome', null) as string | null
-    const finalDecision = request.input('final_decision', null) as string | null
-    const pagination = normalizePagination(
-      {
-        page: request.input('page', REVIEW_PAGINATION.DEFAULT_PAGE) as unknown,
-        perPage: request.input(
-          'perPage',
-          request.input('per_page', REVIEW_PAGINATION.DEFAULT_PER_PAGE)
-        ) as unknown,
-      },
-      REVIEW_PAGINATION
-    )
-
+    const filters = buildAdminDisputeListRequest(request)
     const execCtx = actionContextFromHttp(ctx)
-    const result = await this.actions.makeListAdminDisputesQuery(execCtx).handle({
-      page: after || before ? REVIEW_PAGINATION.DEFAULT_PAGE : pagination.page,
-      perPage: pagination.perPage,
-      after,
-      before,
-      status,
-      search,
-      requestedOutcome,
-      finalDecision,
-    })
+    const result = await this.actions.makeListAdminDisputesQuery(execCtx).handle(filters)
 
     return inertia.render('admin/disputes/index', {
       disputes: result.data,
       pagination: toCanonicalPagePagination(fromLegacySnakePagination(result.meta)),
       filters: {
-        status,
-        search,
-        after,
-        before,
-        requested_outcome: requestedOutcome,
-        final_decision: finalDecision,
+        status: filters.status,
+        search: filters.search,
+        after: filters.after,
+        before: filters.before,
+        requested_outcome: filters.requestedOutcome,
+        final_decision: filters.finalDecision,
       },
     })
   }
 
   async show(ctx: HttpContext) {
     const { inertia, params } = ctx
+    const { disputeId } = buildAdminDisputeDetailRequest(params)
     const execCtx = actionContextFromHttp(ctx)
     const result = await this.actions.makeGetAdminDisputeDetailQuery(execCtx).handle({
-      disputeId: params['disputeId'] as string,
+      disputeId,
     })
 
     return inertia.render('admin/disputes/show', result)
@@ -121,10 +106,7 @@ export default class AdminDisputesController {
 
   async aiOperator(ctx: HttpContext) {
     const { inertia, request } = ctx
-    const pagination = normalizePagination(
-      { page: request.input('page', REVIEW_PAGINATION.DEFAULT_PAGE) as unknown, perPage: 25 },
-      REVIEW_PAGINATION
-    )
+    const pagination = buildAiOperatorDisputeRequest(request)
     const [result, agentRuntime] = await Promise.all([
       this.actions
         .makeGetAiOperatorOverviewQuery(actionContextFromHttp(ctx))

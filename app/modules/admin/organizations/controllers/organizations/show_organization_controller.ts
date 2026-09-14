@@ -1,7 +1,7 @@
 import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 
-import { AdminOrganizationActionFactory } from '#modules/admin/organizations/actions/ports/inbound/admin_organization_action_factory'
+import { AdminOrganizationActionFactory } from '#modules/admin/organizations/actions/ports/inbound/organizations/admin_organization_action_factory'
 import { actionContextFromHttp } from '#modules/http/boundary/http_execution_context'
 
 

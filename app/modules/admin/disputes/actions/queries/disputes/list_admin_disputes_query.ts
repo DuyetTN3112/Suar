@@ -4,7 +4,7 @@ import { BaseQuery } from '#modules/admin/disputes/actions/queries/disputes/base
 import type {
   ListAdminReviewDisputesInput,
   ListAdminReviewDisputesResult,
-} from '#modules/reviews/public_contracts/admin_review_dispute_capability'
+} from '#modules/disputes/public_contracts/admin_review_dispute_capability'
 
 export default class ListAdminDisputesQuery extends BaseQuery<
   ListAdminReviewDisputesInput,

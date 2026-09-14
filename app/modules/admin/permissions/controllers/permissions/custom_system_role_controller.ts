@@ -2,10 +2,10 @@ import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 import vine from '@vinejs/vine'
 
-import { AdminPermissionActionFactory } from '#modules/admin/permissions/actions/ports/inbound/admin_permission_action_factory'
-export { assertWildcardPermissionConfirmed } from '#modules/admin/permissions/domain/custom_system_role_policy'
+import { AdminPermissionActionFactory } from '#modules/admin/permissions/actions/ports/inbound/permissions/admin_permission_action_factory'
+export { assertWildcardPermissionConfirmed } from '#modules/admin/permissions/domain/permissions/custom_system_role_policy'
+import { buildCustomSystemRoleRouteRequest } from '#modules/admin/permissions/controllers/mappers/request/permissions/custom_system_role_request_mapper'
 import { listSystemPermissionCatalog } from '#modules/authorization/public_contracts/access_surface'
-import ValidationException from '#modules/errors/public_contracts/validation_exception'
 import { actionContextFromHttp } from '#modules/http/boundary/http_execution_context'
 
 const roleValidator = vine.create(
@@ -23,13 +23,6 @@ const roleValidator = vine.create(
   })
 )
 
-function requireStringParam(value: unknown, name: string): string {
-  if (typeof value !== 'string' || value.length === 0) {
-    throw ValidationException.field(name, `Missing route param: ${name}`)
-  }
-  return value
-}
-
 @inject()
 export default class CustomSystemRoleController {
   constructor(private readonly actions: AdminPermissionActionFactory) {}
@@ -41,7 +34,7 @@ export default class CustomSystemRoleController {
 
   async edit(ctx: HttpContext) {
     const { params, inertia, response } = ctx
-    const roleId = requireStringParam(params['id'], 'id')
+    const { roleId } = buildCustomSystemRoleRouteRequest(params)
     const role = await this.actions
       .makeGetCustomSystemRoleQuery(actionContextFromHttp(ctx))
       .handle({ roleId })
@@ -79,7 +72,7 @@ export default class CustomSystemRoleController {
 
   async update(ctx: HttpContext) {
     const { auth, params, request, response } = ctx
-    const roleId = requireStringParam(params['id'], 'id')
+    const { roleId } = buildCustomSystemRoleRouteRequest(params)
     const payload = await request.validateUsing(roleValidator)
     const result = await this.actions
       .makeUpdateCustomSystemRoleCommand(actionContextFromHttp(ctx))
@@ -110,7 +103,7 @@ export default class CustomSystemRoleController {
 
   async destroy(ctx: HttpContext) {
     const { params, response } = ctx
-    const roleId = requireStringParam(params['id'], 'id')
+    const { roleId } = buildCustomSystemRoleRouteRequest(params)
     const success = await this.actions
       .makeDeleteCustomSystemRoleCommand(actionContextFromHttp(ctx))
       .handle({ roleId })

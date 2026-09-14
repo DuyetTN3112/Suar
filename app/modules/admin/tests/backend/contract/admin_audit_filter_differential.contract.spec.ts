@@ -75,12 +75,16 @@ function referenceRecords(seeded: SeededPopulation): readonly ReferenceFilterRec
   }))
 }
 
-function condition(field: string, value: string): FilterExpression {
+function condition(
+  field: string,
+  value: string,
+  effect: 'require' | 'exclude' = 'require'
+): FilterExpression {
   return {
     kind: 'condition',
     field,
     operator: 'eq',
-    effect: 'require',
+    effect,
     unknown: 'exclude',
     value: { kind: 'scalar', value },
   }
@@ -144,7 +148,7 @@ test.group('Contract | Admin audit SQL versus reference differential', (group) =
         combinator: 'and',
         children: [
           condition('audit.resourceType', seeded.entityType),
-          { ...condition('audit.outcome', 'success'), effect: 'exclude' } as FilterExpression,
+          condition('audit.outcome', 'success', 'exclude'),
         ],
       }),
     },
