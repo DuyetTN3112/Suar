@@ -11,15 +11,15 @@ import {
   validVerifiedWorkAccomplishmentV1,
 } from '../unit/public_contracts/verified-work/accomplishment_contract_fixtures.js'
 
+import AccomplishmentLifecycleRevision from '#modules/accomplishments/infra/models/lifecycle/accomplishment_lifecycle_revision'
+import AccomplishmentPublicProjection from '#modules/accomplishments/infra/models/publication/accomplishment_public_projection'
 import AccomplishmentCapabilitySignal from '#modules/accomplishments/infra/models/verified-work/accomplishment_capability_signal'
 import AccomplishmentClaimLink from '#modules/accomplishments/infra/models/verified-work/accomplishment_claim_link'
 import AccomplishmentEvidenceLink from '#modules/accomplishments/infra/models/verified-work/accomplishment_evidence_link'
-import AccomplishmentLifecycleRevision from '#modules/accomplishments/infra/models/lifecycle/accomplishment_lifecycle_revision'
-import AccomplishmentPublicProjection from '#modules/accomplishments/infra/models/publication/accomplishment_public_projection'
 import VerifiedWorkAccomplishment from '#modules/accomplishments/infra/models/verified-work/verified_work_accomplishment'
-import { parseAccomplishmentCapabilitySignalV1 } from '#modules/accomplishments/public_contracts/verified-work/accomplishment_capability_signal_v1'
 import { parseAccomplishmentLifecycleRevisionV1 } from '#modules/accomplishments/public_contracts/lifecycle/accomplishment_lifecycle_v1'
 import { parseAccomplishmentPublicProjectionV1 } from '#modules/accomplishments/public_contracts/publication/accomplishment_public_projection_v1'
+import { parseAccomplishmentCapabilitySignalV1 } from '#modules/accomplishments/public_contracts/verified-work/accomplishment_capability_signal_v1'
 import { parseVerifiedWorkAccomplishmentV1 } from '#modules/accomplishments/public_contracts/verified-work/verified_work_accomplishment_v1'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import { testId } from '#tests/helpers/test_utils'
@@ -410,9 +410,10 @@ test.group('Integration | Accomplishment persistence schema', (group) => {
       ownership_level: 'primary_owner',
       source_claim_hash: ACCOMPLISHMENT_TEST_HASHES.completion,
       schema_version: ACCOMPLISHMENT_SCHEMA_VERSIONS.claimLink,
-      claim_payload: { action: 'design_and_implement' },
+      claim_payload: {},
     })
-    assert.equal((await AccomplishmentClaimLink.find(orphanId))?.id, orphanId)
+    const orphanClaimLink = await AccomplishmentClaimLink.find(orphanId)
+    assert.equal(orphanClaimLink?.id, orphanId)
   })
 
   test('still rolls back partial accomplishment writes at the transaction boundary', async ({ assert }) => {

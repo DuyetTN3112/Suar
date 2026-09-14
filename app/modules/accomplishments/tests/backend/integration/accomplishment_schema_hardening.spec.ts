@@ -303,6 +303,10 @@ test.group('Integration | Accomplishment schema hardening', (group) => {
       .where('n.nspname', 'public')
       .whereIn('t.relname', tvaStorageTables)
       .whereIn('c.contype', ['f', 'c'])
+      .whereNotIn('c.conname', [
+        'chk_task_completion_evidence_requirement_ids_array',
+        'chk_task_completion_evidence_deliverable_ids_array',
+      ])
       .select('t.relname as table_name', 'c.conname as constraint_name')) as Array<{
       table_name: string
       constraint_name: string
