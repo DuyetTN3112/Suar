@@ -5,11 +5,11 @@ import type {
   AccomplishmentPublicProjectionReader,
 } from '#modules/accomplishments/actions/ports/outbound/publication/accomplishment_public_projection_reader'
 import { AccomplishmentSearchDocumentBuilder } from '#modules/accomplishments/infra/adapters/search-discovery/accomplishment_search_document_builder'
-import type { AccomplishmentPublicProjectionV1 } from '#modules/accomplishments/public_contracts/publication/accomplishment_public_projection_v1'
 import {
   ACCOMPLISHMENT_SEARCH_DOCUMENT_SCHEMA_V1,
   ACCOMPLISHMENT_SEARCH_TAXONOMY_VERSION_V1,
 } from '#modules/accomplishments/public_contracts/accomplishment_search_document_v1'
+import type { AccomplishmentPublicProjectionV1 } from '#modules/accomplishments/public_contracts/publication/accomplishment_public_projection_v1'
 import {
   ACCOMPLISHMENT_TEST_IDS,
   validAccomplishmentPublicProjectionV1,

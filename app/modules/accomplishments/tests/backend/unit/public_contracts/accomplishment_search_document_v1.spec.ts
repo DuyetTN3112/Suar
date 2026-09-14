@@ -1,21 +1,21 @@
 import { test } from '@japa/runner'
 
+import type { AccomplishmentPublicProjectionReader } from '#modules/accomplishments/actions/ports/outbound/publication/accomplishment_public_projection_reader'
+import { AccomplishmentSearchDocumentBuilder } from '#modules/accomplishments/infra/adapters/search-discovery/accomplishment_search_document_builder'
 import {
   isAccomplishmentSearchDocumentV1,
   parseAccomplishmentSearchDocumentV1,
 } from '#modules/accomplishments/public_contracts/accomplishment_search_document_v1'
 import { validAccomplishmentPublicProjectionV1 } from '#modules/accomplishments/tests/backend/unit/public_contracts/verified-work/accomplishment_contract_fixtures'
-import { AccomplishmentSearchDocumentBuilder } from '#modules/accomplishments/infra/adapters/search-discovery/accomplishment_search_document_builder'
-import type { AccomplishmentPublicProjectionReader } from '#modules/accomplishments/actions/ports/outbound/publication/accomplishment_public_projection_reader'
 
 test.group('Accomplishment search document | public-safe V1', () => {
   const projection = validAccomplishmentPublicProjectionV1()
   const reader: AccomplishmentPublicProjectionReader = {
-    async findActiveById() {
-      return projection
+    findActiveById() {
+      return Promise.resolve(projection)
     },
-    async listActiveForUser() {
-      return { items: [projection], nextCursor: null }
+    listActiveForUser() {
+      return Promise.resolve({ items: [projection], nextCursor: null })
     },
   }
 

@@ -10,9 +10,9 @@ import {
   VerifiedAccomplishmentProjectionCollisionException,
   VerifiedAccomplishmentRepository,
 } from '#modules/accomplishments/infra/repositories/verified-work/verified_accomplishment_repository'
+import type { AccomplishmentLifecycleRevisionV1 } from '#modules/accomplishments/public_contracts/lifecycle/accomplishment_lifecycle_v1'
 import type { AccomplishmentCapabilitySignalV1 } from '#modules/accomplishments/public_contracts/verified-work/accomplishment_capability_signal_v1'
 import { parseAccomplishmentCapabilitySignalV1 } from '#modules/accomplishments/public_contracts/verified-work/accomplishment_capability_signal_v1'
-import type { AccomplishmentLifecycleRevisionV1 } from '#modules/accomplishments/public_contracts/lifecycle/accomplishment_lifecycle_v1'
 import type { VerifiedWorkAccomplishmentV1 } from '#modules/accomplishments/public_contracts/verified-work/verified_work_accomplishment_v1'
 import { parseVerifiedWorkAccomplishmentV1 } from '#modules/accomplishments/public_contracts/verified-work/verified_work_accomplishment_v1'
 import {
@@ -21,9 +21,9 @@ import {
   validCapabilitySignalV1,
   validVerifiedWorkAccomplishmentV1,
 } from '#modules/accomplishments/tests/backend/unit/public_contracts/verified-work/accomplishment_contract_fixtures'
-import type { CompletionClaimV1 } from '#modules/reviews/public_contracts/observation/completion_review_contracts'
 import InvariantViolationException from '#modules/errors/public_contracts/invariant_violation_exception'
 import PersistedDataIntegrityException from '#modules/errors/public_contracts/persisted_data_integrity_exception'
+import type { CompletionClaimV1 } from '#modules/reviews/public_contracts/observation/completion_review_contracts'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 
 const hasher = new NodeAccomplishmentContentHasher()

@@ -5,13 +5,13 @@ import ProjectVerifiedAccomplishmentCommand, {
   ProjectVerifiedAccomplishmentBlockedError,
 } from '#modules/accomplishments/actions/commands/verified-work/project_verified_accomplishment_command'
 import type {
-  GovernedAccomplishmentProjectionSource,
-  GovernedAccomplishmentProjectionSourceIdentity,
-} from '#modules/accomplishments/actions/ports/outbound/verified-work/governed_accomplishment_projection_source_reader'
-import type {
   AccomplishmentTransaction,
   AccomplishmentTransactionRunner,
 } from '#modules/accomplishments/actions/ports/outbound/accomplishment_transaction'
+import type {
+  GovernedAccomplishmentProjectionSource,
+  GovernedAccomplishmentProjectionSourceIdentity,
+} from '#modules/accomplishments/actions/ports/outbound/verified-work/governed_accomplishment_projection_source_reader'
 import type {
   CreateVerifiedAccomplishmentAggregateInput,
   VerifiedAccomplishmentWriter,
