@@ -1,5 +1,5 @@
-import type { AiDisputeSourceType } from '../../../public_contracts/ai_dispute_auto_queue.js'
-import type { ReviewActionContext } from '../../review_action_context.js'
+import type { AiDisputeSourceType } from '#modules/disputes/public_contracts/ai_dispute_auto_queue'
+import type { ReviewActionContext } from '#modules/reviews/actions/review_action_context'
 
 export interface AiDisputeAutoQueueIntentJob {
   id: string

@@ -1,5 +1,15 @@
-import BusinessLogicException from '#modules/errors/public_contracts/business_logic_exception'
-import ForbiddenException from '#modules/errors/public_contracts/forbidden_exception'
+import {
+  writeAlternativeResolutionCheckpoint,
+  writeClassicResolutionCheckpoint,
+  writeResolutionAudit,
+} from './resolve_review_dispute_checkpoints.js'
+import {
+  assertCanResolve,
+  assertCanResolveWorkflow,
+  enforceDossierReadiness,
+  validateTypedActions,
+} from './resolve_review_dispute_validation.js'
+
 import NotFoundException from '#modules/errors/public_contracts/not_found_exception'
 import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
 import { PLATFORM_EVENT_NAMES } from '#modules/observability/public_contracts/platform_event_names'
@@ -8,7 +18,7 @@ import {
   platformWorkflowLogger,
 } from '#modules/observability/public_contracts/platform_observability'
 import { BaseCommand } from '#modules/reviews/actions/base_command'
-import type { ReviewDisputeResult } from '#modules/reviews/actions/commands/disputes/create_review_dispute_command'
+import type { ReviewDisputeResult } from '#modules/disputes/actions/commands/create_review_dispute_command'
 import type {
   ReviewDisputeResolutionDecision,
   ReviewDisputeResolutionPersistenceSession,
@@ -17,15 +27,10 @@ import type {
   SprintReviewDisputeResolutionSnapshot,
   SprintReverseReviewResolutionSnapshot,
   TaskReviewResolutionSnapshot,
-} from '#modules/reviews/actions/ports/outbound/review_dispute_resolution_unit_of_work'
+} from '#modules/disputes/actions/ports/outbound/review_dispute_resolution_unit_of_work'
 import type { ReviewActionContext } from '#modules/reviews/actions/review_action_context'
-import { evaluateReviewDisputeReadiness } from '#modules/reviews/domain/disputes/review_dispute_readiness'
-import { canResolveReviewDispute } from '#modules/reviews/domain/disputes/review_dispute_rules'
 import { buildReviewDisputeEvent } from '#modules/reviews/observability/review_event_factory'
-import {
-  VALID_PROFILE_UPDATE_ACTIONS,
-  VALID_REVIEWER_CREDIBILITY_ACTIONS,
-} from '#modules/reviews/public_contracts/review_constants'
+
 
 export type ResolveDisputeSourceType = ReviewDisputeResolutionSourceType
 
@@ -170,9 +175,9 @@ export default class ResolveReviewDisputeCommand extends BaseCommand<
       })
 
       if (outcome.sourceType === 'review_dispute') {
-        await this.writeClassicResolutionCheckpoint(dto, startedAt, outcome.result)
+        await writeClassicResolutionCheckpoint(this.execCtx, dto, startedAt, outcome.result)
       } else {
-        await this.writeAlternativeResolutionCheckpoint(dto, startedAt, outcome.result)
+        await writeAlternativeResolutionCheckpoint(this.execCtx, dto, startedAt, outcome.result)
       }
       return outcome.result
     } catch (error) {
@@ -199,22 +204,6 @@ export default class ResolveReviewDisputeCommand extends BaseCommand<
     }
   }
 
-  private validateTypedActions(dto: ResolveReviewDisputeDTO): void {
-    if (dto.profile_update_action && !VALID_PROFILE_UPDATE_ACTIONS.has(dto.profile_update_action)) {
-      throw new BusinessLogicException(
-        `Invalid profile_update_action: ${dto.profile_update_action}`
-      )
-    }
-    if (
-      dto.reviewer_credibility_action &&
-      !VALID_REVIEWER_CREDIBILITY_ACTIONS.has(dto.reviewer_credibility_action)
-    ) {
-      throw new BusinessLogicException(
-        `Invalid reviewer_credibility_action: ${dto.reviewer_credibility_action}`
-      )
-    }
-  }
-
   private async resolveClassicReviewDispute(
     persistence: ReviewDisputeResolutionPersistenceSession,
     dto: ResolveReviewDisputeDTO,
@@ -223,9 +212,9 @@ export default class ResolveReviewDisputeCommand extends BaseCommand<
     disputeStatus: string,
     reviewSessionId: string
   ): Promise<ReviewDisputeResult> {
-    this.assertCanResolve(actorSystemRole, disputeStatus, dto)
-    this.validateTypedActions(dto)
-    await this.enforceDossierReadiness(persistence, dto)
+    assertCanResolve(actorSystemRole, disputeStatus, dto)
+    validateTypedActions(dto)
+    await enforceDossierReadiness(persistence, dto)
 
     const resolved = await persistence.resolveClassicDispute({
       disputeId: dto.dispute_id,
@@ -255,7 +244,7 @@ export default class ResolveReviewDisputeCommand extends BaseCommand<
         ? { reviewerCredibilityAction: dto.reviewer_credibility_action }
         : {}),
     })
-    await this.writeResolutionAudit(persistence, 'review_dispute', dto, actorId)
+    await writeResolutionAudit(this.execCtx, persistence, 'review_dispute', dto, actorId)
     return result
   }
 
@@ -307,8 +296,8 @@ export default class ResolveReviewDisputeCommand extends BaseCommand<
   ): Promise<ReviewDisputeResult> {
     const dispute = loaded ?? (await persistence.loadSprintDisputeForUpdate(dto.dispute_id))
     if (!dispute) throw new NotFoundException('Review dispute not found')
-    this.assertCanResolve(actorSystemRole, dispute.status, dto)
-    this.validateTypedActions(dto)
+    assertCanResolve(actorSystemRole, dispute.status, dto)
+    validateTypedActions(dto)
 
     const resolved = await persistence.resolveSprintDispute({
       disputeId: dto.dispute_id,
@@ -322,7 +311,7 @@ export default class ResolveReviewDisputeCommand extends BaseCommand<
       review_session_id: null,
       reviewee_id: resolved['opened_by'] ?? null,
     } as unknown as ReviewDisputeResult
-    await this.writeResolutionAudit(persistence, 'sprint_review_dispute', dto, actorId)
+    await writeResolutionAudit(this.execCtx, persistence, 'sprint_review_dispute', dto, actorId)
     return result
   }
 
@@ -336,7 +325,7 @@ export default class ResolveReviewDisputeCommand extends BaseCommand<
     const workflow =
       loaded ?? (await persistence.loadSprintReverseWorkflowForUpdate(dto.dispute_id))
     if (!workflow) throw new NotFoundException('Review dispute not found')
-    this.assertCanResolveSprintReverseWorkflow(actorSystemRole, workflow.status, dto)
+    assertCanResolveWorkflow(actorSystemRole, workflow.status, dto)
 
     const resolved = await persistence.resolveSprintReverseWorkflow({
       disputeId: dto.dispute_id,
@@ -352,7 +341,13 @@ export default class ResolveReviewDisputeCommand extends BaseCommand<
       review_session_id: null,
       reviewee_id: workflow.reviewerId,
     } as unknown as ReviewDisputeResult
-    await this.writeResolutionAudit(persistence, 'sprint_reverse_review_workflow', dto, actorId)
+    await writeResolutionAudit(
+      this.execCtx,
+      persistence,
+      'sprint_reverse_review_workflow',
+      dto,
+      actorId
+    )
     return result
   }
 
@@ -365,7 +360,7 @@ export default class ResolveReviewDisputeCommand extends BaseCommand<
   ): Promise<ReviewDisputeResult> {
     const workflow = loaded ?? (await persistence.loadTaskWorkflowForUpdate(dto.dispute_id))
     if (!workflow) throw new NotFoundException('Review dispute not found')
-    this.assertCanResolveTaskReviewWorkflow(actorSystemRole, workflow.status, dto)
+    assertCanResolveWorkflow(actorSystemRole, workflow.status, dto)
 
     const resolved = await persistence.resolveTaskWorkflow({
       disputeId: dto.dispute_id,
@@ -380,7 +375,7 @@ export default class ResolveReviewDisputeCommand extends BaseCommand<
       review_session_id: null,
       reviewee_id: workflow.revieweeId,
     } as unknown as ReviewDisputeResult
-    await this.writeResolutionAudit(persistence, 'task_review_workflow', dto, actorId)
+    await writeResolutionAudit(this.execCtx, persistence, 'task_review_workflow', dto, actorId)
     await persistence.stageTaskWorkflowResolutionNotification({
       workflowId: workflow.id,
       taskId: workflow.taskId,
@@ -396,219 +391,4 @@ export default class ResolveReviewDisputeCommand extends BaseCommand<
     })
     return result
   }
-
-  private assertCanResolve(
-    actorSystemRole: string,
-    disputeStatus: string,
-    dto: ResolveReviewDisputeDTO
-  ): void {
-    const policyResult = canResolveReviewDispute({
-      actorSystemRole,
-      disputeStatus,
-      finalDecision: dto.final_decision,
-      finalRationale: dto.final_rationale,
-    })
-    if (!policyResult.allowed) {
-      if (policyResult.code === 'FORBIDDEN') {
-        throw new ForbiddenException(policyResult.reason)
-      }
-      throw new BusinessLogicException(policyResult.reason)
-    }
-  }
-
-  private assertCanResolveSprintReverseWorkflow(
-    actorSystemRole: string,
-    workflowStatus: string,
-    dto: ResolveReviewDisputeDTO
-  ): void {
-    this.assertCanResolveWorkflow(actorSystemRole, workflowStatus, dto)
-  }
-
-  private assertCanResolveTaskReviewWorkflow(
-    actorSystemRole: string,
-    workflowStatus: string,
-    dto: ResolveReviewDisputeDTO
-  ): void {
-    this.assertCanResolveWorkflow(actorSystemRole, workflowStatus, dto)
-  }
-
-  private assertCanResolveWorkflow(
-    actorSystemRole: string,
-    workflowStatus: string,
-    dto: ResolveReviewDisputeDTO
-  ): void {
-    if (actorSystemRole !== 'system_admin' && actorSystemRole !== 'superadmin') {
-      throw new ForbiddenException('Only system admin can resolve review disputes')
-    }
-    if (workflowStatus === 'resolved') {
-      throw new BusinessLogicException('Review dispute is already resolved')
-    }
-    if (
-      workflowStatus !== 'reported' &&
-      workflowStatus !== 'ai_reviewing' &&
-      workflowStatus !== 'admin_reviewing'
-    ) {
-      throw new BusinessLogicException('Review dispute is not active')
-    }
-    if (
-      ![
-        'uphold_review',
-        'adjust_score',
-        'request_re_review',
-        'dismiss_dispute',
-        'partially_accept',
-      ].includes(dto.final_decision)
-    ) {
-      throw new BusinessLogicException('Review dispute final decision is invalid')
-    }
-    if (!dto.final_rationale || dto.final_rationale.trim().length === 0) {
-      throw new BusinessLogicException('Review dispute final rationale is required')
-    }
-  }
-
-  private async writeResolutionAudit(
-    persistence: ReviewDisputeResolutionPersistenceSession,
-    entityType: ReviewDisputeResolutionSourceType,
-    dto: ResolveReviewDisputeDTO,
-    actorId: string
-  ): Promise<void> {
-    await persistence.writeAudit(this.execCtx, {
-      entityType,
-      entityId: dto.dispute_id,
-      actorId,
-      finalDecision: dto.final_decision,
-      profileUpdateAction: dto.profile_update_action ?? null,
-      reviewerCredibilityAction: dto.reviewer_credibility_action ?? null,
-    })
-  }
-
-  private async writeResolutionCheckpoint(
-    dto: ResolveReviewDisputeDTO,
-    startedAt: number,
-    metadata: Record<string, unknown>
-  ): Promise<void> {
-    await platformWorkflowLogger.checkpointSafely(
-      this.execCtx,
-      buildReviewDisputeEvent(this.execCtx, {
-        eventName: PLATFORM_EVENT_NAMES.REVIEW_DISPUTE_RESOLVED,
-        eventFamily: 'dispute',
-        subsystem: 'review_disputes',
-        workflow: 'review_dispute_resolve',
-        stage: 'completed',
-        outcome: 'success',
-        disputeId: dto.dispute_id,
-        change: {
-          final_decision: dto.final_decision,
-          ...metadata,
-        },
-        runtime: {
-          duration_ms: Date.now() - startedAt,
-        },
-      })
-    )
-  }
-
-  private async writeClassicResolutionCheckpoint(
-    dto: ResolveReviewDisputeDTO,
-    startedAt: number,
-    result: ReviewDisputeResult
-  ): Promise<void> {
-    await platformWorkflowLogger.checkpointSafely(
-      this.execCtx,
-      buildReviewDisputeEvent(this.execCtx, {
-        eventName: PLATFORM_EVENT_NAMES.REVIEW_DISPUTE_RESOLVED,
-        eventFamily: 'dispute',
-        subsystem: 'review_disputes',
-        workflow: 'review_dispute_resolve',
-        stage: 'completed',
-        outcome: 'success',
-        disputeId: result.id,
-        reviewSessionId: result.review_session_id,
-        revieweeId: result.reviewee_id,
-        change: {
-          final_decision: dto.final_decision,
-          profile_update_action: dto.profile_update_action ?? null,
-          reviewer_credibility_action: dto.reviewer_credibility_action ?? null,
-        },
-        runtime: {
-          duration_ms: Date.now() - startedAt,
-        },
-      })
-    )
-  }
-
-  private async writeAlternativeResolutionCheckpoint(
-    dto: ResolveReviewDisputeDTO,
-    startedAt: number,
-    result: ReviewDisputeResult
-  ): Promise<void> {
-    const resolved = result as unknown as Record<string, unknown>
-    await this.writeResolutionCheckpoint(dto, startedAt, {
-      source_type: resolved['source_type'],
-      dispute_review_type: resolved['dispute_review_type'] ?? null,
-    })
-  }
-
-  private async enforceDossierReadiness(
-    persistence: ReviewDisputeResolutionPersistenceSession,
-    dto: ResolveReviewDisputeDTO
-  ): Promise<void> {
-    const latestCaseFile = await persistence.loadLatestDossier(dto.dispute_id)
-    const readiness = evaluateReviewDisputeReadiness({
-      taskSnapshot: parseJsonValue(latestCaseFile?.taskSnapshot),
-      assignmentSnapshot: parseJsonValue(latestCaseFile?.assignmentSnapshot),
-      submissionSnapshot: parseJsonValue(latestCaseFile?.submissionSnapshot),
-      reviewSnapshot: parseJsonValue(latestCaseFile?.reviewSnapshot),
-      skillReviewsSnapshot: parseJsonArray(latestCaseFile?.skillReviewsSnapshot),
-      disputeClaimSnapshot: parseJsonObject(latestCaseFile?.disputeClaimSnapshot),
-      taskCommentsSnapshot: parseJsonArray(latestCaseFile?.taskCommentsSnapshot),
-      evidencesSnapshot: parseJsonArray(latestCaseFile?.evidencesSnapshot),
-      selfAssessmentSnapshot: parseJsonValue(latestCaseFile?.selfAssessmentSnapshot),
-      taskHistorySnapshot: parseJsonArray(latestCaseFile?.taskHistorySnapshot),
-      reviewerContextSnapshot: parseJsonValue(latestCaseFile?.reviewerContextSnapshot),
-      revieweeProfileContextSnapshot: parseJsonValue(
-        latestCaseFile?.revieweeProfileContextSnapshot
-      ),
-      overrideReadiness: dto.override_readiness ?? false,
-      overrideReason: dto.override_reason ?? null,
-    })
-    this.assertDossierReady(readiness)
-  }
-
-  private assertDossierReady(readiness: ReturnType<typeof evaluateReviewDisputeReadiness>): void {
-    if (!readiness.readyForNormalResolution) {
-      throw new BusinessLogicException(
-        `Review dispute dossier is missing required data: ${readiness.missingRequired.join(', ')}`,
-        {
-          missing_required: readiness.missingRequired,
-          missing_recommended: readiness.missingRecommended,
-          warning_recipients: readiness.warningRecipients,
-        }
-      )
-    }
-  }
-}
-
-function parseJsonValue(value: unknown): unknown {
-  if (typeof value !== 'string') {
-    return value ?? null
-  }
-  try {
-    return JSON.parse(value)
-  } catch {
-    return value
-  }
-}
-
-function parseJsonArray(value: unknown): unknown[] {
-  const parsed = parseJsonValue(value)
-  return Array.isArray(parsed) ? parsed : []
-}
-
-function parseJsonObject(value: unknown): Record<string, unknown> | null {
-  const parsed = parseJsonValue(value)
-  if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-    return parsed as Record<string, unknown>
-  }
-  return null
 }

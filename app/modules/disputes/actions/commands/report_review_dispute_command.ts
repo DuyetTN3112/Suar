@@ -5,9 +5,9 @@ import PersistedDataIntegrityException from '#modules/errors/public_contracts/pe
 import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
 import loggerService from '#modules/logger/public_contracts/application_logger'
 import { BaseCommand } from '#modules/reviews/actions/base_command'
-import type { ReviewDisputeCaseFileUnitOfWork } from '#modules/reviews/actions/ports/outbound/review_dispute_case_file_unit_of_work'
+import type { ReviewDisputeCaseFileUnitOfWork } from '#modules/disputes/actions/ports/outbound/review_dispute_case_file_unit_of_work'
 import type { ReviewActionContext } from '#modules/reviews/actions/review_action_context'
-import { aiDisputeAutoQueuePublicApi } from '#modules/reviews/public_contracts/ai_dispute_auto_queue'
+import { aiDisputeAutoQueuePublicApi } from '#modules/disputes/public_contracts/ai_dispute_auto_queue'
 import {
   ACTIVE_REVIEW_DISPUTE_STATUSES,
   ReviewDisputeStatus,

@@ -1,7 +1,7 @@
 import type {
   AiDisputeEvaluationGateway,
   AiDisputeReconciliationResult,
-} from '../../ports/outbound/ai_dispute_evaluation_gateway.js'
+} from '#modules/disputes/actions/ports/outbound/ai_dispute_evaluation_gateway.js'
 
 import { BaseCommand } from '#modules/reviews/actions/base_command'
 import { makeSystemReviewActionContext } from '#modules/reviews/actions/review_action_context'

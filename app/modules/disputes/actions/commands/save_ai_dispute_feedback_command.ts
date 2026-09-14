@@ -1,7 +1,7 @@
 import NotFoundException from '#modules/errors/public_contracts/not_found_exception'
 import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
 import { BaseCommand } from '#modules/reviews/actions/base_command'
-import type { AiDisputeUnitOfWork } from '#modules/reviews/actions/ports/outbound/ai_dispute_unit_of_work'
+import type { AiDisputeUnitOfWork } from '#modules/disputes/actions/ports/outbound/ai_dispute_unit_of_work'
 import type { ReviewActionContext } from '#modules/reviews/actions/review_action_context'
 
 export interface SaveAiDisputeFeedbackDTO {

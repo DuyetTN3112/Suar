@@ -2,9 +2,9 @@ import BusinessLogicException from '#modules/errors/public_contracts/business_lo
 import ForbiddenException from '#modules/errors/public_contracts/forbidden_exception'
 import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
 import { BaseCommand } from '#modules/reviews/actions/base_command'
-import type { SprintReviewDisputeUnitOfWork } from '#modules/reviews/actions/ports/outbound/sprint_review_dispute_unit_of_work'
+import type { SprintReviewDisputeUnitOfWork } from '#modules/disputes/actions/ports/outbound/sprint_review_dispute_unit_of_work'
 import type { ReviewActionContext } from '#modules/reviews/actions/review_action_context'
-import { aiDisputeAutoQueuePublicApi } from '#modules/reviews/public_contracts/ai_dispute_auto_queue'
+import { aiDisputeAutoQueuePublicApi } from '#modules/disputes/public_contracts/ai_dispute_auto_queue'
 
 export interface ReportSprintReviewDisputeDTO {
   dispute_id: string
