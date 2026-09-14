@@ -70,16 +70,6 @@ export default class RequireSystemAdminMiddleware {
       return
     }
 
-    // TODO: Log system admin access to audit log
-    // await AuditLog.create({
-    //   user_id: auth.user.id,
-    //   action: 'system_admin_access',
-    //   resource_type: 'system',
-    //   resource_id: null,
-    //   ip_address: request.ip(),
-    //   user_agent: request.header('user-agent'),
-    // })
-
     await next()
   }
 }

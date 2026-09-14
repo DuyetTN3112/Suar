@@ -3,11 +3,11 @@ import { existsSync, readFileSync } from 'node:fs'
 import { test } from '@japa/runner'
 
 const AUTH_IDENTITY_CONSUMERS = [
-  'app/modules/auth/actions/commands/refresh_session_token_command.ts',
-  'app/modules/auth/actions/commands/issue_session_token_command.ts',
+  'app/modules/auth/actions/commands/session-management/refresh_session_token_command.ts',
+  'app/modules/auth/actions/commands/session-management/issue_session_token_command.ts',
   'app/modules/auth/actions/queries/session-management/verify_session_access_token_query.ts',
   'app/modules/auth/middleware/auth_middleware.ts',
-  'app/modules/auth/controllers/session_token_controller.ts',
+  'app/modules/auth/controllers/session-management/session_token_controller.ts',
 ] as const
 
 const AUTHORIZATION_IDENTITY_CONSUMERS = [

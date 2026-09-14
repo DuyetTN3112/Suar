@@ -53,8 +53,10 @@ export default class CustomSystemRoleRepository extends CustomSystemRoleReposito
   }
 
   async isCodeTaken(code: string, exceptRoleId?: string): Promise<boolean> {
-    const query = CustomSystemRole.query().where('code', code)
-    if (exceptRoleId) query.whereNot('id', exceptRoleId)
+    let query = CustomSystemRole.query().where('code', code)
+    if (exceptRoleId) {
+      query = query.whereNot('id', exceptRoleId)
+    }
     return (await query.first()) !== null
   }
 
