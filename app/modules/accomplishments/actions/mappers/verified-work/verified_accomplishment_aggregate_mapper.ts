@@ -14,8 +14,8 @@ import {
   parseVerifiedWorkAccomplishmentV1,
   type VerifiedWorkAccomplishmentV1,
 } from '#modules/accomplishments/public_contracts/verified-work/verified_work_accomplishment_v1'
-import type { TvaJsonObject } from '#modules/tasks/public_contracts/task-authoring/primitives'
 import InvariantViolationException from '#modules/errors/public_contracts/invariant_violation_exception'
+import type { TvaJsonObject } from '#modules/tasks/public_contracts/task-authoring/primitives'
 
 export interface MapVerifiedAccomplishmentAggregateInput {
   readonly source: GovernedAccomplishmentProjectionSource

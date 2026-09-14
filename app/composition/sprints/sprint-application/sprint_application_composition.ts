@@ -1,9 +1,8 @@
-import { LucidSprintTransactionRunner } from '#composition/adapters/sprints/lucid_sprint_transaction_runner'
 import { ProjectSprintAccessReaderAdapter } from '#composition/adapters/projects/project_sprint_access_reader_adapter'
-
+import { LucidSprintTransactionRunner } from '#composition/adapters/sprints/lucid_sprint_transaction_runner'
+import { reviewActionFactory } from '#composition/reviews/review-core/review_action_factory'
 import { ComposedSprintCommandFactory } from '#composition/sprints/project-sprint/factories/sprint_command_factory'
 import { ComposedSprintQueryFactory } from '#composition/sprints/project-sprint/factories/sprint_query_factory'
-import { reviewActionFactory } from '#composition/reviews/review-core/review_action_factory'
 import { SprintReviewClosure } from '#modules/sprints/actions/ports/outbound/sprint_review_closure'
 import { PostgresSprintRepository } from '#modules/sprints/infra/repositories/project-sprint/postgres_sprint_repository'
 import { PostgresProjectBacklogReader } from '#modules/sprints/infra/repositories/read/project-backlog/postgres_project_backlog_reader'

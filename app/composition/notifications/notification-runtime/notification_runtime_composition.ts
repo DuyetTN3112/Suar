@@ -1,12 +1,12 @@
 import emitter from '@adonisjs/core/services/emitter'
 
-import { makeNotificationFanoutStager } from '#composition/notifications/notification-runtime/notification_operations_composition'
 import { makePreviewNotificationRetentionQuery } from '#composition/notifications/notification-feed/notification_projection_composition'
+import { makeNotificationFanoutStager } from '#composition/notifications/notification-runtime/notification_operations_composition'
 import notificationConfig from '#config/notification'
 import { notificationRealtimeSessionRevoker } from '#modules/notifications/infra/adapters/notification-feed/notification_realtime_session_revoker'
+import { NodeNotificationEventIdentityProvider } from '#modules/notifications/infra/adapters/notification-outbox/node_notification_event_identity_provider'
 import { PostgresNotificationFanoutRepository } from '#modules/notifications/infra/repositories/notification-outbox/postgres_notification_fanout_repository'
 import { PostgresNotificationOutboxRepository } from '#modules/notifications/infra/repositories/notification-outbox/postgres_notification_outbox_repository'
-import { NodeNotificationEventIdentityProvider } from '#modules/notifications/infra/adapters/notification-outbox/node_notification_event_identity_provider'
 import {
   handleNotificationRealtimeUserDeactivated,
   handleNotificationRealtimeUserLogout,

@@ -3,26 +3,26 @@ import type AddProjectRoleSkillCommand from '#modules/skills/actions/commands/pr
 import {
   type AddProjectRoleSkillInput,
 } from '#modules/skills/actions/commands/project-roles/add_project_role_skill_command'
+import type CreateCustomProjectRoleCommand from '#modules/skills/actions/commands/project-roles/create_custom_project_role_command';
+import {
+  type CreateCustomProjectRoleInput,
+} from '#modules/skills/actions/commands/project-roles/create_custom_project_role_command'
 import type AddProjectSkillCommand from '#modules/skills/actions/commands/project-skills/add_project_skill_command';
 import {
   type AddProjectSkillInput,
 } from '#modules/skills/actions/commands/project-skills/add_project_skill_command'
 import type CloneProfessionalRoleTemplateCommand from '#modules/skills/actions/commands/skill-catalog/clone_professional_role_template_command'
-import type CreateCustomProjectRoleCommand from '#modules/skills/actions/commands/project-roles/create_custom_project_role_command';
-import {
-  type CreateCustomProjectRoleInput,
-} from '#modules/skills/actions/commands/project-roles/create_custom_project_role_command'
 import type ResolveCustomSkillCommand from '#modules/skills/actions/commands/skill-resolution/resolve_custom_skill_command'
 import type ResolveUserDeclaredSkillCommand from '#modules/skills/actions/commands/skill-resolution/resolve_user_declared_skill_command'
 import type { ProfessionalRoleRepository } from '#modules/skills/actions/ports/outbound/professional_role_repository'
 import type { ProficiencyScaleRepository } from '#modules/skills/actions/ports/outbound/rubric-and-proficiency/proficiency_scale_repository'
-import type { SkillCatalogRepository } from '#modules/skills/actions/ports/outbound/skill_catalog_repository'
 import type { SkillRubricRepository } from '#modules/skills/actions/ports/outbound/rubric-and-proficiency/skill_rubric_repository'
+import type { SkillCatalogRepository } from '#modules/skills/actions/ports/outbound/skill_catalog_repository'
 import type { SkillTransaction } from '#modules/skills/actions/ports/outbound/skill_transaction'
 import type GetActiveProficiencyScaleQuery from '#modules/skills/actions/queries/rubric-and-proficiency/get_active_proficiency_scale_query'
-import GetActiveSkillsQuery from '#modules/skills/actions/queries/skill-catalog/get_active_skills_query'
 import type GetPublishedSkillRubricVersionQuery from '#modules/skills/actions/queries/rubric-and-proficiency/get_published_skill_rubric_version_query'
 import type MapProficiencyCodeToLevelQuery from '#modules/skills/actions/queries/rubric-and-proficiency/map_proficiency_code_to_level_query'
+import GetActiveSkillsQuery from '#modules/skills/actions/queries/skill-catalog/get_active_skills_query'
 import type ResolveSkillQuery from '#modules/skills/actions/queries/skill-resolution/resolve_skill_query'
 import type { ActiveSkillIdFact } from '#modules/skills/public_contracts/active_skill_category_catalog'
 import {

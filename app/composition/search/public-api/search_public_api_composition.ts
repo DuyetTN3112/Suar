@@ -223,7 +223,11 @@ export const searchPublicApi: SearchPublicApiV2 = new SearchPublicApiAdapter({
           ...(signal ? { signal } : {}),
         }),
       listPublicTasks: async (input, context) => {
-        const result = await makeGetPublicTasksQuery(context).handle(
+        const publicContext = {
+          ...context,
+          organizationId: null,
+        }
+        const result = await makeGetPublicTasksQuery(publicContext).handle(
           GetPublicTasksDTO.fromFilters(input)
         )
 

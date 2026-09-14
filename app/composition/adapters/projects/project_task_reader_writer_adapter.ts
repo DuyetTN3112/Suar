@@ -10,9 +10,9 @@ import {
   mapTaskListUserProjections,
 } from '#modules/tasks/actions/mappers/task-reading/task_user_projection_mapper'
 import type { TaskUserReader } from '#modules/tasks/actions/ports/outbound/task_external_dependencies'
+import * as taskAggregateMutations from '#modules/tasks/infra/repositories/task-authoring/write/task_aggregate_mutations'
 import * as aggregateQueries from '#modules/tasks/infra/repositories/task-reading/read/aggregate_queries'
 import * as detailQueries from '#modules/tasks/infra/repositories/task-reading/read/detail_queries'
-import * as taskAggregateMutations from '#modules/tasks/infra/repositories/task-authoring/write/task_aggregate_mutations'
 
 export class ProjectTaskReaderWriterAdapter extends ProjectTaskReaderWriter {
   constructor(private readonly taskUserReader: Pick<TaskUserReader, 'findUserIdentities'>) {

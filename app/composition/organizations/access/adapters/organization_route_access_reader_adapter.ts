@@ -1,10 +1,10 @@
 import { OrganizationRouteAccessReader } from '#modules/organizations/actions/ports/inbound/access/organization_route_access_reader'
-import type { OrganizationTransaction } from '#modules/organizations/actions/ports/outbound/organization_transaction'
-import { hasOrganizationRolePermission } from '#modules/organizations/domain/access/org_access_rules'
 import type {
   OrganizationMembershipRepository,
   OrganizationReader,
 } from '#modules/organizations/actions/ports/outbound/directory/organization_persistence'
+import type { OrganizationTransaction } from '#modules/organizations/actions/ports/outbound/organization_transaction'
+import { hasOrganizationRolePermission } from '#modules/organizations/domain/access/org_access_rules'
 
 export class OrganizationRouteAccessReaderAdapter extends OrganizationRouteAccessReader {
   constructor(

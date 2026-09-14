@@ -1,4 +1,3 @@
-import { OrganizationProjectLifecycleAdapter } from './adapters/organization_project_lifecycle_adapter.js'
 import { ComposedOrganizationDeletionCommandFactory } from '../directory/factories/organization_directory_action_factories.js'
 import {
   organizationEventPublisher,
@@ -7,6 +6,8 @@ import {
   organizationTransactionRunner,
   organizationWriter,
 } from '../persistence/organization_persistence_composition.js'
+
+import { OrganizationProjectLifecycleAdapter } from './adapters/organization_project_lifecycle_adapter.js'
 
 import type { OrganizationActionContext } from '#modules/organizations/actions/action_context'
 

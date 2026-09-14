@@ -1,4 +1,3 @@
-import GetAssignableOrganizationRolesQuery from '#modules/organizations/actions/queries/access/get_assignable_organization_roles_query'
 import type { OrganizationActionContext } from '#modules/organizations/actions/action_context'
 import ApprovePendingOrganizationMemberCommand from '#modules/organizations/actions/commands/members/approve_pending_organization_member_command'
 import BulkAddMembersCommand from '#modules/organizations/actions/commands/members/bulk_add_members_command'
@@ -22,6 +21,7 @@ import type {
   OrganizationReader,
 } from '#modules/organizations/actions/ports/outbound/members/organization_persistence'
 import type { OrganizationTransactionRunner } from '#modules/organizations/actions/ports/outbound/organization_transaction'
+import GetAssignableOrganizationRolesQuery from '#modules/organizations/actions/queries/access/get_assignable_organization_roles_query'
 import GetOrganizationMembersIndexPageQuery from '#modules/organizations/actions/queries/members/get_organization_members_index_page_query'
 import ListOrganizationMemberCandidatesQuery from '#modules/organizations/actions/queries/members/list_organization_member_candidates_query'
 import ListOrganizationMembersQuery from '#modules/organizations/actions/queries/members/list_organization_members_query'

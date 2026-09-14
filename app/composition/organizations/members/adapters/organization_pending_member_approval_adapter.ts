@@ -1,5 +1,4 @@
 import { makeApproveUserCommand } from '#composition/users/user-factories/user_action_factory'
-
 import type { OrganizationActionContext } from '#modules/organizations/actions/action_context'
 import type {
   OrganizationPendingMemberApprovalGateway,

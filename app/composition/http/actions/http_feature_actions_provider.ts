@@ -6,10 +6,9 @@ import { HttpOrganizationMembersReaderAdapter } from '#composition/adapters/http
 import { HttpPlatformUiEventWriterAdapter } from '#composition/adapters/http/http_platform_ui_event_writer_adapter'
 import { HttpSearchDiscoveryReaderAdapter } from '#composition/adapters/http/http_search_discovery_reader_adapter'
 import { HttpSearchUiEventWriterAdapter } from '#composition/adapters/http/http_search_ui_event_writer_adapter'
-
 import ComposedHttpCacheActionFactory from '#composition/http/cache/factories/composed_http_cache_action_factory'
-import { getOrganizationMembersApi } from '#composition/organizations/search/organization_search_composition'
 import { platformUiEventsCapability } from '#composition/observability/platform/platform_ui_events_composition'
+import { getOrganizationMembersApi } from '#composition/organizations/search/organization_search_composition'
 import {
   applySearchIndexCleanupCommand,
   applySearchIndexRollbackCommand,

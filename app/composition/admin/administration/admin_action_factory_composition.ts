@@ -1,19 +1,19 @@
-import { AdminAuditEventReaderAdapter } from '#composition/adapters/admin/audit/admin_audit_event_reader_adapter'
-import { AdminAuditProjectionReaderAdapter } from '#composition/adapters/admin/audit/admin_audit_projection_reader_adapter'
 import {
   AdminUserDirectoryAdapter,
   AdminUserLifecycleWriterAdapter,
 } from '#composition/adapters/admin/administration/admin_user_administration_adapter'
-import { AuthorizationAdminCustomSystemRoleAdapter } from '#composition/adapters/authorization/authorization_admin_custom_system_role_adapter'
 import { LucidAdminTransactionRunnerAdapter } from '#composition/adapters/admin/administration/lucid_admin_transaction_runner_adapter'
+import { SystemAdminMutationIdentityGeneratorAdapter } from '#composition/adapters/admin/administration/system_admin_mutation_identity_generator_adapter'
+import { AdminAuditEventReaderAdapter } from '#composition/adapters/admin/audit/admin_audit_event_reader_adapter'
+import { AdminAuditProjectionReaderAdapter } from '#composition/adapters/admin/audit/admin_audit_projection_reader_adapter'
+import { AuthorizationAdminCustomSystemRoleAdapter } from '#composition/adapters/authorization/authorization_admin_custom_system_role_adapter'
 import { ReviewsAdminModerationGatewayAdapter } from '#composition/adapters/reviews/reviews_admin_moderation_gateway_adapter'
 import {
   SearchAdminOrganizationCandidateReaderAdapter,
   SearchAdminUserCandidateReaderAdapter,
 } from '#composition/adapters/search/search_admin_candidate_readers_adapter'
-import { SkillReviewIdentityReaderAdapter } from '#composition/adapters/skills/skill_review_identity_reader_adapter'
+import { SkillReviewIdentityReaderAdapter } from '#composition/adapters/skill_review_identity_reader_adapter'
 import { SkillsAdminSkillRubricAdapter } from '#composition/adapters/skills/skills_admin_skill_rubric_adapter'
-import { SystemAdminMutationIdentityGeneratorAdapter } from '#composition/adapters/admin/administration/system_admin_mutation_identity_generator_adapter'
 import { TaskReviewAssignmentProjectionReaderAdapter } from '#composition/adapters/tasks/task_review_assignment_projection_reader_adapter'
 import { UserReviewModeratorIdentityProjectionReaderAdapter } from '#composition/adapters/users/user_review_moderator_identity_projection_reader_adapter'
 import { searchEngineCapability } from '#composition/search/search-engine/search_engine_composition'
@@ -22,7 +22,6 @@ import {
   userAdministrationLifecycle,
 } from '#composition/users/user-application/user_application_composition'
 import { userLifecycleEventStager } from '#composition/users/user-persistence/user_persistence_composition'
-
 import { type AdminAuditLogActionFactory } from '#modules/admin/audit_logs/actions/ports/inbound/audit_logs/admin_audit_log_action_factory'
 import ListAuditLogsQuery from '#modules/admin/audit_logs/actions/queries/audit_logs/list_audit_logs_query'
 import { type AdminDashboardActionFactory } from '#modules/admin/dashboard/actions/ports/inbound/dashboard/admin_dashboard_action_factory'

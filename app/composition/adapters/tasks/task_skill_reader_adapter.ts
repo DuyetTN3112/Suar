@@ -1,7 +1,9 @@
-import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import db from '@adonisjs/lucid/services/db'
+import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 import {
+  findCanonicalProficiencyLevelOption,
+  getCanonicalProficiencyLevelOrder,
   listProjectSkillsQuery,
   skillApplication as skillPublicApi,
 } from '#composition/skills/skill-application/skills_application_composition'
@@ -15,10 +17,6 @@ import type {
   TaskSkillReader,
   TaskSkillSummary,
 } from '#modules/tasks/actions/ports/outbound/task_external_dependencies'
-import {
-  findCanonicalProficiencyLevelOption,
-  getCanonicalProficiencyLevelOrder,
-} from '#modules/skills/public_contracts/rubric-and-proficiency/proficiency_level_catalog'
 
 type SkillsTaskApi = Pick<
   typeof skillPublicApi,

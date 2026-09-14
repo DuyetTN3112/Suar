@@ -2,11 +2,6 @@ import { BaseCommand } from '#modules/accomplishments/actions/base_command'
 import type { AccomplishmentDisclosurePolicy } from '#modules/accomplishments/actions/ports/outbound/publication/accomplishment_disclosure_policy'
 import type { AccomplishmentPublicationFactsStore } from '#modules/accomplishments/actions/ports/outbound/publication/accomplishment_publication_facts_store'
 import {
-  deterministicUuidFromSha256,
-  hashVerifiedAccomplishmentPayload,
-  type AccomplishmentContentHasher,
-} from '#modules/accomplishments/domain/verified-work/accomplishment_projection_identity'
-import {
   hashAccomplishmentDisclosureDecision,
   hashAccomplishmentPublicationConsent,
 } from '#modules/accomplishments/domain/publication/accomplishment_public_projection_identity'
@@ -15,6 +10,11 @@ import {
   type AuthoritativeAccomplishmentDisclosureDecision,
   type AuthoritativeAccomplishmentPublicationConsent,
 } from '#modules/accomplishments/domain/publication/accomplishment_public_projection_rules'
+import {
+  deterministicUuidFromSha256,
+  hashVerifiedAccomplishmentPayload,
+  type AccomplishmentContentHasher,
+} from '#modules/accomplishments/domain/verified-work/accomplishment_projection_identity'
 import BusinessLogicException from '#modules/errors/public_contracts/business_logic_exception'
 import NotFoundException from '#modules/errors/public_contracts/not_found_exception'
 

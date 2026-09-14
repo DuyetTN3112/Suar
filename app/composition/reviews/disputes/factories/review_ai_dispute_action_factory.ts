@@ -1,11 +1,11 @@
-import ProcessAiDisputeCallbackCommand from '#modules/reviews/actions/commands/disputes/process_ai_dispute_callback_command'
-import SaveAiDisputeFeedbackCommand from '#modules/reviews/actions/commands/disputes/save_ai_dispute_feedback_command'
-import StartAiDisputeEvaluationCommand from '#modules/reviews/actions/commands/disputes/start_ai_dispute_evaluation_command'
-import type { AiDisputeEvaluationGateway } from '#modules/reviews/actions/ports/outbound/ai_dispute_evaluation_gateway'
-import type { AiDisputeEvaluationSourceReader } from '#modules/reviews/actions/ports/outbound/ai_dispute_evaluation_source_reader'
-import type { AiDisputeUnitOfWork } from '#modules/reviews/actions/ports/outbound/ai_dispute_unit_of_work'
+import ProcessAiDisputeCallbackCommand from '#modules/disputes/actions/commands/process_ai_dispute_callback_command'
+import SaveAiDisputeFeedbackCommand from '#modules/disputes/actions/commands/save_ai_dispute_feedback_command'
+import StartAiDisputeEvaluationCommand from '#modules/disputes/actions/commands/start_ai_dispute_evaluation_command'
+import type { AiDisputeEvaluationGateway } from '#modules/disputes/actions/ports/outbound/ai_dispute_evaluation_gateway'
+import type { AiDisputeEvaluationSourceReader } from '#modules/disputes/actions/ports/outbound/ai_dispute_evaluation_source_reader'
+import type { AiDisputeUnitOfWork } from '#modules/disputes/actions/ports/outbound/ai_dispute_unit_of_work'
 import type { ReviewCryptography } from '#modules/reviews/actions/ports/outbound/review_cryptography'
-import ListAiDisputeEvaluationsQuery from '#modules/reviews/actions/queries/disputes/list_ai_dispute_evaluations_query'
+import ListAiDisputeEvaluationsQuery from '#modules/disputes/actions/queries/list_ai_dispute_evaluations_query'
 import type { ReviewActionContext } from '#modules/reviews/actions/review_action_context'
 
 export interface ReviewAiDisputeActionFactoryDependencies {

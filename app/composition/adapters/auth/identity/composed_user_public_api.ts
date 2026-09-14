@@ -1,11 +1,15 @@
-import { DateTime } from 'luxon'
+import {
+  ComposedUserProfileStatsAdapter,
+  type UserLifetimePerformanceStatsPayload,
+  type UserReviewedSkillScorePayload,
+  type UserSpiderChartSkillPayload,
+} from './composed_user_profile_stats_adapter.js'
 
-import { getCanonicalProficiencyLevelValue } from '#modules/skills/public_contracts/rubric-and-proficiency/proficiency_framework'
 import type RefreshUserProfileAggregatesCommand from '#modules/users/actions/commands/profile/refresh_user_profile_aggregates_command'
 import type UpdateUserProfileCommand from '#modules/users/actions/commands/profile/update_user_profile_command'
+import type { UserSkillCatalog } from '#modules/users/actions/ports/outbound/profile-skills/user_skill_catalog'
 import type { UserAccountRepository } from '#modules/users/actions/ports/outbound/user_account_repository'
 import type { UserProfileRepository } from '#modules/users/actions/ports/outbound/user_profile_repository'
-import type { UserSkillCatalog } from '#modules/users/actions/ports/outbound/profile-skills/user_skill_catalog'
 import type { UserTalentRepository } from '#modules/users/actions/ports/outbound/user_talent_repository'
 import type {
   UserTransaction,
@@ -24,40 +28,14 @@ import type {
 } from '#modules/users/types/user_profile_data'
 import type { UserRecord } from '#modules/users/types/user_records'
 
-export interface UserLifetimePerformanceStatsPayload {
-  totalCompletedAssignments: number
-  totalHoursWorked: number
-  qualityMean: number
-  deliveryScore: number
-  performanceScore: number
-  calculatedAt: DateTime
-}
-
-export interface UserReviewedSkillScorePayload {
-  levelCode: string
-  totalReviews: number
-  avgScore: number
-  avgPercentage: number
-  confidence: number | null
-  evidenceCount: number
-  lastReviewedAt: DateTime | null
-}
-
-export interface UserSpiderChartSkillPayload {
-  avgPercentage: number
-  levelCode: string
+export type {
+  UserLifetimePerformanceStatsPayload,
+  UserReviewedSkillScorePayload,
+  UserSpiderChartSkillPayload,
 }
 
 export type { TalentExplainabilitySummary }
 export type TalentExplainabilitySummaryByUserId = Map<string, TalentExplainabilitySummary>
-
-const toStoredConfidenceValue = (value: number | null): number | null => {
-  if (value === null || !Number.isFinite(value)) {
-    return null
-  }
-
-  return Math.round((Math.max(0, Math.min(100, value)) / 100) * 10000) / 10000
-}
 
 const toEpochMillis = (
   value: string | { toISO(): string | null } | null
@@ -75,6 +53,8 @@ const toEpochMillis = (
 }
 
 export class ComposedUserPublicApi {
+  private readonly profileStats: ComposedUserProfileStatsAdapter
+
   constructor(
     private readonly users: UserAccountRepository,
     private readonly profiles: UserProfileRepository,
@@ -87,7 +67,9 @@ export class ComposedUserPublicApi {
     private readonly makeUpdateProfileCommand: (
       context: UserActionContext
     ) => UpdateUserProfileCommand
-  ) {}
+  ) {
+    this.profileStats = new ComposedUserProfileStatsAdapter(this.profiles, this.skillCatalog)
+  }
 
   async findByIds(userIds: string[], columns: string[], trx?: UserTransaction) {
     return this.users.findByIds(userIds, columns, trx)
@@ -294,35 +276,7 @@ export class ComposedUserPublicApi {
     payload: UserLifetimePerformanceStatsPayload,
     trx?: UserTransaction
   ): Promise<void> {
-    const latestStats = await this.profiles.findLatestLifetimePerformanceStat(userId, trx)
-    const data = {
-      user_id: userId,
-      period_start: null,
-      period_end: null,
-      total_tasks_completed: payload.totalCompletedAssignments,
-      total_hours_worked: Math.round(payload.totalHoursWorked * 100) / 100,
-      avg_quality_score: Math.round(payload.qualityMean * 100) / 100,
-      on_time_delivery_rate: Math.round(payload.deliveryScore * 100) / 100,
-      avg_days_early_or_late: null,
-      performance_score: payload.performanceScore,
-      tasks_by_type: latestStats?.tasks_by_type ?? {},
-      tasks_by_difficulty: latestStats?.tasks_by_difficulty ?? {},
-      tasks_by_domain: latestStats?.tasks_by_domain ?? {},
-      tasks_as_lead: latestStats?.tasks_as_lead ?? 0,
-      tasks_as_sole_contributor: latestStats?.tasks_as_sole_contributor ?? 0,
-      tasks_mentoring_others: latestStats?.tasks_mentoring_others ?? 0,
-      longest_on_time_streak: latestStats?.longest_on_time_streak ?? 0,
-      current_on_time_streak: latestStats?.current_on_time_streak ?? 0,
-      self_assessment_accuracy: latestStats?.self_assessment_accuracy ?? null,
-      calculated_at: payload.calculatedAt,
-    }
-
-    if (latestStats) {
-      await this.profiles.updatePerformanceStat(latestStats.id, data, trx)
-      return
-    }
-
-    await this.profiles.createPerformanceStat(data, trx)
+    return this.profileStats.upsertLifetimePerformanceStats(userId, payload, trx)
   }
 
   async upsertReviewedSkillScore(
@@ -331,55 +285,7 @@ export class ComposedUserPublicApi {
     payload: UserReviewedSkillScorePayload,
     trx?: UserTransaction
   ): Promise<{ oldScore: number | null }> {
-    const existing = await this.profiles.findUserSkill(userId, skillId, trx)
-    const oldScore = existing?.avg_percentage ?? null
-
-    const proficiencyLevelId = await this.skillCatalog.resolveProficiencyLevelId(
-      payload.levelCode,
-      trx
-    )
-    const persistedLevelCode = getCanonicalProficiencyLevelValue(payload.levelCode)
-    const storedConfidence = toStoredConfidenceValue(payload.confidence)
-
-    if (existing) {
-      await this.profiles.updateUserSkill(
-        existing.id,
-        {
-          verified_public_proficiency_code: persistedLevelCode,
-          proficiency_level_id: proficiencyLevelId,
-          total_reviews: payload.totalReviews,
-          avg_score: payload.avgScore,
-          avg_percentage: payload.avgPercentage,
-          confidence: storedConfidence,
-          evidence_count: payload.evidenceCount,
-          last_calculated_at: DateTime.now(),
-          last_reviewed_at: payload.lastReviewedAt,
-          source: 'reviewed',
-        },
-        trx
-      )
-      return { oldScore }
-    }
-
-    await this.profiles.createUserSkill(
-      {
-        user_id: userId,
-        skill_id: skillId,
-        verified_public_proficiency_code: persistedLevelCode,
-        proficiency_level_id: proficiencyLevelId,
-        total_reviews: payload.totalReviews,
-        avg_score: payload.avgScore,
-        avg_percentage: payload.avgPercentage,
-        confidence: storedConfidence,
-        evidence_count: payload.evidenceCount,
-        last_calculated_at: DateTime.now(),
-        last_reviewed_at: payload.lastReviewedAt,
-        source: 'reviewed',
-      },
-      trx
-    )
-
-    return { oldScore }
+    return this.profileStats.upsertReviewedSkillScore(userId, skillId, payload, trx)
   }
 
   async upsertSpiderChartSkillData(
@@ -388,40 +294,6 @@ export class ComposedUserPublicApi {
     payload: UserSpiderChartSkillPayload,
     trx?: UserTransaction
   ): Promise<void> {
-    const existing = await this.profiles.findUserSkill(userId, skillId, trx)
-
-    const proficiencyLevelId = await this.skillCatalog.resolveProficiencyLevelId(
-      payload.levelCode,
-      trx
-    )
-    const persistedLevelCode = getCanonicalProficiencyLevelValue(payload.levelCode)
-
-    if (existing) {
-      await this.profiles.updateUserSkill(
-        existing.id,
-        {
-          avg_percentage: payload.avgPercentage,
-          verified_public_proficiency_code: persistedLevelCode,
-          proficiency_level_id: proficiencyLevelId,
-          last_calculated_at: DateTime.now(),
-        },
-        trx
-      )
-      return
-    }
-
-    await this.profiles.createUserSkill(
-      {
-        user_id: userId,
-        skill_id: skillId,
-        verified_public_proficiency_code: persistedLevelCode,
-        proficiency_level_id: proficiencyLevelId,
-        avg_percentage: payload.avgPercentage,
-        last_calculated_at: DateTime.now(),
-        total_reviews: 0,
-        avg_score: null,
-      },
-      trx
-    )
+    return this.profileStats.upsertSpiderChartSkillData(userId, skillId, payload, trx)
   }
 }

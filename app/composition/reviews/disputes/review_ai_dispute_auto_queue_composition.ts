@@ -1,14 +1,14 @@
 import { randomUUID } from 'node:crypto'
 
 import { reviewActionFactory } from '#composition/reviews/review-core/review_action_factory'
-import { ProcessAiDisputeAutoQueueIntentsCommand } from '#modules/reviews/actions/commands/disputes/process_ai_dispute_auto_queue_intents_command'
+import { ProcessAiDisputeAutoQueueIntentsCommand } from '#modules/disputes/actions/commands/process_ai_dispute_auto_queue_intents_command'
 import { makeSystemReviewActionContext } from '#modules/reviews/actions/review_action_context'
-import { createAiDisputeAutoQueueProcessor } from '#modules/reviews/infra/adapters/disputes/ai_dispute_auto_queue_processor'
+import { createAiDisputeAutoQueueProcessor } from '#modules/disputes/infra/adapters/ai_dispute_auto_queue_processor'
 import {
   PostgresAiDisputeAutoQueueIntentRepository,
   stageAiDisputeAutoQueueIntent,
-} from '#modules/reviews/infra/repositories/disputes/postgres_ai_dispute_auto_queue_intent_repository'
-import type { AiDisputeAutoQueueCapability } from '#modules/reviews/public_contracts/ai_dispute_auto_queue'
+} from '#modules/disputes/infra/repositories/postgres_ai_dispute_auto_queue_intent_repository'
+import type { AiDisputeAutoQueueCapability } from '#modules/disputes/public_contracts/ai_dispute_auto_queue'
 
 function configuredInteger(
   name: string,

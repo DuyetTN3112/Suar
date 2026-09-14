@@ -1,5 +1,7 @@
-import type { AccomplishmentCapabilitySignalV1 } from '#modules/accomplishments/public_contracts/verified-work/accomplishment_capability_signal_v1'
+import type { AccomplishmentTransaction } from '../accomplishment_transaction.js'
+
 import type { AccomplishmentLifecycleRevisionV1 } from '#modules/accomplishments/public_contracts/lifecycle/accomplishment_lifecycle_v1'
+import type { AccomplishmentCapabilitySignalV1 } from '#modules/accomplishments/public_contracts/verified-work/accomplishment_capability_signal_v1'
 import type { VerifiedWorkAccomplishmentV1 } from '#modules/accomplishments/public_contracts/verified-work/verified_work_accomplishment_v1'
 import type {
   CompletionClaimV1,
@@ -12,7 +14,7 @@ import type {
   TvaPrivacyClassification,
   TvaSha256,
 } from '#modules/tasks/public_contracts/task-authoring/primitives'
-import type { AccomplishmentTransaction } from '../accomplishment_transaction.js'
+
 
 export interface VerifiedAccomplishmentClaimLinkInput {
   readonly claim: CompletionClaimV1

@@ -11,13 +11,13 @@ import {
   selfAssessmentAccuracyFactReader,
 } from '../user-profile/user_profile_aggregate_composition.js'
 
+import { ComposedUserIdentityReader } from '#composition/adapters/auth/identity/composed_user_identity_reader'
+import { ComposedUserPublicApi } from '#composition/adapters/auth/identity/composed_user_public_api'
+import { ComposedUserSocialLoginIdentityPersistence } from '#composition/adapters/auth/social-login/composed_user_social_login_identity_persistence'
 import {
   ComposedUserAdministrationDirectory,
   ComposedUserAdministrationLifecycle,
 } from '#composition/adapters/users/composed_user_administration'
-import { ComposedUserIdentityReader } from '#composition/adapters/auth/identity/composed_user_identity_reader'
-import { ComposedUserPublicApi } from '#composition/adapters/auth/identity/composed_user_public_api'
-import { ComposedUserSocialLoginIdentityPersistence } from '#composition/adapters/auth/social-login/composed_user_social_login_identity_persistence'
 import { userAccountActionFactory } from '#composition/users/user-factories/user_action_factory'
 import RefreshUserProfileAggregatesCommand from '#modules/users/actions/commands/profile/refresh_user_profile_aggregates_command'
 import type UpdateUserProfileCommand from '#modules/users/actions/commands/profile/update_user_profile_command'

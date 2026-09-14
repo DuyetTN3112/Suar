@@ -1,12 +1,12 @@
 import { DomainEventUserLifecycleEventStagerAdapter } from '#composition/adapters/events/domain_event_user_lifecycle_event_stager_adapter'
+import { LucidRecruiterBookmarkRepository } from '#modules/users/infra/adapters/bookmarks/lucid_recruiter_bookmark_repository'
 import { AdonisUserApplicationEventPublisher } from '#modules/users/infra/adapters/profile/adonis_user_application_event_publisher'
 import { InProcessUserEventPublisher } from '#modules/users/infra/adapters/profile/in_process_user_event_publisher'
-import { LucidRecruiterBookmarkRepository } from '#modules/users/infra/adapters/bookmarks/lucid_recruiter_bookmark_repository'
 import { LucidUserAccountRepository } from '#modules/users/infra/adapters/profile/lucid_user_account_repository'
 import { LucidUserProfileRepository } from '#modules/users/infra/adapters/profile/lucid_user_profile_repository'
-import { LucidUserTalentRepository } from '#modules/users/infra/adapters/talent/lucid_user_talent_repository'
 import { LucidUserTransactionRunner } from '#modules/users/infra/adapters/profile/lucid_user_transaction_runner'
 import { NodeUserRuntime } from '#modules/users/infra/adapters/profile/node_user_runtime'
+import { LucidUserTalentRepository } from '#modules/users/infra/adapters/talent/lucid_user_talent_repository'
 
 export const userAccountRepository = new LucidUserAccountRepository()
 export const userProfileRepository = new LucidUserProfileRepository()

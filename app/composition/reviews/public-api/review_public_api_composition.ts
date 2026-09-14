@@ -3,6 +3,9 @@ import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 import { AdonisReviewExternalEffectPublisher } from '#composition/adapters/platform/adonis_review_external_effect_publisher'
 import { reviewActionFactory } from '#composition/reviews/review-core/review_action_factory'
+import ResolveFlaggedReviewCommand, {
+  type ResolveFlaggedReviewDTO,
+} from '#modules/moderation/actions/commands/resolve_flagged_review_command'
 import type {
   CloseProjectSprintReviewDTO,
   CloseProjectSprintReviewResult,
@@ -10,14 +13,11 @@ import type {
 import EnsureTaskReviewWorkflowCommand, {
   type EnsureTaskReviewWorkflowResult,
 } from '#modules/reviews/actions/commands/task-review/ensure_task_review_workflow_command'
-import ResolveFlaggedReviewCommand, {
-  type ResolveFlaggedReviewDTO,
-} from '#modules/reviews/actions/commands/moderation/resolve_flagged_review_command'
 import {
   assembleFlaggedReviewModerationProjections,
   collectFlaggedReviewModerationProjectionIds,
   type FlaggedReviewModerationSource,
-} from '#modules/reviews/actions/mappers/flagged_review_moderation_projection_mapper'
+} from '#modules/moderation/actions/mappers/flagged_review_moderation_projection_mapper'
 import type { ReviewUserSkillWriter } from '#modules/reviews/actions/ports/outbound/review_external_dependencies'
 import type { ReviewExternalEffectPublisher } from '#modules/reviews/actions/ports/outbound/review_external_effects'
 import type {
@@ -32,26 +32,26 @@ import type {
   ReviewSkillIdentityReader,
 } from '#modules/reviews/actions/ports/outbound/review_projection_enrichment_readers'
 import ListProfileReviewFactsV1Query from '#modules/reviews/actions/queries/review-core/list_profile_review_facts_v1_query'
-import ListSelfAssessmentAccuracyFactsV1Query from '#modules/reviews/actions/queries/self-assessment/list_self_assessment_accuracy_facts_v1_query'
 import ListTalentExplainabilityProjectionsV1Query from '#modules/reviews/actions/queries/review-core/list_talent_explainability_projections_v1_query'
+import ListSelfAssessmentAccuracyFactsV1Query from '#modules/reviews/actions/queries/self-assessment/list_self_assessment_accuracy_facts_v1_query'
 import type { ReviewActionContext } from '#modules/reviews/actions/review_action_context'
 import {
   LucidProfileReviewFactSourceReader,
   LucidSelfAssessmentAccuracyFactSourceReader,
   LucidTalentExplainabilityFactSourceReader,
 } from '#modules/reviews/infra/adapters/review-core/lucid_review_fact_source_readers'
-import LucidReviewFlaggedModerationUnitOfWork from '#modules/reviews/infra/adapters/review-core/lucid_review_flagged_moderation_unit_of_work'
+import LucidReviewFlaggedModerationUnitOfWork from '#modules/moderation/infra/adapters/lucid_review_flagged_moderation_unit_of_work'
 import { LucidReviewMetricsReader } from '#modules/reviews/infra/adapters/review-core/lucid_review_metrics_reader'
-import LucidReviewTaskWorkflowUnitOfWork from '#modules/reviews/infra/adapters/task-review/lucid_review_task_workflow_unit_of_work'
 import { stageTalentExplainabilityProjectionBackfillV1 } from '#modules/reviews/infra/adapters/self-assessment/lucid_talent_explainability_projection_stager'
-import * as flaggedReviewQueries from '#modules/reviews/infra/repositories/read/flagged_review_queries'
+import LucidReviewTaskWorkflowUnitOfWork from '#modules/reviews/infra/adapters/task-review/lucid_review_task_workflow_unit_of_work'
+import * as flaggedReviewQueries from '#modules/moderation/infra/repositories/flagged_review_queries'
 import { getTaskReviewDetailByTask } from '#modules/reviews/infra/repositories/read/task_review_board_queries'
+import ReviewSessionRepository from '#modules/reviews/infra/repositories/review-session/review_session_repository'
+import ReviewEvidenceRepository from '#modules/reviews/infra/repositories/review-submission/review_evidence_repository'
 import {
   loadReverseReviewTargetStats,
   loadUserReverseReviewSummary,
 } from '#modules/reviews/infra/repositories/task-review/reverse_review_target_stats_repository'
-import ReviewEvidenceRepository from '#modules/reviews/infra/repositories/review-submission/review_evidence_repository'
-import ReviewSessionRepository from '#modules/reviews/infra/repositories/review-session/review_session_repository'
 import type { ProfileReviewFactV1 } from '#modules/reviews/public_contracts/profile_review_fact_v1'
 import type {
   ReverseReviewPersonSummary,

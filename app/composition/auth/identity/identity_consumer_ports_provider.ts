@@ -1,7 +1,6 @@
 import type { ApplicationService } from '@adonisjs/core/types'
 
 import { AuthorizationUserIdentityReaderAdapter } from '#composition/adapters/authorization/authorization_user_identity_reader_adapter'
-import { OrganizationsAuthorizationAccessReaderAdapter } from '#composition/organizations/access/adapters/organizations_authorization_access_reader_adapter'
 import {
   authEventIdentityGenerator,
   authLogoutEventPublisher,
@@ -21,12 +20,12 @@ import {
   socialLoginPersistence,
   verifySessionAccessTokenQuery,
 } from '#composition/auth/session/auth_application_composition'
-
+import { OrganizationsAuthorizationAccessReaderAdapter } from '#composition/organizations/access/adapters/organizations_authorization_access_reader_adapter'
 import { userIdentityReader } from '#composition/users/user-application/user_application_composition'
 import { IssueSessionTokenCommand } from '#modules/auth/actions/commands/session-management/issue_session_token_command'
 import LogoutUserCommand from '#modules/auth/actions/commands/session-management/logout_user_command'
-import ProcessSocialAuthCallbackCommand from '#modules/auth/actions/commands/social-auth/process_social_auth_callback_command'
 import { RefreshSessionTokenCommand } from '#modules/auth/actions/commands/session-management/refresh_session_token_command'
+import ProcessSocialAuthCallbackCommand from '#modules/auth/actions/commands/social-auth/process_social_auth_callback_command'
 import { AuthEventIdentityGenerator } from '#modules/auth/actions/ports/outbound/auth_event_identity_generator'
 import { AuthLogoutEventPublisher } from '#modules/auth/actions/ports/outbound/auth_logout_event_publisher'
 import { AuthOrganizationMembershipReader } from '#modules/auth/actions/ports/outbound/auth_organization_membership_reader'
@@ -38,8 +37,8 @@ import { AuthWebSessionUserReader } from '#modules/auth/actions/ports/outbound/a
 import { SocialAuthCallbackReader } from '#modules/auth/actions/ports/outbound/social-auth/social_auth_callback_reader'
 import { SocialLoginIdentityPersistence } from '#modules/auth/actions/ports/outbound/social-auth/social_login_identity_persistence'
 import { SocialLoginPersistence } from '#modules/auth/actions/ports/outbound/social-auth/social_login_persistence'
-import { VerifySessionAccessTokenQuery } from '#modules/auth/actions/queries/session-management/verify_session_access_token_query'
 import { ResolveAuthLandingQuery } from '#modules/auth/actions/queries/session-management/resolve_auth_landing_query'
+import { VerifySessionAccessTokenQuery } from '#modules/auth/actions/queries/session-management/verify_session_access_token_query'
 import { SocialAuthTransportConfigurator } from '#modules/auth/controllers/ports/social-auth/social_auth_transport_configurator'
 import { AdonisSocialAuthTransportConfigurator } from '#modules/auth/infra/adapters/social-auth/adonis_social_auth_transport_configurator'
 import {

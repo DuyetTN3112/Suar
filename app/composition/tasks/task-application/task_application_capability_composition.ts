@@ -1,8 +1,7 @@
 import { TaskApplicantMatchReaderAdapter } from '#composition/adapters/tasks/task_applicant_match_reader_adapter'
+import { TasksTaskApplicationCapabilityAdapter } from '#composition/adapters/tasks/tasks_task_application_capability_adapter'
 import { notificationTransactionStager } from '#composition/notifications/notification-feed/notification_composition'
 import { taskExternalDeps } from '#composition/tasks/task-external-dependencies/task_external_dependencies_composition'
-
-import { TasksTaskApplicationCapabilityAdapter } from '#composition/adapters/tasks/tasks_task_application_capability_adapter'
 import {
   makeApplyForTaskCommand,
   makeGetMyApplicationsQuery,

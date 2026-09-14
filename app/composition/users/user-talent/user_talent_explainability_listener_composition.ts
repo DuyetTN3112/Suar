@@ -4,7 +4,6 @@ import emitter from '@adonisjs/core/services/emitter'
 import db from '@adonisjs/lucid/services/db'
 
 import { userAccountRepository, userTransactionRunner } from '#composition/users/user-persistence/user_persistence_composition'
-
 import { stageDomainEvent } from '#modules/events/public_contracts/domain_event_outbox'
 import loggerService from '#modules/logger/public_contracts/application_logger'
 import {

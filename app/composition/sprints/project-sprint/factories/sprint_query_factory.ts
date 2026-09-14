@@ -5,8 +5,8 @@ import type { SprintExternalDependencies } from '#modules/sprints/actions/ports/
 import type { SprintRepository } from '#modules/sprints/actions/ports/outbound/sprint_repository'
 import GetProjectBacklogQuery from '#modules/sprints/actions/queries/project-backlog/get_project_backlog_query'
 import GetProjectSprintQuery from '#modules/sprints/actions/queries/project-sprint/get_project_sprint_query'
-import GetSprintBoardQuery from '#modules/sprints/actions/queries/sprint-board/get_sprint_board_query'
 import ListProjectSprintsQuery from '#modules/sprints/actions/queries/project-sprint/list_project_sprints_query'
+import GetSprintBoardQuery from '#modules/sprints/actions/queries/sprint-board/get_sprint_board_query'
 import ListTaskSprintAssignmentHistoryQuery from '#modules/sprints/actions/queries/task-sprint-assignment/list_task_sprint_assignment_history_query'
 import type { SprintActionContext } from '#modules/sprints/actions/sprint_action_context'
 

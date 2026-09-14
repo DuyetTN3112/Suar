@@ -4,11 +4,11 @@ import { ApplySearchIndexRollbackCommand } from '#modules/search/actions/command
 import { InspectSearchIndicesQuery } from '#modules/search/actions/queries/index-administration/inspect_search_indices_query'
 import { PreviewSearchIndexCleanupQuery } from '#modules/search/actions/queries/index-administration/preview_search_index_cleanup_query'
 import { PreviewSearchIndexRollbackQuery } from '#modules/search/actions/queries/index-administration/preview_search_index_rollback_query'
+import { searchIndexAdminClient } from '#modules/search/infra/adapters/index-administration/elasticsearch_search_index_admin_client'
 import { NodeSearchIndexPlanTokenGenerator } from '#modules/search/infra/adapters/index-administration/node_search_index_plan_token_generator'
 import { PostgresSearchIndexCutoverFence } from '#modules/search/infra/adapters/index-administration/postgres_search_index_cutover_fence'
-import { searchIndexAdminClient } from '#modules/search/infra/adapters/index-administration/elasticsearch_search_index_admin_client'
-import { ElasticsearchSearchIndexAdministrationRepository } from '#modules/search/infra/repositories/index-administration/search_index_administration_repository'
 import { buildSearchIndexDescriptors } from '#modules/search/infra/adapters/index-administration/search_index_names'
+import { ElasticsearchSearchIndexAdministrationRepository } from '#modules/search/infra/repositories/index-administration/search_index_administration_repository'
 
 const administration = new ElasticsearchSearchIndexAdministrationRepository(
   searchIndexAdminClient,

@@ -3,16 +3,16 @@ import {
   SearchOrganizationMemberCandidateReader,
   SearchOrganizationProjectCandidateReader,
 } from '../../adapters/search/search_organization_candidate_readers.js'
+import { organizationUserReaderWriter } from '../directory/organization_user_composition.js'
 import {
   organizationMembershipRepository,
   organizationReader,
 } from '../persistence/organization_persistence_composition.js'
-import { organizationUserReaderWriter } from '../directory/organization_user_composition.js'
-import { searchEngineCapability } from '#composition/search/search-engine/search_engine_composition'
 
+import { searchEngineCapability } from '#composition/search/search-engine/search_engine_composition'
 import GetAllOrganizationsQuery from '#modules/organizations/actions/queries/directory/get_all_organizations_query'
-import type { OrganizationDirectoryCapability } from '#modules/organizations/public_contracts/directory/organization_directory'
 import GetOrganizationMembersApiQuery from '#modules/organizations/actions/queries/members/get_organization_members_api_query'
+import type { OrganizationDirectoryCapability } from '#modules/organizations/public_contracts/directory/organization_directory'
 
 export const organizationSearchCandidateReader = new SearchOrganizationCandidateReader(
   searchEngineCapability

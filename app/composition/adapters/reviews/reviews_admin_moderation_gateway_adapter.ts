@@ -1,5 +1,5 @@
-import { reviewExternalDependencies } from '#composition/reviews/review-core/review_external_dependencies_composition'
 import { reviewPublicApi } from '#composition/reviews/public-api/review_public_api_composition'
+import { reviewExternalDependencies } from '#composition/reviews/review-core/review_external_dependencies_composition'
 import type {
   ReviewModerationActorContext,
   ReviewModerationGateway,

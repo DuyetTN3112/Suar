@@ -69,8 +69,8 @@ import {
   AdminUserLifecycleWriter,
 } from '#modules/admin/users/actions/ports/outbound/users/admin_user_administration'
 import { registerCustomSystemRoleProvider } from '#modules/authorization/public_contracts/custom-system-role/custom_system_role_api'
-import GetAdminReviewDisputeAiOperatorOverviewQuery from '#modules/reviews/actions/queries/disputes/get_admin_review_dispute_ai_operator_overview_query'
-import type { ReviewAdminDisputeCapability } from '#modules/reviews/public_contracts/admin_review_dispute_capability'
+import GetAdminReviewDisputeAiOperatorOverviewQuery from '#modules/disputes/actions/queries/get_admin_review_dispute_ai_operator_overview_query'
+import type { ReviewAdminDisputeCapability } from '#modules/disputes/public_contracts/admin_review_dispute_capability'
 
 export default class AdminFeatureConsumerPortsProvider {
   constructor(private readonly app: ApplicationService) {}

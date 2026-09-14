@@ -1,8 +1,8 @@
+import type { AccomplishmentLifecycleRevisionV1 } from '#modules/accomplishments/public_contracts/lifecycle/accomplishment_lifecycle_v1'
 import type {
   AccomplishmentLifecycleStateV1,
   AccomplishmentVisibilityV1,
 } from '#modules/accomplishments/public_contracts/verified-work/accomplishment_contract_primitives_v1'
-import type { AccomplishmentLifecycleRevisionV1 } from '#modules/accomplishments/public_contracts/lifecycle/accomplishment_lifecycle_v1'
 
 export const ACCOMPLISHMENT_LIFECYCLE_CODES = Object.freeze({
   invalidTransition: 'TVA.ACCOMPLISHMENT.LIFECYCLE.INVALID_TRANSITION',

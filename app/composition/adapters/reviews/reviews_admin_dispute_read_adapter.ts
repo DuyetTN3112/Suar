@@ -7,7 +7,7 @@ import type {
   ListAdminReviewDisputesResult,
   ReviewAdminDisputeCapability,
   ReviewAdminDisputeExecutionContext,
-} from '#modules/reviews/public_contracts/admin_review_dispute_capability'
+} from '#modules/disputes/public_contracts/admin_review_dispute_capability'
 
 export class ReviewsAdminDisputeReadAdapter extends ReviewAdminDisputeReadPort {
   constructor(private readonly reviews: ReviewAdminDisputeCapability) {

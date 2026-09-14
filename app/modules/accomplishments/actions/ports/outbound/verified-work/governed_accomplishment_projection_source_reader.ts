@@ -1,3 +1,5 @@
+import type { AccomplishmentTransaction } from '../accomplishment_transaction.js'
+
 import type {
   CapabilitySignalLevelScaleEntry,
   GovernedCapabilityObservationSource,
@@ -17,7 +19,6 @@ import type {
   TvaProvenanceClass,
   TvaSha256,
 } from '#modules/tasks/public_contracts/task-authoring/primitives'
-import type { AccomplishmentTransaction } from '../accomplishment_transaction.js'
 
 export type GovernedAccomplishmentProjectionSourceIdentity =
   AccomplishmentProjectionSourceIdentity

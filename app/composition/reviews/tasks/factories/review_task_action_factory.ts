@@ -16,7 +16,7 @@ import type { ReviewObservationAuthoringContextReader } from '#modules/reviews/a
 import type { ReviewObservationWriter } from '#modules/reviews/actions/ports/outbound/observation/review_observation_writer'
 import type { ReviewCachePort } from '#modules/reviews/actions/ports/outbound/review_cache_port'
 import type { ReviewCompletedAssignmentReader } from '#modules/reviews/actions/ports/outbound/review_completed_assignment_reader'
-import type { ReviewConfirmationDisputeUnitOfWork } from '#modules/reviews/actions/ports/outbound/review_confirmation_dispute_unit_of_work'
+import type { ReviewConfirmationDisputeUnitOfWork } from '#modules/disputes/actions/ports/outbound/review_confirmation_dispute_unit_of_work'
 import type { ReviewExternalDependencies } from '#modules/reviews/actions/ports/outbound/review_external_dependencies'
 import type {
   ReviewAssignmentProjectionReader,

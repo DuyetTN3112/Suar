@@ -12,10 +12,10 @@ import type {
 import type { UserProfileRepository } from '#modules/users/actions/ports/outbound/user_profile_repository'
 import type { UserReviewReader } from '#modules/users/actions/ports/outbound/user_review_reader'
 import type { UserWorkHistoryReader } from '#modules/users/actions/ports/outbound/user_work_history_reader'
+import GetUserDetailQuery from '#modules/users/actions/queries/administration/get_user_detail_query'
 import GetFeaturedReviewsQuery from '#modules/users/actions/queries/profile/get_featured_reviews_query'
 import GetProfileShowPageQuery from '#modules/users/actions/queries/profile/get_profile_show_page_query'
 import GetProfileViewPageQuery from '#modules/users/actions/queries/profile/get_profile_view_page_query'
-import GetUserDetailQuery from '#modules/users/actions/queries/administration/get_user_detail_query'
 import type { UserActionContext } from '#modules/users/actions/user_action_context'
 
 /**

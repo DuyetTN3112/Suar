@@ -1,7 +1,7 @@
 import emitter from '@adonisjs/core/services/emitter'
 
-import { reviewActionFactory } from '#composition/reviews/review-core/review_action_factory'
 import UserWorkHistoryCacheInvalidatorAdapter from '#composition/adapters/users/user_work_history_cache_invalidator_adapter'
+import { reviewActionFactory } from '#composition/reviews/review-core/review_action_factory'
 import { reviewExternalDependencies } from '#composition/reviews/review-core/review_external_dependencies_composition'
 import loggerService from '#modules/logger/public_contracts/application_logger'
 import InvalidateUserReviewCacheCommand from '#modules/reviews/actions/commands/review-session/invalidate_user_review_cache_command'

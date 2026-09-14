@@ -96,6 +96,35 @@ jobs:
           pnpm run check:arch:backend:public-contract-surface
           pnpm run check:arch:backend:exceptions
 
+      - name: Check ts-nocheck and bare eslint-disable
+        run: |
+          echo "Checking for @ts-nocheck and bare eslint-disable in app/**/*.ts..."
+          ALLOWLIST=""
+          ts_nocheck_matches=$(git grep -n "// @ts-nocheck" "app/**/*.ts" 2>/dev/null || true)
+          if [ -n "$ts_nocheck_matches" ]; then
+            for line in $ts_nocheck_matches; do
+              file=$(echo "$line" | cut -d: -f1)
+              if ! echo "$ALLOWLIST" | grep -q "$file"; then
+                echo "::error file=$file::Forbidden // @ts-nocheck found: $line"
+                FAILED=1
+              fi
+            done
+          fi
+          bare_disable_matches=$(git grep -nE "/\* eslint-disable \*/|// eslint-disable$" "app/**/*.ts" 2>/dev/null || true)
+          if [ -n "$bare_disable_matches" ]; then
+            for line in $bare_disable_matches; do
+              file=$(echo "$line" | cut -d: -f1)
+              if ! echo "$ALLOWLIST" | grep -q "$file"; then
+                echo "::error file=$file::Forbidden bare eslint-disable found: $line"
+                FAILED=1
+              fi
+            done
+          fi
+          if [ "${FAILED:-0}" = "1" ]; then
+            echo "CI validation failed: forbidden suppression comments detected."
+            exit 1
+          fi
+
       - run: pnpm run lint
       - run: pnpm run typecheck
       - run: pnpm run test:inventory

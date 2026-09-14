@@ -1,12 +1,11 @@
 import { LucidNotificationTransactionRunner } from '#composition/adapters/notifications/lucid_notification_transaction_runner'
 import { NotificationTransactionStagerAdapter } from '#composition/adapters/notifications/notification_transaction_stager_adapter'
-
 import { notificationActionFactory } from '#composition/notifications/notification-feed/notification_feed_composition'
 import { AcceptLegacyNotificationCommand } from '#modules/notifications/actions/commands/legacy/accept_legacy_notification_command'
 import { AcceptNotificationCommand } from '#modules/notifications/actions/commands/notification-feed/accept_notification_command'
 import type { NotificationActionContext } from '#modules/notifications/actions/notification_action_context'
-import { PostgresNotificationAcceptanceRepository } from '#modules/notifications/infra/repositories/notification-outbox/postgres_notification_acceptance_repository'
 import { NodeNotificationCryptography } from '#modules/notifications/infra/adapters/notification-outbox/node_notification_cryptography'
+import { PostgresNotificationAcceptanceRepository } from '#modules/notifications/infra/repositories/notification-outbox/postgres_notification_acceptance_repository'
 
 const notificationCryptography = new NodeNotificationCryptography()
 const notificationTransactionRunner = new LucidNotificationTransactionRunner()

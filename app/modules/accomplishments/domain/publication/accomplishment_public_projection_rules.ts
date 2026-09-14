@@ -1,7 +1,7 @@
+import type { AccomplishmentPublicProjectionV1 } from '#modules/accomplishments/public_contracts/publication/accomplishment_public_projection_v1'
 import type {
   AccomplishmentLifecycleStateV1,
 } from '#modules/accomplishments/public_contracts/verified-work/accomplishment_contract_primitives_v1'
-import type { AccomplishmentPublicProjectionV1 } from '#modules/accomplishments/public_contracts/publication/accomplishment_public_projection_v1'
 import type { VerifiedWorkAccomplishmentV1 } from '#modules/accomplishments/public_contracts/verified-work/verified_work_accomplishment_v1'
 import type { TvaSha256 } from '#modules/tasks/public_contracts/task-authoring/primitives'
 

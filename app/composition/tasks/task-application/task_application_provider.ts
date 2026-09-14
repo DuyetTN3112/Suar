@@ -22,7 +22,6 @@ import {
   taskStatusWorkflowCommandFactory,
   updateTaskRequirementCommand,
 } from '#composition/tasks/task-application/task_application_composition'
-
 import { taskMetadataAssignmentProvider } from '#composition/tasks/task-metadata/task_metadata_assignment_composition'
 import AddTaskRequirementCommand from '#modules/tasks/actions/commands/task-requirements/add_task_requirement_command'
 import PrefillTaskRequirementsFromRoleCommand from '#modules/tasks/actions/commands/task-requirements/prefill_task_requirements_from_role_command'
@@ -36,14 +35,14 @@ import { TaskLifecycleCommandFactory } from '#modules/tasks/actions/ports/inboun
 import { TaskStatusDefinitionCommandFactory } from '#modules/tasks/actions/ports/inbound/task_status_definition_command_factory'
 import { TaskStatusWorkflowCommandFactory } from '#modules/tasks/actions/ports/inbound/task_status_workflow_command_factory'
 import { TaskSubmissionReviewGovernance } from '#modules/tasks/actions/ports/outbound/task_submission_review_governance'
+import ListWorkflowQuery from '#modules/tasks/actions/queries/list_workflow_query'
 import CheckTaskCreatePermissionQuery from '#modules/tasks/actions/queries/task-authoring/check_task_create_permission_query'
-import GetRoleRequirementsQuery from '#modules/tasks/actions/queries/task-requirements/get_role_requirements_query'
-import GetTaskStatusQuery from '#modules/tasks/actions/queries/task-status/get_task_status_query'
 import GetUserTasksQuery from '#modules/tasks/actions/queries/task-reading/get_user_tasks_query'
+import GetRoleRequirementsQuery from '#modules/tasks/actions/queries/task-requirements/get_role_requirements_query'
 import ListTaskRequirementProjectionsQuery from '#modules/tasks/actions/queries/task-requirements/list_task_requirement_projections_query'
 import ListTaskRequirementVersionsQuery from '#modules/tasks/actions/queries/task-requirements/list_task_requirement_versions_query'
+import GetTaskStatusQuery from '#modules/tasks/actions/queries/task-status/get_task_status_query'
 import ListTaskStatusesQuery from '#modules/tasks/actions/queries/task-status/list_task_statuses_query'
-import ListWorkflowQuery from '#modules/tasks/actions/queries/task-workflow/list_workflow_query'
 import { TaskMetadataAssignmentProvider } from '#modules/tasks/infra/adapters/task-assignment/task_metadata_assignment_provider'
 
 /**

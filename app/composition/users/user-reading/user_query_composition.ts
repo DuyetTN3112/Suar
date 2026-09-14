@@ -1,14 +1,17 @@
+import { readLegacyAccomplishmentCutoverDecision } from '#composition/accomplishments/backfill/legacy_accomplishment_backfill_composition'
 import LegacyAccomplishmentReadComparisonObserverAdapter from '#composition/adapters/accomplishments/publication/legacy_accomplishment_read_comparison_observer'
+import { TalentPublicAccomplishmentReaderAdapter } from '#composition/adapters/accomplishments/publication/talent_public_accomplishment_reader_adapter'
 import { PublicContractFeaturedReviewSkillReaderAdapter } from '#composition/adapters/public-contracts/public_contract_featured_review_skill_reader_adapter'
 import { PublicContractTalentSkillCategoryReaderAdapter } from '#composition/adapters/public-contracts/public_contract_talent_skill_category_reader_adapter'
 import { SearchTalentCandidateAdapter } from '#composition/adapters/search/search_talent_candidate_adapter'
-import { TalentPublicAccomplishmentReaderAdapter } from '#composition/adapters/accomplishments/publication/talent_public_accomplishment_reader_adapter'
 import { TaskAssignmentDeliveryFactReaderAdapter } from '#composition/adapters/tasks/task_assignment_delivery_fact_reader_adapter'
 import { TaskTalentMatchContextReaderAdapter } from '#composition/adapters/tasks/task_talent_match_context_reader_adapter'
 import { UserRecruitingAccessReaderAdapter } from '#composition/adapters/users/user_recruiting_access_reader_adapter'
 import { UserReviewReaderAdapter } from '#composition/adapters/users/user_review_reader_adapter'
 import { UserTalentDirectoryOptionsReaderAdapter } from '#composition/adapters/users/user_talent_directory_options_reader_adapter'
 import { UserWorkHistoryReaderAdapter } from '#composition/adapters/users/user_work_history_reader_adapter'
+import { ComposedUserProfilePageQueryFactory } from '#composition/factories/composed_user_profile_page_query_factory'
+import { ComposedUserTalentQueryFactory } from '#composition/factories/composed_user_talent_query_factory'
 import { searchEngineCapability } from '#composition/search/search-engine/search_engine_composition'
 import { userExternalDependencies } from '#composition/users/user-external-dependencies/user_external_dependencies_composition'
 import {
@@ -16,10 +19,6 @@ import {
   userProfileRepository,
   userTalentRepository,
 } from '#composition/users/user-persistence/user_persistence_composition'
-
-import { readLegacyAccomplishmentCutoverDecision } from '#composition/accomplishments/backfill/legacy_accomplishment_backfill_composition'
-import { ComposedUserProfilePageQueryFactory } from '#composition/factories/composed_user_profile_page_query_factory'
-import { ComposedUserTalentQueryFactory } from '#composition/factories/composed_user_talent_query_factory'
 import { accomplishmentPublicProjectionReader } from '#modules/accomplishments/infra/repositories/publication/accomplishment_public_projection_reader'
 import type { UserWorkHistoryReader } from '#modules/users/actions/ports/outbound/user_work_history_reader'
 import GetTalentDirectoryOptionsQuery from '#modules/users/actions/queries/talent/get_talent_directory_options_query'

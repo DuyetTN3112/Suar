@@ -1,5 +1,4 @@
 import { notificationTransactionStager } from '#composition/notifications/notification-feed/notification_composition'
-
 import {
   makeApplyForTaskCommand as makeApply,
   makeAssignTaskCommand as makeAssign,

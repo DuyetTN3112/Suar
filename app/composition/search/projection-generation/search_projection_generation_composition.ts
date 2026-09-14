@@ -3,12 +3,12 @@ import { ReconcileSearchProjectionGenerationCommand } from '#modules/search/acti
 import type { SearchIndexDescriptor } from '#modules/search/actions/ports/outbound/search_index_administration_port'
 import { PreviewSearchIndexActivationQuery } from '#modules/search/actions/queries/index-administration/preview_search_index_activation_query'
 import type { SearchProjectionGeneration } from '#modules/search/domain/projection-generation/search_projection_generation'
+import { searchIndexAdminClient } from '#modules/search/infra/adapters/index-administration/elasticsearch_search_index_admin_client'
 import { NodeSearchIndexPlanTokenGenerator } from '#modules/search/infra/adapters/index-administration/node_search_index_plan_token_generator'
 import { PostgresSearchIndexCutoverFence } from '#modules/search/infra/adapters/index-administration/postgres_search_index_cutover_fence'
-import { searchIndexAdminClient } from '#modules/search/infra/adapters/index-administration/elasticsearch_search_index_admin_client'
-import { PostgresSearchProjectionGenerationRepository } from '#modules/search/infra/repositories/projection-generation/postgres_search_projection_generation_repository'
 import { buildSearchIndexDescriptors } from '#modules/search/infra/adapters/index-administration/search_index_names'
 import { VersionedSearchIndexLifecycle } from '#modules/search/infra/adapters/index-administration/versioned_search_index_lifecycle'
+import { PostgresSearchProjectionGenerationRepository } from '#modules/search/infra/repositories/projection-generation/postgres_search_projection_generation_repository'
 
 type ActivationInput = { readonly id: string }
 

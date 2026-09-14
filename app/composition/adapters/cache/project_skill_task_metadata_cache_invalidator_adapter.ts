@@ -1,5 +1,5 @@
-import type { ProjectSkillTaskMetadataCacheInvalidator } from '#modules/skills/actions/ports/outbound/project_skill_task_metadata_cache_invalidator'
 import { cacheInvalidationStore } from '#modules/cache/public_contracts/cache_store'
+import type { ProjectSkillTaskMetadataCacheInvalidator } from '#modules/skills/actions/ports/outbound/project_skill_task_metadata_cache_invalidator'
 
 /**
  * Rotates the logical Task metadata generation. This is intentionally not a

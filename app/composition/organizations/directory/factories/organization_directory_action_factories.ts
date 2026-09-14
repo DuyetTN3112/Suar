@@ -1,7 +1,7 @@
+import type { OrganizationActionContext } from '#modules/organizations/actions/action_context'
 import CreateOrganizationCommand from '#modules/organizations/actions/commands/directory/create_organization_command'
 import DeleteOrganizationCommand from '#modules/organizations/actions/commands/directory/delete_organization_command'
 import UpdateOrganizationCommand from '#modules/organizations/actions/commands/directory/update_organization_command'
-import type { OrganizationActionContext } from '#modules/organizations/actions/action_context'
 import { OrganizationCreationCommandFactory } from '#modules/organizations/actions/ports/inbound/directory/organization_creation_command_factory'
 import { OrganizationDeletionCommandFactory } from '#modules/organizations/actions/ports/inbound/directory/organization_deletion_command_factory'
 import { OrganizationDirectoryQueryFactory } from '#modules/organizations/actions/ports/inbound/directory/organization_directory_query_factory'

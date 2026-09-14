@@ -3,8 +3,8 @@ import type {
   GovernedAccomplishmentProjectionSourceIdentity,
 } from '#modules/accomplishments/actions/ports/outbound/verified-work/governed_accomplishment_projection_source_reader'
 import type { PersistedVerifiedAccomplishmentResult } from '#modules/accomplishments/actions/ports/outbound/verified-work/verified_accomplishment_writer'
-import type { TvaSha256 } from '#modules/tasks/public_contracts/task-authoring/primitives'
 import BusinessLogicException from '#modules/errors/public_contracts/business_logic_exception'
+import type { TvaSha256 } from '#modules/tasks/public_contracts/task-authoring/primitives'
 
 export const REBUILD_VERIFIED_ACCOMPLISHMENT_CODES = Object.freeze({
   canonicalHashMismatch: 'TVA.ACCOMPLISHMENT.REBUILD.CANONICAL_HASH_MISMATCH',

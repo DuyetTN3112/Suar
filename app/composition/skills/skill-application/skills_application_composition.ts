@@ -142,3 +142,8 @@ export const skillApplication = new SkillPublicApiAdapter({
   cloneProfessionalRoleTemplate: cloneProfessionalRoleTemplateCommand,
   createCustomProjectRole: createCustomProjectRoleCommand,
 })
+
+export {
+  findCanonicalProficiencyLevelOption,
+  getCanonicalProficiencyLevelOrder,
+} from '#modules/skills/public_contracts/rubric-and-proficiency/proficiency_level_catalog'

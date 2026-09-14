@@ -1,8 +1,8 @@
 import { organizationRouteAccessReader } from '#composition/organizations/access/organization_access_read_composition'
 import { ProjectWorkspaceAccessReader } from '#modules/projects/actions/ports/outbound/project_workspace_access_reader'
 import { canEnterProjectWorkspace } from '#modules/projects/domain/project-members/project_permission_policy'
-import * as projectMemberQueries from '#modules/projects/infra/repositories/project-members/read/project_member_queries'
 import * as projectModelQueries from '#modules/projects/infra/repositories/project-context/read/project_model_queries'
+import * as projectMemberQueries from '#modules/projects/infra/repositories/project-members/read/project_member_queries'
 
 export class ProjectWorkspaceAccessReaderAdapter extends ProjectWorkspaceAccessReader {
   async canEnter(input: {
