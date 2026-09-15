@@ -4,7 +4,7 @@ import type { Assert } from '@japa/assert'
 import {
   ReferenceFilterEvaluator,
   type ReferenceFilterRecord,
-} from './support/reference_filter_evaluator.js'
+} from '../support/reference_filter_evaluator.js'
 
 import type {
   FilterAuthorizationBinding,

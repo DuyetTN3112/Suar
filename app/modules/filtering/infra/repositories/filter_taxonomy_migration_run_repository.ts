@@ -42,12 +42,12 @@ export class PostgresFilterTaxonomyMigrationRunRepository implements FilterTaxon
     if (transaction) await childQuery.forUpdate()
     const child = (await childQuery.first()) as Row | undefined
     return {
-      plan: parsePlan(parent.plan_payload),
-      status: (child?.status === 'completed' || child?.status === 'requires_repair' ? child.status : 'applying'),
-      scanPass: scanPass(child?.scan_pass),
-      completedItemIds: completedItemIds(child?.completed_item_ids),
-      nextCursor: cursor(child?.next_cursor),
-      lockVersion: child ? Number(child.lock_version) : 1,
+      plan: parsePlan(parent['plan_payload']),
+      status: (child?.['status'] === 'completed' || child?.['status'] === 'requires_repair' ? child['status'] : 'applying'),
+      scanPass: scanPass(child?.['scan_pass']),
+      completedItemIds: completedItemIds(child?.['completed_item_ids']),
+      nextCursor: cursor(child?.['next_cursor']),
+      lockVersion: child ? Number(child['lock_version']) : 1,
     }
   }
 
@@ -103,12 +103,12 @@ export class PostgresFilterTaxonomyMigrationRunRepository implements FilterTaxon
     const child = (await client.from('filter_taxonomy_migration_runs').where('plan_token', input.planToken).first()) as Row | undefined
     if (!child) return null
     return {
-      plan: parsePlan(parent.plan_payload),
-      status: child.status as FilterTaxonomyMigrationRun['status'],
-      scanPass: scanPass(child.scan_pass),
-      completedItemIds: completedItemIds(child.completed_item_ids),
-      nextCursor: cursor(child.next_cursor),
-      lockVersion: Number(child.lock_version),
+      plan: parsePlan(parent['plan_payload']),
+      status: child['status'] as FilterTaxonomyMigrationRun['status'],
+      scanPass: scanPass(child['scan_pass']),
+      completedItemIds: completedItemIds(child['completed_item_ids']),
+      nextCursor: cursor(child['next_cursor']),
+      lockVersion: Number(child['lock_version']),
     }
   }
 }

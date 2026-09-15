@@ -11,7 +11,7 @@ export interface TaxonomyFilterCriteriaMigrationResult {
 export function migrateTaxonomyFilterSemanticState(
   semanticState: SavedFilterSemanticState,
   mappings: readonly TaxonomyCriteriaMapping[]
-) {
+): TaxonomyFilterCriteriaMigrationResult {
 
   const outcome = mappings.some(({ disposition }) => disposition === 'blocked')
     ? 'blocked'

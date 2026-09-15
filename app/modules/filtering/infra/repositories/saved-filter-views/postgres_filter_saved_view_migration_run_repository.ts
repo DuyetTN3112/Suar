@@ -1,5 +1,6 @@
 import db from '@adonisjs/lucid/services/db'
 
+import PersistedDataIntegrityException from '#modules/errors/public_contracts/persisted_data_integrity_exception'
 import type { FilterTransaction } from '#modules/filtering/actions/ports/outbound/filter_transaction_runner'
 import type {
   FilterSavedViewMigrationOutcome,
@@ -16,16 +17,16 @@ function clientFor(transaction?: FilterTransaction): DbClient {
 
 function mapRow(row: Row): FilterSavedViewMigrationRunRecord {
   return {
-    id: String(row.id),
-    savedViewId: String(row.saved_view_id),
-    migrationId: String(row.migration_id),
-    fromVersion: Number(row.from_version),
-    toVersion: Number(row.to_version),
-    inputChecksum: String(row.input_checksum),
-    outputChecksum: stringOrNull(row.output_checksum),
-    outcome: String(row.outcome) as FilterSavedViewMigrationOutcome,
-    atomicPayload: row.atomic_payload ?? null,
-    diagnosticCode: stringOrNull(row.diagnostic_code),
+    id: String(row['id']),
+    savedViewId: String(row['saved_view_id']),
+    migrationId: String(row['migration_id']),
+    fromVersion: Number(row['from_version']),
+    toVersion: Number(row['to_version']),
+    inputChecksum: String(row['input_checksum']),
+    outputChecksum: stringOrNull(row['output_checksum']),
+    outcome: String(row['outcome']) as FilterSavedViewMigrationOutcome,
+    atomicPayload: row['atomic_payload'] ?? null,
+    diagnosticCode: stringOrNull(row['diagnostic_code']),
   }
 }
 
@@ -83,7 +84,7 @@ export class PostgresFilterSavedViewMigrationRunRepository
       .where('migration_id', input.migrationId)
       .where('input_checksum', input.inputChecksum)
       .first()) as Row | undefined
-    if (!row) throw new Error('filter_saved_view_migration_run_record_failed')
+    if (!row) throw new PersistedDataIntegrityException('filter_saved_view_migration_run_record_failed')
     return mapRow(row)
   }
 }

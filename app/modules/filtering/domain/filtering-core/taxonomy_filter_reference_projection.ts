@@ -11,7 +11,7 @@ export function extractTaxonomyFilterReferences(
 ): readonly FilterTaxonomyReferenceProjection[] {
   const references = new Map<string, FilterTaxonomyReferenceProjection>()
   const state = asRecord(semanticState)
-  walkExpression(state?.filter, references)
+  walkExpression(state?.['filter'], references)
   return [...references.values()].sort((left, right) =>
     `${left.namespace}:${left.termId}:${left.fieldKey}`.localeCompare(
       `${right.namespace}:${right.termId}:${right.fieldKey}`
@@ -23,13 +23,13 @@ function walkExpression(value: unknown, references: Map<string, FilterTaxonomyRe
   const expression = asRecord(value)
   if (!expression) return
 
-  if (expression.kind === 'condition' && typeof expression.field === 'string') {
-    collectValue(expression.value, expression.field, references)
+  if (expression['kind'] === 'condition' && typeof expression['field'] === 'string') {
+    collectValue(expression['value'], expression['field'], references)
     return
   }
 
-  if (expression.kind === 'group' && Array.isArray(expression.children)) {
-    for (const child of expression.children) walkExpression(child, references)
+  if (expression['kind'] === 'group' && Array.isArray(expression['children'])) {
+    for (const child of expression['children']) walkExpression(child, references)
   }
 }
 
@@ -39,21 +39,21 @@ function collectValue(
   references: Map<string, FilterTaxonomyReferenceProjection>
 ): void {
   const filterValue = asRecord(value)
-  if (!filterValue || typeof filterValue.kind !== 'string') return
+  if (!filterValue || typeof filterValue['kind'] !== 'string') return
 
-  if (filterValue.kind === 'scalar') {
-    collectReference(filterValue.value, fieldKey, references)
+  if (filterValue['kind'] === 'scalar') {
+    collectReference(filterValue['value'], fieldKey, references)
     return
   }
-  if (filterValue.kind === 'set' && Array.isArray(filterValue.values)) {
-    for (const entry of filterValue.values) collectReference(entry, fieldKey, references)
+  if (filterValue['kind'] === 'set' && Array.isArray(filterValue['values'])) {
+    for (const entry of filterValue['values']) collectReference(entry, fieldKey, references)
     return
   }
-  if (filterValue.kind === 'hierarchy' && Array.isArray(filterValue.termIds)) {
-    for (const entry of filterValue.termIds) collectReference(entry, fieldKey, references)
+  if (filterValue['kind'] === 'hierarchy' && Array.isArray(filterValue['termIds'])) {
+    for (const entry of filterValue['termIds']) collectReference(entry, fieldKey, references)
     return
   }
-  if (filterValue.kind === 'relation') walkExpression(filterValue.expression, references)
+  if (filterValue['kind'] === 'relation') walkExpression(filterValue['expression'], references)
 }
 
 function collectReference(

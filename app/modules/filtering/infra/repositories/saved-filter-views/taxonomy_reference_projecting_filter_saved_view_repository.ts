@@ -1,8 +1,8 @@
+import type { FilterTransaction } from '#modules/filtering/actions/ports/outbound/filter_transaction_runner'
 import type {
   FilterSavedViewRecord,
   FilterSavedViewRepository,
-} from '#modules/filtering/actions/ports/outbound/filter_saved_view_repository'
-import type { FilterTransaction } from '#modules/filtering/actions/ports/outbound/filter_transaction_runner'
+} from '#modules/filtering/actions/ports/outbound/saved-filter-views/filter_saved_view_repository'
 import type { FilterSavedViewTaxonomyReferenceRepository } from '#modules/filtering/actions/ports/outbound/saved-filter-views/filter_saved_view_taxonomy_references'
 import { extractTaxonomyFilterReferences } from '#modules/filtering/domain/filtering-core/taxonomy_filter_reference_projection'
 import type { TaxonomyVersionReader } from '#modules/taxonomy/actions/ports/outbound/taxonomy-governance/taxonomy_version_reader'

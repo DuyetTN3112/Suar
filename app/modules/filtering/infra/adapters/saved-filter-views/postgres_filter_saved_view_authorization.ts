@@ -1,9 +1,3 @@
-/*
- * The relocation tree currently exports saved-view/domain shapes through `any` declarations.
- * Keep this adapter's runtime authorization logic lintable while those shared contracts are typed.
- */
-/* eslint-disable @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
-
 import db from '@adonisjs/lucid/services/db'
 
 import NotFoundException from '#modules/errors/public_contracts/not_found_exception'
@@ -93,12 +87,13 @@ export class PostgresFilterSavedViewAuthorization implements FilterSavedViewAuth
     action: 'read'
   }): Promise<readonly string[]> {
     if (!user(input.principal)) return []
-    const rows = await db.from('filter_saved_views')
+    const rows = (await db
+      .from('filter_saved_views')
       .select('id')
       .where('context_key', input.context)
-      .whereNull('deleted_at')
+      .whereNull('deleted_at')) as unknown as Array<{ id: string }>
     const ids: string[] = []
-    for (const row of rows as Array<{ id: string }>) {
+    for (const row of rows) {
       const authorized = await this.canPerform({
         principal: input.principal,
         action: input.action,
@@ -111,7 +106,8 @@ export class PostgresFilterSavedViewAuthorization implements FilterSavedViewAuth
 
   private async isApprovedMember(userId: string, organizationId: string): Promise<boolean> {
     if (!userId || !organizationId) return false
-    const row = await db.from('organization_users')
+    const row: unknown = await db
+      .from('organization_users')
       .select('user_id')
       .where('organization_id', organizationId)
       .where('user_id', userId)
@@ -122,9 +118,10 @@ export class PostgresFilterSavedViewAuthorization implements FilterSavedViewAuth
 
   private async hasGrant(viewId: string, principal: FilterPrincipal, action: FilterSavedViewAction): Promise<boolean> {
     if (!user(principal)) return false
-    const grants = await db.from('filter_saved_view_grants')
+    const grants = (await db
+      .from('filter_saved_view_grants')
       .where('saved_view_id', viewId)
-      .whereNull('revoked_at') as GrantRow[]
+      .whereNull('revoked_at')) as unknown as GrantRow[]
     for (const grant of grants) {
       const matches = grant.grantee_type === 'user'
         ? grant.grantee_id === principal.id
