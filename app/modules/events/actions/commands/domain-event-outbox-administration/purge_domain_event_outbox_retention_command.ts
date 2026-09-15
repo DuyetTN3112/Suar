@@ -2,11 +2,11 @@ import { requireDomainEventOutboxRetentionServicePrincipal } from '#modules/auth
 import type {
   DomainEventOutboxRetentionPurgeResult,
   DomainEventOutboxRetentionWindowInput,
-} from '#modules/events/actions/dtos/domain_event_outbox_retention'
+} from '#modules/events/actions/dtos/domain-event-outbox-administration/domain_event_outbox_retention'
 import type {
   DomainEventOutboxRetentionRepository,
   DomainEventOutboxRetentionTransaction,
-} from '#modules/events/actions/ports/outbound/domain_event_outbox_retention_repository'
+} from '#modules/events/actions/ports/outbound/domain-event-outbox-administration/domain_event_outbox_retention_repository'
 import {
   requireDomainEventOutboxRetentionMutation,
   resolveDomainEventOutboxRetentionCutoffs,

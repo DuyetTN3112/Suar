@@ -4,18 +4,18 @@ import type {
   DomainEventOutboxOperatorActionContext,
   ReplayDomainEventDeadLettersInput,
   ReplayDomainEventDeadLettersResult,
-} from '#modules/events/actions/dtos/domain_event_outbox_administration'
+} from '#modules/events/actions/dtos/domain-event-outbox-administration/domain_event_outbox_administration'
 import {
   digestDomainEventOutboxSelection,
   digestDomainEventOutboxSelector,
   mapDomainEventOutboxSelectorShape,
   requireDomainEventOutboxOperator,
-} from '#modules/events/actions/mappers/domain_event_outbox_administration_audit_mapper'
+} from '#modules/events/actions/mappers/domain-event-outbox-administration/domain_event_outbox_administration_audit_mapper'
 import type {
   DomainEventOutboxAdministrationEvidenceGenerator,
   DomainEventOutboxAdministrationRepository,
   DomainEventOutboxAdministrationTransactionExecutor,
-} from '#modules/events/actions/ports/outbound/domain_event_outbox_administration_ports'
+} from '#modules/events/actions/ports/outbound/domain-event-outbox-administration/domain_event_outbox_administration_ports'
 import { requireDomainEventOutboxReplayRequest } from '#modules/events/domain/domain-event-outbox-administration/domain_event_outbox_administration'
 
 export interface ReplayDomainEventDeadLettersDependencies {

@@ -2,8 +2,8 @@ import { requireDomainEventOutboxRetentionServicePrincipal } from '#modules/auth
 import type {
   DomainEventOutboxRetentionPreview,
   DomainEventOutboxRetentionWindowInput,
-} from '#modules/events/actions/dtos/domain_event_outbox_retention'
-import type { DomainEventOutboxRetentionRepository } from '#modules/events/actions/ports/outbound/domain_event_outbox_retention_repository'
+} from '#modules/events/actions/dtos/domain-event-outbox-administration/domain_event_outbox_retention'
+import type { DomainEventOutboxRetentionRepository } from '#modules/events/actions/ports/outbound/domain-event-outbox-administration/domain_event_outbox_retention_repository'
 import {
   DOMAIN_EVENT_OUTBOX_RETENTION_COUNT_CAP,
   resolveDomainEventOutboxRetentionCutoffs,

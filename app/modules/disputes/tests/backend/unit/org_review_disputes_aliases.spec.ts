@@ -1,10 +1,10 @@
 import { test } from '@japa/runner'
 
-import type { ReviewActionFactory } from '#modules/reviews/actions/ports/inbound/review_action_factory'
+import ListOrgReviewDisputesController from '#modules/disputes/controllers/list_org_review_disputes_controller'
 import ListOrgReviewDisputesQuery, {
   type ListOrgReviewDisputesDTO,
-} from '#modules/reviews/actions/queries/list_org_review_disputes_query'
-import ListOrgReviewDisputesController from '#modules/reviews/controllers/disputes/list_org_review_disputes_controller'
+} from '#modules/disputes/actions/queries/list_org_review_disputes_query'
+import type { ReviewActionFactory } from '#modules/reviews/actions/ports/inbound/review_action_factory'
 
 function fakeRequest(body: Record<string, unknown>, url = '/api/org/reviews/disputes') {
   return {
@@ -40,7 +40,7 @@ function requireValue<T>(value: T, message: string): NonNullable<T> {
   return value
 }
 
-test.group('Unit | Review read controller aliases', () => {
+test.group('Unit | Org review disputes aliases', () => {
   test('org review disputes API controller reads camelCase perPage alias', async ({ assert }) => {
     const originalExecuteAndWrap: unknown = Reflect.get(
       ListOrgReviewDisputesQuery.prototype,

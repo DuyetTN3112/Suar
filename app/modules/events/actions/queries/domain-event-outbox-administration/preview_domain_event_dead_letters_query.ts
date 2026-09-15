@@ -2,16 +2,16 @@ import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer
 import type {
   DomainEventOutboxAdministrationAuditWriter,
   DomainEventOutboxOperatorActionContext,
-} from '#modules/events/actions/dtos/domain_event_outbox_administration'
+} from '#modules/events/actions/dtos/domain-event-outbox-administration/domain_event_outbox_administration'
 import {
   digestDomainEventOutboxSelector,
   mapDomainEventOutboxSelectorShape,
   requireDomainEventOutboxOperator,
-} from '#modules/events/actions/mappers/domain_event_outbox_administration_audit_mapper'
+} from '#modules/events/actions/mappers/domain-event-outbox-administration/domain_event_outbox_administration_audit_mapper'
 import type {
   DomainEventOutboxAdministrationEvidenceGenerator,
   DomainEventOutboxAdministrationRepository,
-} from '#modules/events/actions/ports/outbound/domain_event_outbox_administration_ports'
+} from '#modules/events/actions/ports/outbound/domain-event-outbox-administration/domain_event_outbox_administration_ports'
 import {
   type DomainEventOutboxDeadLetterPreviewInput,
   type DomainEventOutboxDeadLetterPreviewPage,

@@ -2,6 +2,7 @@ import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 
 import GetRequiredOrganizationPageQuery from '#modules/errors/actions/queries/error-event-retention/get_required_organization_page_query'
+import { buildRequireOrganizationPageRequest } from '#modules/errors/controllers/mappers/request/organization/require_organization_page_request_mapper'
 import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
 
 @inject()
@@ -27,11 +28,12 @@ export default class ErrorController {
       throw new UnauthorizedException()
     }
 
+    const input = buildRequireOrganizationPageRequest(request)
     const page = await this.getRequiredOrganizationPage
       .executeAndWrap({
         userId: auth.user.id,
-        page: request.input('page'),
-        search: request.input('search'),
+        page: input.page,
+        search: input.search,
       })
       .then((outcome) => outcome.getValue())
     return inertia.render('errors/require_organization', page)

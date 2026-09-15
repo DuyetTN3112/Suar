@@ -1,11 +1,13 @@
-// @ts-nocheck
-var __defProp = Object.defineProperty
-var __name = (target, value) => __defProp(target, 'name', { value, configurable: true })
 import { z } from 'zod'
-const DOMAIN_EVENT_OUTBOX_ADMIN_BATCH_LIMIT = 100
+
+import type { DurableDomainEventName } from './domain_event_outbox.js'
+
+export const DOMAIN_EVENT_OUTBOX_ADMIN_BATCH_LIMIT = 100
+
 const uuidSchema = z.uuid()
 const exactDedupeKeySchema = z.string().trim().min(1).max(255)
-const domainEventOutboxAdminSelectorSchema = z
+
+export const domainEventOutboxAdminSelectorSchema = z
   .object({
     id: uuidSchema.optional(),
     eventName: z
@@ -21,73 +23,6 @@ const domainEventOutboxAdminSelectorSchema = z
     dedupeKey: exactDedupeKeySchema.optional(),
   })
   .strict()
-function normalizeDomainEventOutboxAdminSelector(selector) {
-  const parsed = domainEventOutboxAdminSelectorSchema.parse(selector)
-  return {
-    ...(parsed.id === void 0 ? {} : { id: parsed.id }),
-    ...(parsed.eventName === void 0 ? {} : { eventName: parsed.eventName }),
-    ...(parsed.dedupeKey === void 0 ? {} : { dedupeKey: parsed.dedupeKey }),
-  }
-}
-__name(normalizeDomainEventOutboxAdminSelector, 'normalizeDomainEventOutboxAdminSelector')
-function requireDomainEventOutboxReplayRequest(input) {
-  if (input.confirmation !== 'REPLAY') {
-    throw new RangeError('Domain event outbox replay requires confirmation=REPLAY')
-  }
-  const selector = requireBoundedDomainEventOutboxAdminSelector(input.selector)
-  const reason = input.reason.trim()
-  if (reason.length < 10 || reason.length > 500) {
-    throw new RangeError('Domain event outbox replay reason must contain 10 to 500 characters')
-  }
-  if (Number.isNaN(input.now.getTime())) {
-    throw new RangeError('Domain event outbox replay time must be valid')
-  }
-  return { selector, reason, now: input.now }
-}
-__name(requireDomainEventOutboxReplayRequest, 'requireDomainEventOutboxReplayRequest')
-function requireBoundedDomainEventOutboxAdminSelector(selector) {
-  const normalized = normalizeDomainEventOutboxAdminSelector(selector)
-  if (
-    normalized.id === void 0 &&
-    normalized.eventName === void 0 &&
-    normalized.dedupeKey === void 0
-  ) {
-    throw new RangeError(
-      'Domain event outbox replay requires an exact id, eventName, or dedupeKey filter'
-    )
-  }
-  return normalized
-}
-__name(requireBoundedDomainEventOutboxAdminSelector, 'requireBoundedDomainEventOutboxAdminSelector')
-function validateDomainEventOutboxPreviewInput(input) {
-  const selector = normalizeDomainEventOutboxAdminSelector(input.selector)
-  if (
-    !Number.isSafeInteger(input.limit) ||
-    input.limit < 1 ||
-    input.limit > DOMAIN_EVENT_OUTBOX_ADMIN_BATCH_LIMIT
-  ) {
-    throw new RangeError(
-      `Domain event outbox preview limit must be between 1 and ${DOMAIN_EVENT_OUTBOX_ADMIN_BATCH_LIMIT}`
-    )
-  }
-  if (
-    input.afterSequence !== void 0 &&
-    (!Number.isSafeInteger(input.afterSequence) || input.afterSequence < 1)
-  ) {
-    throw new RangeError('Domain event outbox afterSequence must be a positive integer')
-  }
-  return { ...input, selector }
-}
-__name(validateDomainEventOutboxPreviewInput, 'validateDomainEventOutboxPreviewInput')
-export {
-  DOMAIN_EVENT_OUTBOX_ADMIN_BATCH_LIMIT,
-  domainEventOutboxAdminSelectorSchema,
-  normalizeDomainEventOutboxAdminSelector,
-  requireBoundedDomainEventOutboxAdminSelector,
-  requireDomainEventOutboxReplayRequest,
-  validateDomainEventOutboxPreviewInput,
-}
-import type { DurableDomainEventName } from './domain_event_outbox.js'
 
 export interface DomainEventOutboxAdminSelector {
   id?: string
@@ -136,7 +71,7 @@ export interface DomainEventOutboxReplayRow {
   previousAttemptCount: number
   lifetimeAttemptCount: number
   replayCount: number
-  previousStatus: string
+  previousStatus: 'dead_letter' | string
 }
 
 export interface DomainEventOutboxReplayBatch {
@@ -144,4 +79,77 @@ export interface DomainEventOutboxReplayBatch {
   matchedCount: number
   deferredCount: number
   hasMoreOrLocked: boolean
+}
+
+export function normalizeDomainEventOutboxAdminSelector(
+  selector: DomainEventOutboxAdminSelector
+): DomainEventOutboxAdminSelector {
+  const parsed = domainEventOutboxAdminSelectorSchema.parse(selector)
+  return {
+    ...(parsed.id === undefined ? {} : { id: parsed.id }),
+    ...(parsed.eventName === undefined ? {} : { eventName: parsed.eventName }),
+    ...(parsed.dedupeKey === undefined ? {} : { dedupeKey: parsed.dedupeKey }),
+  }
+}
+
+export function requireDomainEventOutboxReplayRequest(input: {
+  selector: DomainEventOutboxAdminSelector
+  reason: string
+  confirmation: string
+  now: Date
+}): {
+  selector: DomainEventOutboxAdminSelector
+  reason: string
+  now: Date
+} {
+  if (input.confirmation !== 'REPLAY') {
+    throw new RangeError('Domain event outbox replay requires confirmation=REPLAY')
+  }
+  const selector = requireBoundedDomainEventOutboxAdminSelector(input.selector)
+  const reason = input.reason.trim()
+  if (reason.length < 10 || reason.length > 500) {
+    throw new RangeError('Domain event outbox replay reason must contain 10 to 500 characters')
+  }
+  if (Number.isNaN(input.now.getTime())) {
+    throw new RangeError('Domain event outbox replay time must be valid')
+  }
+  return { selector, reason, now: input.now }
+}
+
+export function requireBoundedDomainEventOutboxAdminSelector(
+  selector: DomainEventOutboxAdminSelector
+): DomainEventOutboxAdminSelector {
+  const normalized = normalizeDomainEventOutboxAdminSelector(selector)
+  if (
+    normalized.id === undefined &&
+    normalized.eventName === undefined &&
+    normalized.dedupeKey === undefined
+  ) {
+    throw new RangeError(
+      'Domain event outbox replay requires an exact id, eventName, or dedupeKey filter'
+    )
+  }
+  return normalized
+}
+
+export function validateDomainEventOutboxPreviewInput(
+  input: DomainEventOutboxDeadLetterPreviewInput
+): DomainEventOutboxDeadLetterPreviewInput {
+  const selector = normalizeDomainEventOutboxAdminSelector(input.selector)
+  if (
+    !Number.isSafeInteger(input.limit) ||
+    input.limit < 1 ||
+    input.limit > DOMAIN_EVENT_OUTBOX_ADMIN_BATCH_LIMIT
+  ) {
+    throw new RangeError(
+      `Domain event outbox preview limit must be between 1 and ${DOMAIN_EVENT_OUTBOX_ADMIN_BATCH_LIMIT}`
+    )
+  }
+  if (
+    input.afterSequence !== undefined &&
+    (!Number.isSafeInteger(input.afterSequence) || input.afterSequence < 1)
+  ) {
+    throw new RangeError('Domain event outbox afterSequence must be a positive integer')
+  }
+  return { ...input, selector }
 }
