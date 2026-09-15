@@ -1,6 +1,6 @@
 import AppException from '#modules/errors/public_contracts/application_exception'
-import { FilterExecutionError } from '#modules/filtering/public_contracts/filter_diagnostics'
 import { FilterContextResolutionError } from '#modules/filtering/public_contracts/filter_context_provider'
+import { FilterExecutionError } from '#modules/filtering/public_contracts/filter_diagnostics'
 
 export function toFilterHttpException(error: unknown): AppException | undefined {
   if (error instanceof FilterContextResolutionError) {

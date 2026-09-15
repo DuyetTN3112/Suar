@@ -2,8 +2,8 @@ import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 
 import AppException from '#modules/errors/public_contracts/application_exception'
-import { toFilterHttpException } from '#modules/http/boundary/filter_http_problem'
 import GetSearchDiscoveryQuery from '#modules/http/actions/queries/search-discovery/get_search_discovery_query'
+import { toFilterHttpException } from '#modules/http/boundary/filter_http_problem'
 import { optionalActionContextFromHttp } from '#modules/http/boundary/http_execution_context'
 import { buildSearchDiscoveryRequest } from '#modules/http/controllers/mappers/request/search-discovery/search_discovery_request_mapper'
 import {

@@ -1,4 +1,11 @@
 import {
+  isSearchIndexAdministrationError,
+  mapProjectionInventories,
+  type AdminSearchProjectionDependencies,
+  toHttpException,
+  unsupportedOperation,
+} from '../mappers/request/search-discovery/admin_search_projection_controller_mapper.js'
+import {
   buildAdminSearchProjectionActivationApplyRequest,
   buildAdminSearchProjectionActivationPreviewRequest,
   buildAdminSearchProjectionCleanupApplyRequest,
@@ -8,13 +15,6 @@ import {
   buildAdminSearchProjectionRollbackApplyRequest,
   buildAdminSearchProjectionRollbackPreviewRequest,
 } from '../mappers/request/search-discovery/admin_search_projection_request_mapper.js'
-import {
-  isSearchIndexAdministrationError,
-  mapProjectionInventories,
-  type AdminSearchProjectionDependencies,
-  toHttpException,
-  unsupportedOperation,
-} from '../mappers/request/search-discovery/admin_search_projection_controller_mapper.js'
 
 export type { AdminSearchProjectionDependencies } from '../mappers/request/search-discovery/admin_search_projection_controller_mapper.js'
 

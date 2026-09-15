@@ -1,6 +1,8 @@
 import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 
+import { buildFlushCacheRequest } from '../mappers/request/cache/cache_admin_request_mapper.js'
+
 import { HttpCacheActionFactory } from '#modules/http/actions/ports/inbound/http_cache_action_factory'
 import { actionContextFromHttp } from '#modules/http/boundary/http_execution_context'
 
@@ -13,8 +15,9 @@ export default class RedisFlushCacheController {
 
   async handle(ctx: HttpContext) {
     const { request, response } = ctx
-    const confirmation =
-      request.header('x-confirm-cache-flush') ?? (request.input('confirm', '') as string)
+    const rawConfirmation: unknown =
+      request.header('x-confirm-cache-flush') ?? (request.input('confirm') as unknown)
+    const { confirmation } = buildFlushCacheRequest(rawConfirmation)
     await this.actions
       .makeFlushCacheCommand(actionContextFromHttp(ctx))
       .executeAndWrap(confirmation)

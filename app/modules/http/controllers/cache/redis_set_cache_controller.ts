@@ -1,6 +1,8 @@
 import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 
+import { buildSetCacheValueRequest } from '../mappers/request/cache/cache_admin_request_mapper.js'
+
 import { HttpCacheActionFactory } from '#modules/http/actions/ports/inbound/http_cache_action_factory'
 import { actionContextFromHttp } from '#modules/http/boundary/http_execution_context'
 
@@ -13,12 +15,10 @@ export default class RedisSetCacheController {
 
   async handle(ctx: HttpContext) {
     const { request, response } = ctx
-    const key = request.input('key') as string | undefined
-    const value = request.input('value') as unknown
-    const ttl = request.input('ttl', 3600) as number
+    const input = buildSetCacheValueRequest(request.body())
     await this.actions
       .makeSetCacheValueCommand(actionContextFromHttp(ctx))
-      .executeAndWrap({ key: key ?? '', value, ttl })
+      .executeAndWrap(input)
       .then((outcome) => outcome.getValue())
 
     response.noContent()

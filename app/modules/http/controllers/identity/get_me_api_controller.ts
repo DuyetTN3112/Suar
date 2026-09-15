@@ -1,7 +1,7 @@
 import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 
-import GetMeQuery from '#modules/http/actions/queries/get_me_query'
+import GetMeQuery from '#modules/http/actions/queries/identity/get_me_query'
 import { mapApiV1MeResponse, wrapApiV1Data } from '#modules/http/boundary/api_v1_response'
 import { resolveCurrentOrganizationId } from '#modules/http/boundary/http_execution_context'
 

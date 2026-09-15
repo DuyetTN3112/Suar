@@ -2,7 +2,6 @@ import { test } from '@japa/runner'
 
 import { CoordinateTaxonomyFilterConsumersCommand } from '#modules/filtering/actions/commands/filtering-observability/coordinate_taxonomy_filter_consumers_command'
 import type { FilterAlertPausePort } from '#modules/filtering/actions/ports/outbound/filter_alert_pause_port'
-import type { FilterSavedViewRepository } from '#modules/filtering/actions/ports/outbound/filter_saved_view_repository'
 import type {
   FilterTaxonomyMigrationRun,
   FilterTaxonomyMigrationRunPort,
@@ -12,6 +11,7 @@ import type {
   FilterSavedViewMigrationRunRecord,
   FilterSavedViewMigrationRunRepository,
 } from '#modules/filtering/actions/ports/outbound/saved-filter-views/filter_saved_view_migration_run_repository'
+import type { FilterSavedViewRepository } from '#modules/filtering/actions/ports/outbound/saved-filter-views/filter_saved_view_repository'
 import type { FilterSavedViewTaxonomyReferenceRepository } from '#modules/filtering/actions/ports/outbound/saved-filter-views/filter_saved_view_taxonomy_references'
 import { createSavedFilterView } from '#modules/filtering/domain/saved-filter-views/saved_filter_view'
 import { NodeFilterHashGenerator } from '#modules/filtering/infra/adapters/filtering-runtime/node_filter_hash_generator'
@@ -148,9 +148,11 @@ test.group('Unit | Taxonomy filter consumer coordination', () => {
 
     assert.equal(discoveredNamespace, 'skills')
     assert.deepEqual(discoveredTermIds, ['old'])
-    assert.equal(updated?.view.semanticState.filter?.value?.value, 'skills:new')
+    const updatedFilter = updated?.view.semanticState.filter
+    const updatedVal = updatedFilter?.kind === 'condition' && updatedFilter.value?.kind === 'scalar' ? updatedFilter.value.value : null
+    assert.equal(updatedVal, 'skills:new')
     assert.isTrue(receiptSaved)
-    assert.deepEqual(result?.completedItemIds, ['view-1'])
+    assert.deepEqual(result.completedItemIds, ['view-1'])
     assert.deepEqual(readOptions, { lock: 'for_update' })
   })
 
@@ -223,7 +225,7 @@ test.group('Unit | Taxonomy filter consumer coordination', () => {
     assert.equal(updated?.migrationState, 'requires_repair')
     assert.deepEqual(updated?.view.semanticState, semanticState)
     assert.equal(status, 'requires_repair')
-    assert.deepEqual(result?.completedItemIds, ['view-1'])
+    assert.deepEqual(result.completedItemIds, ['view-1'])
   })
 
   test('resumes a repaired child with a final rescan once the stale reference disappears', async ({ assert }) => {
@@ -269,8 +271,8 @@ test.group('Unit | Taxonomy filter consumer coordination', () => {
     ).handle({ planToken: plan.planToken, limit: 10, now: '2026-08-09T00:02:00.000Z' })
 
     assert.isNull(listedAfterCursor)
-    assert.equal(result?.status, 'completed')
-    assert.equal(result?.scanPass, 'final_rescan')
+    assert.equal(result.status, 'completed')
+    assert.equal(result.scanPass, 'final_rescan')
   })
 
   test('fails closed when the persisted impact reports saved views but the reference projection is empty', async ({ assert }) => {
@@ -306,7 +308,7 @@ test.group('Unit | Taxonomy filter consumer coordination', () => {
     ).handle({ planToken: plan.planToken, limit: 10, now: '2026-08-09T00:00:00.000Z' })
 
     assert.equal(status, 'requires_repair')
-    assert.equal(result?.status, 'requires_repair')
+    assert.equal(result.status, 'requires_repair')
   })
 
   test('rescans references before completing after a page cursor is exhausted', async ({ assert }) => {
@@ -359,9 +361,9 @@ test.group('Unit | Taxonomy filter consumer coordination', () => {
 
     assert.equal(listCalls, 1)
     assert.equal(status, 'applying')
-    assert.equal(firstResult?.status, 'applying')
-    assert.equal(firstResult?.scanPass, 'final_rescan')
-    assert.isNull(firstResult?.nextCursor)
+    assert.equal(firstResult.status, 'applying')
+    assert.equal(firstResult.scanPass, 'final_rescan')
+    assert.isNull(firstResult.nextCursor)
 
     const finalResult = await new CoordinateTaxonomyFilterConsumersCommand(
       { findById: () => Promise.resolve(null) } as unknown as FilterSavedViewRepository,
@@ -374,7 +376,7 @@ test.group('Unit | Taxonomy filter consumer coordination', () => {
     ).handle({ planToken: plan.planToken, limit: 10, now: '2026-08-09T00:01:00.000Z' })
 
     assert.equal(listCalls, 2)
-    assert.equal(finalResult?.status, 'completed')
-    assert.equal(finalResult?.scanPass, 'final_rescan')
+    assert.equal(finalResult.status, 'completed')
+    assert.equal(finalResult.scanPass, 'final_rescan')
   })
 })

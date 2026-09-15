@@ -2,7 +2,7 @@ import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 
 import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
-import GetUsersInOrganizationQuery from '#modules/http/actions/queries/get_users_in_organization_query'
+import GetUsersInOrganizationQuery from '#modules/http/actions/queries/organization/get_users_in_organization_query'
 import { wrapApiV1Data } from '#modules/http/boundary/api_v1_response'
 import { requireCurrentOrganizationId } from '#modules/http/boundary/http_execution_context'
 

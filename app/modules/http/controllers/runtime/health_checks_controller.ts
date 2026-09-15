@@ -1,8 +1,8 @@
 import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 
-import { GetCacheMetricsQuery } from '#modules/http/actions/queries/get_cache_metrics_query'
-import { GetHealthReportQuery } from '#modules/http/actions/queries/get_health_report_query'
+import { GetCacheMetricsQuery } from '#modules/http/actions/queries/runtime/get_cache_metrics_query'
+import { GetHealthReportQuery } from '#modules/http/actions/queries/runtime/get_health_report_query'
 
 /**
  * Controller xử lý các health checks.

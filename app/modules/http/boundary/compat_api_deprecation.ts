@@ -10,6 +10,7 @@ const LEGACY_COMPAT_SUNSET_DATE = '2026-12-31'
 const DEPRECATED_ROUTE_POLICY_PATH = path.join(
   process.cwd(),
   'scripts',
+  'architecture',
   'api_deprecated_route_policy.json'
 )
 

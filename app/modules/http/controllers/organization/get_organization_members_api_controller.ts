@@ -1,7 +1,9 @@
 import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 
-import GetOrganizationMembersQuery from '#modules/http/actions/queries/get_organization_members_query'
+import { buildOrganizationMembersRequest } from '../mappers/request/organization/organization_members_request_mapper.js'
+
+import GetOrganizationMembersQuery from '#modules/http/actions/queries/organization/get_organization_members_query'
 import {
   mapApiV1OrganizationMemberResponse,
   wrapApiV1Data,
@@ -15,10 +17,9 @@ export default class GetOrganizationMembersApiController {
   constructor(private readonly getOrganizationMembers: GetOrganizationMembersQuery) {}
 
   async handle(ctx: HttpContext) {
-    const { params, request } = ctx
-    const q = request.input('q') as unknown
+    const input = buildOrganizationMembersRequest(ctx.params, ctx.request)
     const result = await this.getOrganizationMembers
-      .executeAndWrap(params['organizationId'] as string, typeof q === 'string' ? q : undefined)
+      .executeAndWrap(input.organizationId, input.q)
       .then((outcome) => outcome.getValue())
 
     return wrapApiV1Data({
