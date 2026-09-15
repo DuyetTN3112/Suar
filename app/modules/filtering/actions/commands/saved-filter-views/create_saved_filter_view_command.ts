@@ -1,10 +1,37 @@
-// @ts-nocheck
-var __defProp = Object.defineProperty
-var __name = (target, value) => __defProp(target, 'name', { value, configurable: true })
 import { BaseCommand } from '#modules/filtering/actions/base_command'
-import { FilterSavedViewAccessError } from '#modules/filtering/actions/ports/outbound/saved-filter-views/filter_saved_view_authorization'
-import { createSavedFilterView } from '#modules/filtering/domain/saved-filter-views/saved_filter_view'
-async function requireSavedViewContext(provider, input) {
+import type { FilterTransactionRunner } from '#modules/filtering/actions/ports/outbound/filter_transaction_runner'
+import {
+  FilterSavedViewAccessError,
+  type FilterSavedViewAuthorization,
+} from '#modules/filtering/actions/ports/outbound/saved-filter-views/filter_saved_view_authorization'
+import type {
+  FilterSavedViewOwner,
+  FilterSavedViewRecord,
+  FilterSavedViewRepository,
+} from '#modules/filtering/actions/ports/outbound/saved-filter-views/filter_saved_view_repository'
+import type { FilterHashGenerator } from '#modules/filtering/domain/filtering-core/filter_hash'
+import {
+  createSavedFilterView,
+  type SavedFilterAlertState,
+  type SavedFilterSemanticState,
+  type SavedFilterViewContext,
+  type SavedFilterViewVisibility,
+} from '#modules/filtering/domain/saved-filter-views/saved_filter_view'
+import type {
+  FilterContextProvider,
+  FilterPrincipal,
+} from '#modules/filtering/public_contracts/filter_context_provider'
+import type { FilterContextDefinition } from '#modules/filtering/public_contracts/filter_contracts'
+
+export async function requireSavedViewContext(
+  provider: FilterContextProvider,
+  input: {
+    context: SavedFilterViewContext
+    principal: FilterPrincipal
+    requireSharing?: boolean
+    requireAlerts?: boolean
+  }
+): Promise<FilterContextDefinition> {
   try {
     const definition = await provider.getEffectiveDefinition({
       context: input.context.key,
@@ -26,8 +53,8 @@ async function requireSavedViewContext(provider, input) {
     throw new FilterSavedViewAccessError()
   }
 }
-__name(requireSavedViewContext, 'requireSavedViewContext')
-function requireSavedViewActorId(principal) {
+
+export function requireSavedViewActorId(principal: FilterPrincipal): string {
   if (
     principal.kind === 'anonymous' ||
     typeof principal.id !== 'string' ||
@@ -37,37 +64,37 @@ function requireSavedViewActorId(principal) {
   }
   return principal.id
 }
-__name(requireSavedViewActorId, 'requireSavedViewActorId')
-class CreateSavedFilterViewCommand extends BaseCommand {
+
+export interface CreateSavedFilterViewCommandInput {
+  principal: FilterPrincipal
+  owner: FilterSavedViewOwner
+  name: string
+  description?: string | null
+  visibility: SavedFilterViewVisibility
+  organizationId?: string | null
+  teamId?: string | null
+  context: SavedFilterViewContext
+  semanticState: SavedFilterSemanticState
+  presentationState: Record<string, unknown>
+  isDefault: boolean
+  isPinned: boolean
+  alertState: SavedFilterAlertState
+}
+
+export class CreateSavedFilterViewCommand extends BaseCommand {
   constructor(
-    transactions,
-    repository,
-    authorization,
-    contexts,
-    hashGenerator,
-    clock = () => new Date().toISOString(),
-    idGenerator = () => crypto.randomUUID()
+    private readonly transactions: FilterTransactionRunner,
+    private readonly repository: FilterSavedViewRepository,
+    private readonly authorization: FilterSavedViewAuthorization,
+    private readonly contexts: FilterContextProvider,
+    private readonly hashGenerator: FilterHashGenerator,
+    private readonly clock: () => string = () => new Date().toISOString(),
+    private readonly idGenerator: () => string = () => crypto.randomUUID()
   ) {
     super()
-    this.transactions = transactions
-    this.repository = repository
-    this.authorization = authorization
-    this.contexts = contexts
-    this.hashGenerator = hashGenerator
-    this.clock = clock
-    this.idGenerator = idGenerator
   }
-  transactions
-  repository
-  authorization
-  contexts
-  hashGenerator
-  clock
-  idGenerator
-  static {
-    __name(this, 'CreateSavedFilterViewCommand')
-  }
-  handle(input) {
+
+  handle(input: CreateSavedFilterViewCommandInput): Promise<FilterSavedViewRecord> {
     const actorId = requireSavedViewActorId(input.principal)
     const occurredAt = this.clock()
     return this.transactions.run(async (transaction) => {
@@ -108,10 +135,4 @@ class CreateSavedFilterViewCommand extends BaseCommand {
       return this.repository.create({ owner: input.owner, view }, transaction)
     })
   }
-}
-export { CreateSavedFilterViewCommand, requireSavedViewActorId, requireSavedViewContext }
-
-export interface CreateSavedFilterViewCommand {
-  executeAndWrap(input: any): Promise<any>
-  handle(input: any): any
 }

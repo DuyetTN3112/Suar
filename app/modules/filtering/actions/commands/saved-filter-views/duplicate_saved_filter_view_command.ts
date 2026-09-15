@@ -1,43 +1,44 @@
-// @ts-nocheck
-var __defProp = Object.defineProperty
-var __name = (target, value) => __defProp(target, 'name', { value, configurable: true })
 import { BaseCommand } from '#modules/filtering/actions/base_command'
 import {
   requireSavedViewActorId,
   requireSavedViewContext,
 } from '#modules/filtering/actions/commands/saved-filter-views/create_saved_filter_view_command'
-import { FilterSavedViewAccessError } from '#modules/filtering/actions/ports/outbound/saved-filter-views/filter_saved_view_authorization'
+import type { FilterTransactionRunner } from '#modules/filtering/actions/ports/outbound/filter_transaction_runner'
+import {
+  FilterSavedViewAccessError,
+  type FilterSavedViewAuthorization,
+} from '#modules/filtering/actions/ports/outbound/saved-filter-views/filter_saved_view_authorization'
+import type {
+  FilterSavedViewRecord,
+  FilterSavedViewRepository,
+} from '#modules/filtering/actions/ports/outbound/saved-filter-views/filter_saved_view_repository'
+import type { FilterHashGenerator } from '#modules/filtering/domain/filtering-core/filter_hash'
 import { createSavedFilterView } from '#modules/filtering/domain/saved-filter-views/saved_filter_view'
-class DuplicateSavedFilterViewCommand extends BaseCommand {
+import type {
+  FilterContextProvider,
+  FilterPrincipal,
+} from '#modules/filtering/public_contracts/filter_context_provider'
+
+export interface DuplicateSavedFilterViewCommandInput {
+  principal: FilterPrincipal
+  viewId: string
+  name: string
+}
+
+export class DuplicateSavedFilterViewCommand extends BaseCommand {
   constructor(
-    transactions,
-    repository,
-    authorization,
-    contexts,
-    hashGenerator,
-    clock = () => new Date().toISOString(),
-    idGenerator = () => crypto.randomUUID()
+    private readonly transactions: FilterTransactionRunner,
+    private readonly repository: FilterSavedViewRepository,
+    private readonly authorization: FilterSavedViewAuthorization,
+    private readonly contexts: FilterContextProvider,
+    private readonly hashGenerator: FilterHashGenerator,
+    private readonly clock: () => string = () => new Date().toISOString(),
+    private readonly idGenerator: () => string = () => crypto.randomUUID()
   ) {
     super()
-    this.transactions = transactions
-    this.repository = repository
-    this.authorization = authorization
-    this.contexts = contexts
-    this.hashGenerator = hashGenerator
-    this.clock = clock
-    this.idGenerator = idGenerator
   }
-  transactions
-  repository
-  authorization
-  contexts
-  hashGenerator
-  clock
-  idGenerator
-  static {
-    __name(this, 'DuplicateSavedFilterViewCommand')
-  }
-  handle(input) {
+
+  handle(input: DuplicateSavedFilterViewCommandInput): Promise<FilterSavedViewRecord> {
     const actorId = requireSavedViewActorId(input.principal)
     const occurredAt = this.clock()
     return this.transactions.run(async (transaction) => {
@@ -77,10 +78,4 @@ class DuplicateSavedFilterViewCommand extends BaseCommand {
       return this.repository.create({ owner: { type: 'user', id: actorId }, view }, transaction)
     })
   }
-}
-export { DuplicateSavedFilterViewCommand }
-
-export interface DuplicateSavedFilterViewCommand {
-  executeAndWrap(input: any): Promise<any>
-  handle(input: any): any
 }

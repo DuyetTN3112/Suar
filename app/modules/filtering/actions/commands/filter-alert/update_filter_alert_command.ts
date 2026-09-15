@@ -1,8 +1,7 @@
 import { BaseCommand } from '#modules/filtering/actions/base_command'
 import type { FilterAlertRecord, FilterAlertRepository } from '#modules/filtering/actions/ports/outbound/filter_alert_repository'
-import { FilterSavedViewAccessError, type FilterSavedViewAuthorization } from '#modules/filtering/actions/ports/outbound/filter_saved_view_authorization'
-import type { FilterSavedViewRepository } from '#modules/filtering/actions/ports/outbound/filter_saved_view_repository'
-import { FilterSavedViewRepositoryError } from '#modules/filtering/actions/ports/outbound/filter_saved_view_repository'
+import { FilterSavedViewAccessError, type FilterSavedViewAuthorization } from '#modules/filtering/actions/ports/outbound/saved-filter-views/filter_saved_view_authorization'
+import { FilterSavedViewRepositoryError, type FilterSavedViewRepository } from '#modules/filtering/actions/ports/outbound/saved-filter-views/filter_saved_view_repository'
 import type { FilterPrincipal } from '#modules/filtering/public_contracts/filter_context_provider'
 
 export interface UpdateFilterAlertInput {

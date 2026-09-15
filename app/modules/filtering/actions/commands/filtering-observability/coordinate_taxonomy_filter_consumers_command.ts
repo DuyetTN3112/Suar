@@ -1,13 +1,13 @@
 import ConflictException from '#modules/errors/public_contracts/conflict_exception'
 import { BaseCommand } from '#modules/filtering/actions/base_command'
 import type { FilterAlertPausePort } from '#modules/filtering/actions/ports/outbound/filter_alert_pause_port'
-import {
-  FilterSavedViewRepositoryError,
-  type FilterSavedViewRepository,
-} from '#modules/filtering/actions/ports/outbound/filter_saved_view_repository'
 import type { FilterTaxonomyMigrationRunPort } from '#modules/filtering/actions/ports/outbound/filter_taxonomy_migration_run_port'
 import type { FilterTransactionRunner } from '#modules/filtering/actions/ports/outbound/filter_transaction_runner'
 import type { FilterSavedViewMigrationRunRepository } from '#modules/filtering/actions/ports/outbound/saved-filter-views/filter_saved_view_migration_run_repository'
+import {
+  FilterSavedViewRepositoryError,
+  type FilterSavedViewRepository,
+} from '#modules/filtering/actions/ports/outbound/saved-filter-views/filter_saved_view_repository'
 import type { FilterSavedViewTaxonomyReferenceRepository } from '#modules/filtering/actions/ports/outbound/saved-filter-views/filter_saved_view_taxonomy_references'
 import type { FilterHashGenerator } from '#modules/filtering/domain/filtering-core/filter_hash'
 import { migrateTaxonomyFilterSemanticState } from '#modules/filtering/domain/filtering-core/taxonomy_filter_criteria_migration'
@@ -70,7 +70,7 @@ export class CoordinateTaxonomyFilterConsumersCommand extends BaseCommand<
           continue
         }
 
-        const currentView = coordinationView(record.view)
+        const currentView = record.view
         const existingReceipt = await this.migrationRuns.findByIdempotency({
           savedViewId: viewId,
           migrationId: input.planToken,
@@ -82,11 +82,7 @@ export class CoordinateTaxonomyFilterConsumersCommand extends BaseCommand<
           continue
         }
 
-        const result = migrateTaxonomyFilterSemanticState(currentView.semanticState, mappings) as {
-          readonly semanticState: Record<string, unknown>
-          readonly changed: boolean
-          readonly outcome: 'compatible' | 'migrated' | 'requires_repair' | 'blocked'
-        }
+        const result = migrateTaxonomyFilterSemanticState(currentView.semanticState, mappings)
         const isRepair = result.outcome === 'requires_repair' || result.outcome === 'blocked'
         requiresRepair ||= isRepair
 
@@ -110,7 +106,7 @@ export class CoordinateTaxonomyFilterConsumersCommand extends BaseCommand<
             { ...currentView, semanticState: result.semanticState, updatedAt: input.now },
             {},
             this.hashGenerator
-          ) as unknown as CoordinationView
+          )
           const updated = await this.views.update({
             record: { ...record, view, migrationState: 'current' },
             expectedLockVersion: record.lockVersion,
@@ -119,10 +115,10 @@ export class CoordinateTaxonomyFilterConsumersCommand extends BaseCommand<
         }
 
         const outputChecksum: string | null = result.changed
-          ? hashSavedFilterSemanticState(result.semanticState, this.hashGenerator) as string
+          ? (hashSavedFilterSemanticState(result.semanticState, this.hashGenerator))
           : isRepair
             ? null
-          : currentView.semanticChecksum
+            : currentView.semanticChecksum
         await this.migrationRuns.record({
           savedViewId: viewId,
           migrationId: input.planToken,
@@ -159,22 +155,4 @@ export class CoordinateTaxonomyFilterConsumersCommand extends BaseCommand<
       return checkpoint
     })
   }
-}
-
-interface CoordinationView {
-  readonly id: string
-  readonly semanticChecksum: string
-  readonly semanticState: Record<string, unknown>
-  readonly [key: string]: unknown
-}
-
-function coordinationView(value: unknown): CoordinationView {
-  if (value === null || typeof value !== 'object') {
-    throw new FilterSavedViewRepositoryError('CORRUPTED_PAYLOAD')
-  }
-  const candidate = value as Record<string, unknown>
-  if (typeof candidate.id !== 'string' || typeof candidate.semanticChecksum !== 'string') {
-    throw new FilterSavedViewRepositoryError('CORRUPTED_PAYLOAD')
-  }
-  return candidate as CoordinationView
 }

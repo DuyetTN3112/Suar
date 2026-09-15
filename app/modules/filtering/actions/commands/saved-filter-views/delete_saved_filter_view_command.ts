@@ -1,25 +1,32 @@
-// @ts-nocheck
-var __defProp = Object.defineProperty
-var __name = (target, value) => __defProp(target, 'name', { value, configurable: true })
 import { BaseCommand } from '#modules/filtering/actions/base_command'
-import { FilterSavedViewAccessError } from '#modules/filtering/actions/ports/outbound/saved-filter-views/filter_saved_view_authorization'
-import { FilterSavedViewRepositoryError } from '#modules/filtering/actions/ports/outbound/saved-filter-views/filter_saved_view_repository'
-class DeleteSavedFilterViewCommand extends BaseCommand {
-  constructor(transactions, repository, authorization, clock = () => new Date().toISOString()) {
+import type { FilterTransactionRunner } from '#modules/filtering/actions/ports/outbound/filter_transaction_runner'
+import {
+  FilterSavedViewAccessError,
+  type FilterSavedViewAuthorization,
+} from '#modules/filtering/actions/ports/outbound/saved-filter-views/filter_saved_view_authorization'
+import {
+  FilterSavedViewRepositoryError,
+  type FilterSavedViewRepository,
+} from '#modules/filtering/actions/ports/outbound/saved-filter-views/filter_saved_view_repository'
+import type { FilterPrincipal } from '#modules/filtering/public_contracts/filter_context_provider'
+
+export interface DeleteSavedFilterViewCommandInput {
+  principal: FilterPrincipal
+  viewId: string
+  expectedLockVersion: number
+}
+
+export class DeleteSavedFilterViewCommand extends BaseCommand {
+  constructor(
+    private readonly transactions: FilterTransactionRunner,
+    private readonly repository: FilterSavedViewRepository,
+    private readonly authorization: FilterSavedViewAuthorization,
+    private readonly clock: () => string = () => new Date().toISOString()
+  ) {
     super()
-    this.transactions = transactions
-    this.repository = repository
-    this.authorization = authorization
-    this.clock = clock
   }
-  transactions
-  repository
-  authorization
-  clock
-  static {
-    __name(this, 'DeleteSavedFilterViewCommand')
-  }
-  handle(input) {
+
+  handle(input: DeleteSavedFilterViewCommandInput): Promise<void> {
     return this.transactions.run(async (transaction) => {
       const record = await this.repository.findById(input.viewId, transaction)
       if (
@@ -43,10 +50,4 @@ class DeleteSavedFilterViewCommand extends BaseCommand {
       if (!deleted) throw new FilterSavedViewRepositoryError('OPTIMISTIC_CONFLICT')
     })
   }
-}
-export { DeleteSavedFilterViewCommand }
-
-export interface DeleteSavedFilterViewCommand {
-  executeAndWrap(input: any): Promise<any>
-  handle(input: any): any
 }
