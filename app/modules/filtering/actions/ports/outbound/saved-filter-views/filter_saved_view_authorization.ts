@@ -2,7 +2,8 @@ import type {
   FilterSavedViewGrantTarget,
   FilterSavedViewOwner,
   FilterSavedViewRecord,
-} from '#modules/filtering/actions/ports/outbound/filter_saved_view_repository'
+} from './filter_saved_view_repository.js'
+
 import type { FilterPrincipal } from '#modules/filtering/public_contracts/filter_context_provider'
 export { FilterSavedViewAccessError } from '#modules/filtering/public_contracts/filter_saved_view_errors'
 

@@ -1,16 +1,31 @@
-// @ts-nocheck
-var __defProp = Object.defineProperty
-var __name = (target, value) => __defProp(target, 'name', { value, configurable: true })
 import { BaseCommand } from '#modules/filtering/actions/base_command'
 import {
   requireSavedViewActorId,
   requireSavedViewContext,
 } from '#modules/filtering/actions/commands/saved-filter-views/create_saved_filter_view_command'
-import { FilterSavedViewAccessError } from '#modules/filtering/actions/ports/outbound/saved-filter-views/filter_saved_view_authorization'
-import { FilterSavedViewRepositoryError } from '#modules/filtering/actions/ports/outbound/saved-filter-views/filter_saved_view_repository'
-import { createSavedFilterView } from '#modules/filtering/domain/saved-filter-views/saved_filter_view'
-function validGrants(grants) {
-  const targets = new Set()
+import type { FilterTransactionRunner } from '#modules/filtering/actions/ports/outbound/filter_transaction_runner'
+import {
+  FilterSavedViewAccessError,
+  type FilterSavedViewAuthorization,
+} from '#modules/filtering/actions/ports/outbound/saved-filter-views/filter_saved_view_authorization'
+import {
+  FilterSavedViewRepositoryError,
+  type FilterSavedViewGrant,
+  type FilterSavedViewRecord,
+  type FilterSavedViewRepository,
+} from '#modules/filtering/actions/ports/outbound/saved-filter-views/filter_saved_view_repository'
+import type { FilterHashGenerator } from '#modules/filtering/domain/filtering-core/filter_hash'
+import {
+  createSavedFilterView,
+  type SavedFilterViewVisibility,
+} from '#modules/filtering/domain/saved-filter-views/saved_filter_view'
+import type {
+  FilterContextProvider,
+  FilterPrincipal,
+} from '#modules/filtering/public_contracts/filter_context_provider'
+
+function validGrants(grants: readonly FilterSavedViewGrant[]): boolean {
+  const targets = new Set<string>()
   for (const grant of grants) {
     const key = `${grant.target.type}\0${grant.target.id}`
     if (
@@ -24,34 +39,30 @@ function validGrants(grants) {
   }
   return true
 }
-__name(validGrants, 'validGrants')
-class ShareSavedFilterViewCommand extends BaseCommand {
+
+export interface ShareSavedFilterViewCommandInput {
+  principal: FilterPrincipal
+  viewId: string
+  visibility: SavedFilterViewVisibility
+  organizationId?: string | null
+  teamId?: string | null
+  grants: readonly FilterSavedViewGrant[]
+  expectedLockVersion: number
+}
+
+export class ShareSavedFilterViewCommand extends BaseCommand {
   constructor(
-    transactions,
-    repository,
-    authorization,
-    contexts,
-    hashGenerator,
-    clock = () => new Date().toISOString()
+    private readonly transactions: FilterTransactionRunner,
+    private readonly repository: FilterSavedViewRepository,
+    private readonly authorization: FilterSavedViewAuthorization,
+    private readonly contexts: FilterContextProvider,
+    private readonly hashGenerator: FilterHashGenerator,
+    private readonly clock: () => string = () => new Date().toISOString()
   ) {
     super()
-    this.transactions = transactions
-    this.repository = repository
-    this.authorization = authorization
-    this.contexts = contexts
-    this.hashGenerator = hashGenerator
-    this.clock = clock
   }
-  transactions
-  repository
-  authorization
-  contexts
-  hashGenerator
-  clock
-  static {
-    __name(this, 'ShareSavedFilterViewCommand')
-  }
-  handle(input) {
+
+  handle(input: ShareSavedFilterViewCommandInput): Promise<FilterSavedViewRecord> {
     const actorId = requireSavedViewActorId(input.principal)
     return this.transactions.run(async (transaction) => {
       const current = await this.repository.findById(input.viewId, transaction)
@@ -88,8 +99,8 @@ class ShareSavedFilterViewCommand extends BaseCommand {
         {
           ...current.view,
           visibility: input.visibility,
-          organizationId: input.organizationId,
-          teamId: input.teamId,
+          organizationId: input.organizationId ?? null,
+          teamId: input.teamId ?? null,
           isDefault: false,
           updatedAt: occurredAt,
         },
@@ -108,10 +119,4 @@ class ShareSavedFilterViewCommand extends BaseCommand {
       return updated
     })
   }
-}
-export { ShareSavedFilterViewCommand }
-
-export interface ShareSavedFilterViewCommand {
-  executeAndWrap(input: any): Promise<any>
-  handle(input: any): any
 }
