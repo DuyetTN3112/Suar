@@ -322,7 +322,7 @@ test.group('Unit | Saved filter view domain', () => {
         createSavedFilterView(
           savedViewInput({
             presentationState: {
-              nested: nested as CreateSavedFilterViewInput['presentationState'][string],
+              nested: nested,
             },
           })
         ),

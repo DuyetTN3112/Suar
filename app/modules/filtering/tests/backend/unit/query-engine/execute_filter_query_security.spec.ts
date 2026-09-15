@@ -12,9 +12,9 @@ import type {
   FilterQueryExecutor,
 } from '#modules/filtering/actions/ports/outbound/filter_query_executor'
 import { ExecuteFilterQuery } from '#modules/filtering/actions/queries/filtering-runtime/execute_filter_query'
-import { NodeFilterHashGenerator } from '#modules/filtering/infra/adapters/filtering-runtime/node_filter_hash_generator'
 import type { FilterContextDefinition } from '#modules/filtering/domain/filtering-core/filter_context_definition'
 import type { FilterExpression } from '#modules/filtering/domain/filtering-core/filter_expression'
+import { NodeFilterHashGenerator } from '#modules/filtering/infra/adapters/filtering-runtime/node_filter_hash_generator'
 import type { FilterPrincipal } from '#modules/filtering/public_contracts/filter_context_provider'
 import { FilterExecutionError } from '#modules/filtering/public_contracts/filter_diagnostics'
 import type {

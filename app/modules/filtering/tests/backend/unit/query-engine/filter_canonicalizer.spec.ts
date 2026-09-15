@@ -29,7 +29,7 @@ test.group('Filter AST canonicalization', () => {
     assert,
   }) => {
     const fixtureUrl = new URL(
-      '../../../../../../inertia/apps/shared/filtering/fixtures/filter_semantic_cases.json',
+      '../../../../../../../inertia/apps/shared/filtering/fixtures/filter_semantic_cases.json',
       import.meta.url
     )
     const fixture = JSON.parse(await readFile(fixtureUrl, 'utf8')) as {

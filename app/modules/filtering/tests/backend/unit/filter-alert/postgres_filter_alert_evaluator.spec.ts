@@ -1,8 +1,8 @@
 import { test } from '@japa/runner'
 
 import type { FilterAlertPrincipalResolver } from '#modules/filtering/actions/ports/outbound/filter_alert_principal_resolver'
-import type { FilterSavedViewAuthorization } from '#modules/filtering/actions/ports/outbound/filter_saved_view_authorization'
-import type { FilterSavedViewRecord, FilterSavedViewRepository } from '#modules/filtering/actions/ports/outbound/filter_saved_view_repository'
+import type { FilterSavedViewAuthorization } from '#modules/filtering/actions/ports/outbound/saved-filter-views/filter_saved_view_authorization'
+import type { FilterSavedViewRecord, FilterSavedViewRepository } from '#modules/filtering/actions/ports/outbound/saved-filter-views/filter_saved_view_repository'
 import type { ExecuteSavedFilterViewQuery } from '#modules/filtering/actions/queries/saved-filter-views/execute_saved_filter_view_query'
 import type { FilterAlert } from '#modules/filtering/domain/filter-alert/filter_alert'
 import { PostgresFilterAlertEvaluator } from '#modules/filtering/infra/adapters/filter-alert/postgres_filter_alert_evaluator'

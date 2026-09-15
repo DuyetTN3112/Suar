@@ -10,7 +10,8 @@ test.group('PostgresFilterSavedViewRepository', () => {
       from: () => ({
         where: () => ({
           whereNull: () => ({
-            first: async () => ({
+            first: () =>
+              Promise.resolve({
               id: 'view-1',
               name: 'Broken view',
               description: null,
@@ -45,7 +46,7 @@ test.group('PostgresFilterSavedViewRepository', () => {
 
     let error: unknown
     try {
-      await new PostgresFilterSavedViewRepository().findById('view-1', transaction as never)
+      await new PostgresFilterSavedViewRepository().findById('view-1', transaction)
     } catch (caught) {
       error = caught
     }
@@ -67,9 +68,9 @@ test.group('PostgresFilterSavedViewRepository', () => {
             lockRequested = true
             return query
           },
-          first: async () => {
+          first: () => {
             firstCalled = true
-            return {
+            return Promise.resolve({
               id: 'view-1',
               name: 'Locked view',
               description: null,
@@ -96,7 +97,7 @@ test.group('PostgresFilterSavedViewRepository', () => {
               updated_at: '2026-08-09T00:00:00.000Z',
               deleted_at: null,
               normalized_name: 'locked view',
-            }
+            })
           },
         }
         return query
@@ -105,7 +106,7 @@ test.group('PostgresFilterSavedViewRepository', () => {
 
     const result = await new PostgresFilterSavedViewRepository().findById(
       'view-1',
-      transaction as never,
+      transaction,
       { lock: 'for_update' }
     )
 

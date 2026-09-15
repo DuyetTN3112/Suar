@@ -2,8 +2,8 @@ import { test } from '@japa/runner'
 
 import { CreateFilterAlertCommand } from '#modules/filtering/actions/commands/filter-alert/create_filter_alert_command'
 import type { FilterAlertRepository } from '#modules/filtering/actions/ports/outbound/filter_alert_repository'
-import type { FilterSavedViewAuthorization } from '#modules/filtering/actions/ports/outbound/filter_saved_view_authorization'
-import type { FilterSavedViewRepository } from '#modules/filtering/actions/ports/outbound/filter_saved_view_repository'
+import type { FilterSavedViewAuthorization } from '#modules/filtering/actions/ports/outbound/saved-filter-views/filter_saved_view_authorization'
+import type { FilterSavedViewRepository } from '#modules/filtering/actions/ports/outbound/saved-filter-views/filter_saved_view_repository'
 import type { FilterContextProvider } from '#modules/filtering/public_contracts/filter_context_provider'
 
 
