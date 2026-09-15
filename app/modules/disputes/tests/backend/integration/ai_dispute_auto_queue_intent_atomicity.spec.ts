@@ -7,12 +7,12 @@ import type { PlatformEvent } from '#modules/observability/public_contracts/plat
 import {
   ClawagentDisputeClient,
   type ClawagentTriggerResult,
-} from '#modules/reviews/infra/adapters/disputes/clawagent_dispute_client'
-import { LucidAiDisputeEvaluationGateway } from '#modules/reviews/infra/adapters/disputes/lucid_ai_dispute_evaluation_gateway'
+} from '#modules/disputes/infra/adapters/clawagent_dispute_client'
+import { LucidAiDisputeEvaluationGateway } from '#modules/disputes/infra/adapters/lucid_ai_dispute_evaluation_gateway'
 import {
   PostgresAiDisputeAutoQueueIntentRepository,
   stageAiDisputeAutoQueueIntent,
-} from '#modules/reviews/infra/repositories/disputes/postgres_ai_dispute_auto_queue_intent_repository'
+} from '#modules/disputes/infra/repositories/postgres_ai_dispute_auto_queue_intent_repository'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import { assertSafeTestDatastores } from '#tests/helpers/test_datastore_guard'
 

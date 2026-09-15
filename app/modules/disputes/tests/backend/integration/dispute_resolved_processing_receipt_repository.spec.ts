@@ -1,8 +1,8 @@
 import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
-import { DisputeResolvedProcessingReceiptRepository } from '#modules/reviews/infra/repositories/disputes/dispute_resolved_processing_receipt_repository'
-import { DisputeResolvedReceiptCollisionException } from '#modules/reviews/public_contracts/dispute_resolved_processing_receipt'
+import { DisputeResolvedProcessingReceiptRepository } from '#modules/disputes/infra/repositories/dispute_resolved_processing_receipt_repository'
+import { DisputeResolvedReceiptCollisionException } from '#modules/disputes/public_contracts/dispute_resolved_processing_receipt'
 
 const payload = {
   disputeId: 'receipt-dispute-1',

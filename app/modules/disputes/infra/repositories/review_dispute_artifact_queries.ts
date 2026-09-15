@@ -4,12 +4,12 @@ import NotFoundException from '#modules/errors/public_contracts/not_found_except
 import type {
   ReviewDisputeAccessContext,
   ReviewDisputeAuthorContext,
-} from '#modules/reviews/actions/ports/outbound/review_dispute_artifact_reader'
+} from '#modules/disputes/actions/ports/outbound/review_dispute_artifact_reader'
 
 export type {
   ReviewDisputeAccessContext,
   ReviewDisputeAuthorContext,
-} from '#modules/reviews/actions/ports/outbound/review_dispute_artifact_reader'
+} from '#modules/disputes/actions/ports/outbound/review_dispute_artifact_reader'
 
 interface ActorRoles {
   systemRole: string | null

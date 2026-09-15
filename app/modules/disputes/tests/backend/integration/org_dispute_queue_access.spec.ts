@@ -5,7 +5,7 @@ import { reviewOrgDisputeReader } from '#composition/reviews/review-core/review_
 import { reviewExternalDependencies } from '#composition/reviews/review-core/review_external_dependencies_composition'
 import ForbiddenException from '#modules/errors/public_contracts/forbidden_exception'
 import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
-import ListOrgReviewDisputesQuery from '#modules/reviews/actions/queries/disputes/list_org_review_disputes_query'
+import ListOrgReviewDisputesQuery from '#modules/disputes/actions/queries/list_org_review_disputes_query'
 import { makeSystemReviewActionContext } from '#modules/reviews/actions/review_action_context'
 import type { ReviewActionContext } from '#modules/reviews/actions/review_action_context'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'

@@ -7,8 +7,8 @@ import { test } from '@japa/runner'
 import type {
   ClawagentDisputeClient,
   ClawagentTriggerResult,
-} from '#modules/reviews/infra/adapters/disputes/clawagent_dispute_client'
-import { LucidAiDisputeEvaluationGateway } from '#modules/reviews/infra/adapters/disputes/lucid_ai_dispute_evaluation_gateway'
+} from '#modules/disputes/infra/adapters/clawagent_dispute_client'
+import { LucidAiDisputeEvaluationGateway } from '#modules/disputes/infra/adapters/lucid_ai_dispute_evaluation_gateway'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   cleanupTestData,
