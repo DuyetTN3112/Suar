@@ -1,19 +1,24 @@
-// @ts-nocheck
-var __defProp = Object.defineProperty
-var __name = (target, value) => __defProp(target, 'name', { value, configurable: true })
 import AppException from '#modules/errors/public_contracts/application_exception'
 import { Result } from '#modules/errors/public_contracts/result'
-class ListSavedFilterViewsQuery {
-  constructor(repository, authorization) {
-    this.repository = repository
-    this.authorization = authorization
-  }
-  repository
-  authorization
-  static {
-    __name(this, 'ListSavedFilterViewsQuery')
-  }
-  async executeAndWrap(input) {
+import type { FilterSavedViewAuthorization } from '#modules/filtering/actions/ports/outbound/saved-filter-views/filter_saved_view_authorization'
+import type {
+  FilterSavedViewRecord,
+  FilterSavedViewRepository,
+} from '#modules/filtering/actions/ports/outbound/saved-filter-views/filter_saved_view_repository'
+import type { FilterPrincipal } from '#modules/filtering/public_contracts/filter_context_provider'
+
+export interface ListSavedFilterViewsQueryInput {
+  principal: FilterPrincipal
+  context: string
+}
+
+export class ListSavedFilterViewsQuery {
+  constructor(
+    private readonly repository: FilterSavedViewRepository,
+    private readonly authorization: FilterSavedViewAuthorization
+  ) {}
+
+  async executeAndWrap(input: ListSavedFilterViewsQueryInput): Promise<Result<readonly FilterSavedViewRecord[], AppException>> {
     try {
       return Result.ok(await this.execute(input))
     } catch (error) {
@@ -21,7 +26,8 @@ class ListSavedFilterViewsQuery {
       throw error
     }
   }
-  async execute(input) {
+
+  async execute(input: ListSavedFilterViewsQueryInput): Promise<readonly FilterSavedViewRecord[]> {
     const viewIds = await this.authorization.listAuthorizedViewIds({
       principal: input.principal,
       context: input.context,
@@ -36,4 +42,3 @@ class ListSavedFilterViewsQuery {
     return candidates.filter((_record, index) => decisions[index] === true)
   }
 }
-export { ListSavedFilterViewsQuery }
