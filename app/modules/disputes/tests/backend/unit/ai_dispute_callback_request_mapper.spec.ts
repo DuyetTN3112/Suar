@@ -1,7 +1,7 @@
 import { test } from '@japa/runner'
 
 import ValidationException from '#modules/errors/public_contracts/validation_exception'
-import { buildAiDisputeCallbackRequest } from '#modules/reviews/controllers/mappers/request/disputes/ai_dispute_callback_request_mapper'
+import { buildAiDisputeCallbackRequest } from '#modules/disputes/controllers/mappers/ai_dispute_callback_request_mapper'
 
 const VALID_TIMESTAMP = 1_725_000_000
 const VALID_SIGNATURE = 'a'.repeat(64)

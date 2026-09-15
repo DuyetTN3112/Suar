@@ -1,13 +1,13 @@
 import { test } from '@japa/runner'
 
 import { reviewActionFactory } from '#composition/reviews/review-core/review_action_factory'
-import type { GetAdminReviewDisputeDetailDTO } from '#modules/reviews/actions/queries/get_admin_review_dispute_detail_query'
-import GetAdminReviewDisputeDetailQuery from '#modules/reviews/actions/queries/get_admin_review_dispute_detail_query'
+import type { GetAdminReviewDisputeDetailDTO } from '#modules/disputes/actions/queries/get_admin_review_dispute_detail_query'
+import GetAdminReviewDisputeDetailQuery from '#modules/disputes/actions/queries/get_admin_review_dispute_detail_query'
 import ListAdminReviewDisputesQuery, {
   type ListAdminReviewDisputesDTO,
-} from '#modules/reviews/actions/queries/list_admin_review_disputes_query'
-import ListAdminReviewDisputesController from '#modules/reviews/controllers/disputes/list_admin_review_disputes_controller'
-import ShowAdminReviewDisputeController from '#modules/reviews/controllers/disputes/show_admin_review_dispute_controller'
+} from '#modules/disputes/actions/queries/list_admin_review_disputes_query'
+import ListAdminReviewDisputesController from '#modules/disputes/controllers/list_admin_review_disputes_controller'
+import ShowAdminReviewDisputeController from '#modules/disputes/controllers/show_admin_review_dispute_controller'
 
 function fakeRequest(body: Record<string, unknown>) {
   return {

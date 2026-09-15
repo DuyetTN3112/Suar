@@ -1,7 +1,7 @@
 import { test } from '@japa/runner'
 
 import ValidationException from '#modules/errors/public_contracts/validation_exception'
-import { buildAdminReviewDisputeListRequest } from '#modules/reviews/controllers/mappers/request/disputes/admin_review_dispute_list_request_mapper'
+import { buildAdminReviewDisputeListRequest } from '#modules/disputes/controllers/mappers/admin_review_dispute_list_request_mapper'
 
 function request(values: Record<string, unknown>) {
   return {
