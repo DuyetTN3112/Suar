@@ -75,13 +75,13 @@ test.group('HTTP identity queries', () => {
   }) => {
     const controllers = await Promise.all([
       readFile(
-        new URL('../../../controllers/identity/get_me_api_controller.ts', import.meta.url),
+        new URL('../../../../controllers/identity/get_me_api_controller.ts', import.meta.url),
         'utf8'
       ),
-      readFile(new URL('../../../controllers/v1/show_me_controller.ts', import.meta.url), 'utf8'),
+      readFile(new URL('../../../../controllers/v1/show_me_controller.ts', import.meta.url), 'utf8'),
       readFile(
         new URL(
-          '../../../controllers/organization/get_users_in_organization_api_controller.ts',
+          '../../../../controllers/organization/get_users_in_organization_api_controller.ts',
           import.meta.url
         ),
         'utf8'

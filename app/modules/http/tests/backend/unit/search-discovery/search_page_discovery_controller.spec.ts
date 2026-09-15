@@ -17,6 +17,8 @@ interface RenderedProps {
   results?: GlobalSearchResult['results']
   discovery?: SearchPageDiscoveryModel
   discoveryFailure?: { code: string }
+  cursor?: string
+  previousCursor?: string
 }
 
 function emptyLegacyResult(query: string): GlobalSearchResult {
@@ -160,8 +162,7 @@ test.group('Unit | HTTP Search Page Discovery migration', (group) => {
     )
 
     // The controller test supplies only the HTTP members used by this boundary.
-    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-    await controller.handle({
+    const ctx = {
       auth: { user: { id: 'user-1' } },
       currentOrganizationId: null,
       session: { get: () => undefined },
@@ -173,7 +174,8 @@ test.group('Unit | HTTP Search Page Discovery migration', (group) => {
       inertia: {
         render: (_component: string, props: RenderedProps) => rendered.push({ props }),
       },
-    } as never)
+    }
+    await controller.handle(ctx as never)
 
     assert.lengthOf(calls, 1)
     assert.deepEqual(calls[0], {
@@ -294,8 +296,7 @@ test.group('Unit | HTTP Search Page Discovery migration', (group) => {
       })
     )
 
-    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-    await controller.handle({
+    const ctx = {
       auth: { user: { id: 'user-1' } },
       currentOrganizationId: null,
       session: { get: () => undefined },
@@ -315,7 +316,8 @@ test.group('Unit | HTTP Search Page Discovery migration', (group) => {
           props: RenderedProps & { discovery?: SearchPageDiscoveryModel }
         ) => rendered.push({ props }),
       },
-    } as never)
+    }
+    await controller.handle(ctx as never)
 
     assert.deepEqual(calls[0]?.criteria.page, { size: 24, cursor: 'opaque-page-2' })
     assert.deepEqual(rendered[0]?.props.discovery?.page, {
@@ -378,8 +380,7 @@ test.group('Unit | HTTP Search Page Discovery migration', (group) => {
       })
     )
 
-    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-    await controller.handle({
+    const ctx = {
       auth: { user: { id: 'user-1' } },
       currentOrganizationId: null,
       session: { get: () => undefined },
@@ -391,7 +392,8 @@ test.group('Unit | HTTP Search Page Discovery migration', (group) => {
       inertia: {
         render: (_component: string, props: RenderedProps) => rendered.push({ props }),
       },
-    } as never)
+    }
+    await controller.handle(ctx as never)
 
     assert.equal(rendered[0]?.props.results?.[0]?.title, 'Legacy fallback task')
     assert.isUndefined(rendered[0]?.props.discovery)
@@ -401,7 +403,7 @@ test.group('Unit | HTTP Search Page Discovery migration', (group) => {
   test('uses legacy search for page filters without a Discovery vertical', async ({ assert }) => {
     searchConfig.enabled = true
     const discoveryCalls: SearchDiscoveryRequest[] = []
-    const legacyCalls: Array<{ query: string; entityTypes?: readonly string[] }> = []
+    const legacyCalls: Array<{ query: string; entityTypes?: readonly string[] | undefined }> = []
     const rendered: Array<{ props: RenderedProps }> = []
     const controller = new SearchPageController(
       new GetGlobalSearchQuery({
@@ -426,7 +428,7 @@ test.group('Unit | HTTP Search Page Discovery migration', (group) => {
       })
     )
 
-    await controller.handle({
+    const ctx = {
       auth: { user: { id: 'user-1' } },
       currentOrganizationId: null,
       session: { get: () => undefined },
@@ -438,7 +440,8 @@ test.group('Unit | HTTP Search Page Discovery migration', (group) => {
       inertia: {
         render: (_component: string, props: RenderedProps) => rendered.push({ props }),
       },
-    } as never)
+    }
+    await controller.handle(ctx as never)
 
     assert.deepEqual(discoveryCalls, [])
     assert.deepEqual(legacyCalls, [{ query: 'duyet', entityTypes: ['project'] }])

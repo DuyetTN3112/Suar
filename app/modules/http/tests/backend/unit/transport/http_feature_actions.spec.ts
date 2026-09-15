@@ -8,8 +8,8 @@ import type {
   HttpGlobalSearchResult,
 } from '#modules/http/actions/dtos/global_search'
 import type { HttpActionContext } from '#modules/http/actions/http_action_context'
-import GetGlobalSearchQuery from '#modules/http/actions/queries/search-discovery/get_global_search_query'
 import GetOrganizationMembersQuery from '#modules/http/actions/queries/organization/get_organization_members_query'
+import GetGlobalSearchQuery from '#modules/http/actions/queries/search-discovery/get_global_search_query'
 
 const execCtx: HttpActionContext = {
   userId: 'user-1',

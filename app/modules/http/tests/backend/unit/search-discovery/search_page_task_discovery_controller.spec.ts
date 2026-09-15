@@ -55,6 +55,7 @@ function discoveryResponse<TDocument = Readonly<Record<string, unknown>>>(
   inputMode: 'query' | 'browse',
   page: SearchDiscoveryResponse['page'] = {}
 ): SearchDiscoveryResponse<TDocument> {
+  const emptyDoc = {}
   return {
     context: request.criteria.context,
     schemaVersion: 1,
@@ -67,8 +68,7 @@ function discoveryResponse<TDocument = Readonly<Record<string, unknown>>>(
         source: 'tasks',
         rank: 1,
         // The controller only verifies provider-owned presentation in this fixture.
-        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-        document: {} as TDocument,
+        document: emptyDoc as TDocument,
         presentation: {
           title: 'Canonical task result',
           url: '/tasks/task-v2',

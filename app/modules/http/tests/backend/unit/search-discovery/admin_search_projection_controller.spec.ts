@@ -107,7 +107,7 @@ test.group('AdminSearchProjectionController', () => {
     const controller = new AdminSearchProjectionController(deps)
     const ctx = context({ userId: operator.id, query: { target: 'tasks' } })
 
-    await controller.index(ctx as never)
+    await controller.index(ctx)
 
     assert.deepEqual(calls, [
       { name: 'authorize', input: { assertedActorId: operator.id } },
@@ -124,7 +124,7 @@ test.group('AdminSearchProjectionController', () => {
     const controller = new AdminSearchProjectionController(deps)
     const ctx = context({ userId: operator.id })
 
-    await controller.page(ctx as never)
+    await controller.page(ctx)
 
     assert.deepEqual(calls, [
       { name: 'authorize', input: { assertedActorId: operator.id } },
@@ -144,7 +144,7 @@ test.group('AdminSearchProjectionController', () => {
       userId: operator.id,
       query: { target: 'tasks', retainRetired: '2', olderThanHours: '24' },
     })
-    await controller.previewCleanup(previewContext as never)
+    await controller.previewCleanup(previewContext)
     const applyContext = context({
       userId: operator.id,
       body: {
@@ -156,7 +156,7 @@ test.group('AdminSearchProjectionController', () => {
         expectedPlanToken: 'cleanup-plan',
       },
     })
-    await controller.applyCleanup(applyContext as never)
+    await controller.applyCleanup(applyContext)
 
     assert.deepEqual(calls.map(({ name }) => name), [
       'authorize',
@@ -196,7 +196,7 @@ test.group('AdminSearchProjectionController', () => {
       rollbackIndexName: 'suar_tasks_v1',
     }
     const previewContext = context({ userId: operator.id, query: input })
-    await controller.previewRollback(previewContext as never)
+    await controller.previewRollback(previewContext)
     const applyContext = context({
       userId: operator.id,
       body: {
@@ -205,7 +205,7 @@ test.group('AdminSearchProjectionController', () => {
         confirmation: 'ROLLBACK_SEARCH_INDEX',
       },
     })
-    await controller.applyRollback(applyContext as never)
+    await controller.applyRollback(applyContext)
 
     assert.deepEqual(calls.map(({ name }) => name), [
       'authorize',
@@ -247,7 +247,7 @@ test.group('AdminSearchProjectionController', () => {
     })
     const controller = new AdminSearchProjectionController(deps)
     const previewContext = context({ userId: operator.id, query: { id: 'generation-1' } })
-    await controller.previewActivation(previewContext as never)
+    await controller.previewActivation(previewContext)
     const applyContext = context({
       userId: operator.id,
       body: {
@@ -258,7 +258,7 @@ test.group('AdminSearchProjectionController', () => {
         now: '2026-08-09T00:02:00.000Z',
       },
     })
-    await controller.applyActivation(applyContext as never)
+    await controller.applyActivation(applyContext)
 
     assert.deepEqual(calls.map(({ name }) => name), [
       'authorize',
@@ -285,11 +285,11 @@ test.group('AdminSearchProjectionController', () => {
     const controller = new AdminSearchProjectionController(deps)
     const ctx = context({ userId: operator.id })
 
-    await assert.rejects(() => controller.index(ctx as never), /not authorized/i)
+    await assert.rejects(() => controller.index(ctx), /not authorized/i)
     assert.deepEqual(calls, [{ name: 'authorize', input: { assertedActorId: operator.id } }])
 
     const anonymous = context({})
-    await assert.rejects(() => controller.index(anonymous as never), /authentication required/i)
+    await assert.rejects(() => controller.index(anonymous), /authentication required/i)
   })
 
   test('does not invent rebuild, reconcile, or abort operations without existing contracts', async ({

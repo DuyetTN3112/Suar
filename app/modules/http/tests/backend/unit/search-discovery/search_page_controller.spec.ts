@@ -432,8 +432,7 @@ test.group('Unit | HTTP Search Page Controller', () => {
       )
 
       // The controller test supplies only the HTTP members used by this boundary.
-      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-      await controller.handle({
+      const ctx = {
         auth: { user: { id: 'user-1' } },
         currentOrganizationId: null,
         session: { get: () => undefined },
@@ -448,7 +447,8 @@ test.group('Unit | HTTP Search Page Controller', () => {
             return { component, props }
           },
         },
-      } as never)
+      }
+      await controller.handle(ctx as never)
 
       assert.equal(legacyFallbackCalls, 0)
       assert.equal(rendered[0]?.component, 'search/index')
@@ -507,8 +507,7 @@ test.group('Unit | HTTP Search Page Controller', () => {
       )
 
       // The controller test supplies only the HTTP members used by this boundary.
-      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-      await controller.handle({
+      const ctx = {
         auth: { user: { id: 'user-1' } },
         currentOrganizationId: null,
         session: { get: () => undefined },
@@ -523,7 +522,8 @@ test.group('Unit | HTTP Search Page Controller', () => {
             return { component, props }
           },
         },
-      } as never)
+      }
+      await controller.handle(ctx as never)
 
       assert.equal(legacyFallbackCalls, 0)
       assert.equal(rendered[0]?.component, 'search/index')

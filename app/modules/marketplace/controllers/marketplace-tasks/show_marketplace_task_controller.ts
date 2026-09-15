@@ -28,7 +28,7 @@ export default class ShowMarketplaceTaskController {
       : '/marketplace/tasks'
 
     return ctx.inertia.render(
-      isOrganizationSurface ? 'org/tasks/show' : 'tasks/show',
+      'tasks/show',
       mapScopedTaskDetailPageProps(result, {
         shellMode: isOrganizationSurface ? 'organization' : 'app',
         baseRoute: marketplaceBaseRoute,

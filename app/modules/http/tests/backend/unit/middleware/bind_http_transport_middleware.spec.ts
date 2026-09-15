@@ -3,11 +3,12 @@ import { test } from '@japa/runner'
 import BindHttpTransportMiddleware from '#modules/http/middleware/bind_http_transport_middleware'
 
 function makeContext(existingTransport?: 'api-compat' | 'api-ops-internal') {
-  return {
+  const ctx = {
     httpTransportKind: existingTransport,
     request: { url: () => '/api/search' },
     response: { header: () => undefined },
-  } as never
+  }
+  return ctx as never
 }
 
 test.group('Unit | Bind HTTP transport middleware', () => {

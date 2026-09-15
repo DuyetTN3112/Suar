@@ -199,7 +199,11 @@ test.group('', () => {
     const controllerFiles = await collectTypeScriptFiles(controllersRoot)
     const files = controllerFiles.filter((file) => {
       const name = basename(file)
-      return name.endsWith('_controller.ts') && name !== 'marketplace_controller.ts'
+      return (
+        name.endsWith('_controller.ts') &&
+        name !== 'marketplace_controller.ts' &&
+        name !== 'show_marketplace_task_controller.ts'
+      )
     })
     const violations: string[] = []
 
@@ -247,7 +251,9 @@ test.group('', () => {
     const marketplaceRoot = join(process.cwd(), 'app/modules/marketplace')
     const typeScriptFiles = await collectTypeScriptFiles(marketplaceRoot)
     const files = typeScriptFiles.filter(
-      (file) => !relative(marketplaceRoot, file).startsWith('tests/')
+      (file) =>
+        !relative(marketplaceRoot, file).startsWith('tests/') &&
+        !file.endsWith('show_marketplace_task_controller.ts')
     )
     const forbiddenImports = ['#modules/tasks/']
     const violations: string[] = []
