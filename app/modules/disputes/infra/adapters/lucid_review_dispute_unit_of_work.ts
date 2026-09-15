@@ -4,9 +4,9 @@ import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer
 import type {
   ReviewDisputePersistenceSession,
   ReviewDisputeUnitOfWork,
-} from '#modules/reviews/actions/ports/outbound/review_dispute_unit_of_work'
+} from '#modules/disputes/actions/ports/outbound/review_dispute_unit_of_work'
 import { lockClassicReviewDisputeGovernance } from '#modules/reviews/infra/adapters/review-core/lucid_classic_review_governance_lock'
-import { loadReviewDisputeAccessContext } from '#modules/reviews/infra/repositories/read/review_dispute_artifact_queries'
+import { loadReviewDisputeAccessContext } from '#modules/disputes/infra/repositories/review_dispute_artifact_queries'
 
 export default class LucidReviewDisputeUnitOfWork implements ReviewDisputeUnitOfWork {
   run<T>(work: (session: ReviewDisputePersistenceSession) => Promise<T>): Promise<T> {

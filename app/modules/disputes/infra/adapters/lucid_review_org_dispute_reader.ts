@@ -5,7 +5,7 @@ import type {
   ReviewOrgDisputeReader,
   ReviewOrgDisputeSource,
   ReviewOrgDisputeWindow,
-} from '#modules/reviews/actions/ports/outbound/review_org_dispute_reader'
+} from '#modules/disputes/actions/ports/outbound/review_org_dispute_reader'
 
 type OrgDisputeQuery = ReturnType<typeof db.query>
 

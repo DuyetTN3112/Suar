@@ -8,13 +8,13 @@ import {
 import type {
   ReviewDisputeCaseFilePersistenceSession,
   ReviewDisputeCaseFileUnitOfWork,
-} from '#modules/reviews/actions/ports/outbound/review_dispute_case_file_unit_of_work'
+} from '#modules/disputes/actions/ports/outbound/review_dispute_case_file_unit_of_work'
+import { buildReviewDisputeCaseFileRecord } from '#modules/disputes/infra/adapters/lucid_review_dispute_case_file_builder'
 import { lockClassicReviewDisputeGovernance } from '#modules/reviews/infra/adapters/review-core/lucid_classic_review_governance_lock'
-import { buildReviewDisputeCaseFileRecord } from '#modules/reviews/infra/adapters/disputes/lucid_review_dispute_case_file_builder'
 import {
   aiDisputeAutoQueuePublicApi,
   type AiDisputeAutoQueueCapability,
-} from '#modules/reviews/public_contracts/ai_dispute_auto_queue'
+} from '#modules/disputes/public_contracts/ai_dispute_auto_queue'
 
 export default class LucidReviewDisputeCaseFileUnitOfWork
   implements ReviewDisputeCaseFileUnitOfWork

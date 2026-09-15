@@ -3,12 +3,12 @@ import db from '@adonisjs/lucid/services/db'
 import type {
   ReviewDisputeArtifactReader,
   ReviewDisputeArtifactSnapshot,
-} from '#modules/reviews/actions/ports/outbound/review_dispute_artifact_reader'
+} from '#modules/disputes/actions/ports/outbound/review_dispute_artifact_reader'
 import {
   loadReviewDisputeAccessContext,
   loadReviewDisputeComments,
   loadReviewDisputeEvidences,
-} from '#modules/reviews/infra/repositories/read/review_dispute_artifact_queries'
+} from '#modules/disputes/infra/repositories/review_dispute_artifact_queries'
 
 export default class LucidReviewDisputeArtifactReader implements ReviewDisputeArtifactReader {
   async listCaseFiles(disputeId: string): Promise<Record<string, unknown>[]> {

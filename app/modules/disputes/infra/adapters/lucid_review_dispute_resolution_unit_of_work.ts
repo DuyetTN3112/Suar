@@ -18,7 +18,7 @@ import type {
   ReviewDisputeResolutionPersistenceSession,
   ReviewDisputeResolutionUnitOfWork,
   ReviewDisputeResolutionWrite,
-} from '#modules/reviews/actions/ports/outbound/review_dispute_resolution_unit_of_work'
+} from '#modules/disputes/actions/ports/outbound/review_dispute_resolution_unit_of_work'
 import { lockClassicReviewDisputeGovernance } from '#modules/reviews/infra/adapters/review-core/lucid_classic_review_governance_lock'
 import { lockTaskReviewWorkflowGovernance } from '#modules/reviews/infra/adapters/task-review/lucid_task_review_workflow_governance_lock'
 

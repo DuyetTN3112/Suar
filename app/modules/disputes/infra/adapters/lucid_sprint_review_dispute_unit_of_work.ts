@@ -4,14 +4,14 @@ import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer
 import type {
   SprintReviewDisputePersistenceSession,
   SprintReviewDisputeUnitOfWork,
-} from '#modules/reviews/actions/ports/outbound/sprint_review_dispute_unit_of_work'
+} from '#modules/disputes/actions/ports/outbound/sprint_review_dispute_unit_of_work'
 import {
   loadSprintReviewDisputeAccessContext,
   loadSprintReviewDisputeComments,
   loadSprintReviewDisputeDetail,
 } from '#modules/reviews/infra/repositories/read/sprint_review_dispute_queries'
 import { loadSprintReviewDisputeRuntimeContext } from '#modules/reviews/infra/repositories/read/sprint_review_dispute_runtime_context_queries'
-import { aiDisputeAutoQueuePublicApi } from '#modules/reviews/public_contracts/ai_dispute_auto_queue'
+import { aiDisputeAutoQueuePublicApi } from '#modules/disputes/public_contracts/ai_dispute_auto_queue'
 
 export default class LucidSprintReviewDisputeUnitOfWork implements SprintReviewDisputeUnitOfWork {
   run<T>(work: (session: SprintReviewDisputePersistenceSession) => Promise<T>): Promise<T> {

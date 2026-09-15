@@ -8,11 +8,11 @@ import type {
   ClaimAiDisputeAutoQueueIntentsInput,
   CompleteAiDisputeAutoQueueIntentInput,
   FailAiDisputeAutoQueueIntentInput,
-} from '#modules/reviews/actions/ports/outbound/ai_dispute_auto_queue_intent_repository'
+} from '#modules/disputes/actions/ports/outbound/ai_dispute_auto_queue_intent_repository'
 import type {
   AiDisputeSourceType,
   StageAiDisputeAutoQueueIntentInput,
-} from '#modules/reviews/public_contracts/ai_dispute_auto_queue'
+} from '#modules/disputes/public_contracts/ai_dispute_auto_queue'
 
 interface AiDisputeAutoQueueIntentRow {
   id: string
