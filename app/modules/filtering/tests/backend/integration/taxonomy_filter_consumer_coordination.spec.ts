@@ -2,6 +2,7 @@ import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
 import { CoordinateTaxonomyFilterConsumersCommand } from '#modules/filtering/actions/commands/filtering-observability/coordinate_taxonomy_filter_consumers_command'
+import type { FilterSavedViewMigrationRunRepository } from '#modules/filtering/actions/ports/outbound/saved-filter-views/filter_saved_view_migration_run_repository'
 import { createFilterAlert } from '#modules/filtering/domain/filter-alert/filter_alert'
 import { createSavedFilterView } from '#modules/filtering/domain/saved-filter-views/saved_filter_view'
 import { PostgresFilterAlertPauseAdapter } from '#modules/filtering/infra/adapters/filter-alert/postgres_filter_alert_pause_adapter'
@@ -13,7 +14,6 @@ import { PostgresFilterSavedViewMigrationRunRepository } from '#modules/filterin
 import { PostgresFilterSavedViewRepository } from '#modules/filtering/infra/repositories/saved-filter-views/postgres_filter_saved_view_repository'
 import { PostgresFilterSavedViewTaxonomyReferenceRepository } from '#modules/filtering/infra/repositories/saved-filter-views/postgres_filter_saved_view_taxonomy_reference_repository'
 import { TaxonomyReferenceProjectingFilterSavedViewRepository } from '#modules/filtering/infra/repositories/saved-filter-views/taxonomy_reference_projecting_filter_saved_view_repository'
-import type { FilterSavedViewMigrationRunRepository } from '#modules/filtering/actions/ports/outbound/saved-filter-views/filter_saved_view_migration_run_repository'
 import { previewTaxonomyChange } from '#modules/taxonomy/domain/taxonomy-governance/taxonomy_migration_plan'
 import { NodeTaxonomyMigrationPlanTokenGenerator } from '#modules/taxonomy/infra/adapters/taxonomy-governance/node_taxonomy_migration_plan_token_generator'
 import { PostgresTaxonomyMigrationRepository } from '#modules/taxonomy/infra/repositories/taxonomy-governance/postgres_taxonomy_migration_repository'
@@ -122,7 +122,7 @@ const plan = previewTaxonomyChange({
         runs,
         new NodeFilterHashGenerator()
       ).handle({ planToken: plan.planToken, limit: 10, now: NOW })
-    assert.equal(repeated?.status, 'requires_repair')
+    assert.equal(repeated.status, 'requires_repair')
     const afterStalePlan = await views.findById(VIEW_ID)
     assert.equal(afterStalePlan?.lockVersion, migrated?.lockVersion)
     if (!migrated) throw new Error('Expected the repair fixture to remain persisted')
@@ -135,9 +135,11 @@ const plan = previewTaxonomyChange({
       },
       updatedAt: '2026-08-09T00:03:00.000Z',
     }, {}, new NodeFilterHashGenerator())
-    await views.update({
-      record: { ...migrated, view: repairedView, migrationState: 'current' },
-      expectedLockVersion: migrated.lockVersion,
+    await db.transaction(async (transaction) => {
+      await views.update({
+        record: { ...migrated, view: repairedView, migrationState: 'current' },
+        expectedLockVersion: migrated.lockVersion,
+      }, transaction)
     })
 
     const resumed = await new CoordinateTaxonomyFilterConsumersCommand(
@@ -149,8 +151,8 @@ const plan = previewTaxonomyChange({
       runs,
       new NodeFilterHashGenerator()
     ).handle({ planToken: plan.planToken, limit: 10, now: '2026-08-09T00:03:00.000Z' })
-    assert.equal(resumed?.status, 'completed')
-    assert.equal(resumed?.scanPass, 'final_rescan')
+    assert.equal(resumed.status, 'completed')
+    assert.equal(resumed.scanPass, 'final_rescan')
     const resumedRun = await runs.findByPlanToken(plan.planToken)
     assert.equal(resumedRun?.status, 'completed')
 
@@ -276,19 +278,21 @@ const plan = previewTaxonomyChange({
         limit: 10,
         now: '2026-08-09T00:02:00.000Z',
       })
-      assert.equal(retried?.status, 'applying')
-      assert.equal(retried?.scanPass, 'final_rescan')
+      assert.equal(retried.status, 'applying')
+      assert.equal(retried.scanPass, 'final_rescan')
       const migrated = await views.findById(CRASH_VIEW_ID)
       assert.equal(migrated?.view.name, 'External edit after crash')
-      assert.equal(migrated?.view.semanticState.filter?.value?.value, 'skills:new')
+      const crashFilter = migrated?.view.semanticState.filter
+      const scalarVal = crashFilter?.kind === 'condition' && crashFilter.value?.kind === 'scalar' ? crashFilter.value.value : null
+      assert.equal(scalarVal, 'skills:new')
 
       const completed = await command(durableMigrations).handle({
         planToken: crashPlan.planToken,
         limit: 10,
         now: '2026-08-09T00:03:00.000Z',
       })
-      assert.equal(completed?.status, 'completed')
-      assert.deepEqual(completed?.completedItemIds, [CRASH_VIEW_ID])
+      assert.equal(completed.status, 'completed')
+      assert.deepEqual(completed.completedItemIds, [CRASH_VIEW_ID])
       const receipt = await durableMigrations.findByIdempotency({
         savedViewId: CRASH_VIEW_ID,
         migrationId: crashPlan.planToken,

@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
-
 import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
@@ -23,7 +21,9 @@ function deferred(): { readonly promise: Promise<void>; readonly resolve: () => 
 }
 
 test.group('Integration | Filter saved-view locking', (group) => {
-  group.setup(setupApp)
+  group.setup(async () => {
+    await setupApp()
+  })
   group.teardown(async () => {
     await db.from('filter_saved_views').where('id', VIEW_ID).delete()
     await teardownApp()

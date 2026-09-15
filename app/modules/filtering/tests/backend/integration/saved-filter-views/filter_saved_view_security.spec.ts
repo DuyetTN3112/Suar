@@ -1,28 +1,27 @@
-/*
- * The saved-view command declarations in this dirty relocation tree expose `handle` as `any`.
- * Keep the security assertions executable while the shared command contracts are migrated.
- */
-/* eslint-disable @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
-
 import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
+
+import {
+  securityContext as context,
+  hiddenValue,
+  securityContextProvider as contextProvider,
+  securitySemanticState as semanticState,
+  createSecurityOrgAndMembers,
+} from './support/filter_saved_view_security_fixtures.js'
 
 import { savedViewAuthorization as composedSavedViewAuthorization } from '#composition/filtering/filter-runtime/filtering_composition'
 import { CreateFilterAlertCommand } from '#modules/filtering/actions/commands/filter-alert/create_filter_alert_command'
 import { CreateSavedFilterViewCommand } from '#modules/filtering/actions/commands/saved-filter-views/create_saved_filter_view_command'
 import { ShareSavedFilterViewCommand } from '#modules/filtering/actions/commands/saved-filter-views/share_saved_filter_view_command'
-import { FilterSavedViewAccessError } from '#modules/filtering/actions/ports/outbound/filter_saved_view_authorization'
+import { FilterSavedViewAccessError } from '#modules/filtering/actions/ports/outbound/saved-filter-views/filter_saved_view_authorization'
 import { GetFilterAlertQuery } from '#modules/filtering/actions/queries/filter-alert/get_filter_alert_query'
 import { ExecuteSavedFilterViewQuery } from '#modules/filtering/actions/queries/saved-filter-views/execute_saved_filter_view_query'
 import { GetSavedFilterViewQuery } from '#modules/filtering/actions/queries/saved-filter-views/get_saved_filter_view_query'
-import type { SavedFilterSemanticState } from '#modules/filtering/domain/saved-filter-views/saved_filter_view'
 import { LucidFilterTransactionRunner } from '#modules/filtering/infra/adapters/filtering-runtime/lucid_filter_transaction_runner'
 import { NodeFilterHashGenerator } from '#modules/filtering/infra/adapters/filtering-runtime/node_filter_hash_generator'
 import { PostgresFilterSavedViewAuthorization } from '#modules/filtering/infra/adapters/saved-filter-views/postgres_filter_saved_view_authorization'
 import { PostgresFilterAlertRepository } from '#modules/filtering/infra/repositories/saved-filter-views/postgres_filter_alert_repository'
 import { PostgresFilterSavedViewRepository } from '#modules/filtering/infra/repositories/saved-filter-views/postgres_filter_saved_view_repository'
-import type { FilterContextProvider } from '#modules/filtering/public_contracts/filter_context_provider'
-import type { FilterContextDefinition } from '#modules/filtering/public_contracts/filter_contracts'
 import type { QueryCriteriaResponse } from '#modules/filtering/public_contracts/filter_query'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
@@ -33,65 +32,8 @@ import {
 } from '#tests/helpers/factories'
 import { testId } from '#tests/helpers/test_utils'
 
+
 test.group('Integration | Saved filter view security', (group) => {
-
-const context = { key: 'security.saved-view', owner: 'filtering', schemaVersion: 1 } as const
-const hiddenValue = 'private-membership-revocation-probe'
-
-const contextProvider: FilterContextProvider = {
-  getEffectiveDefinition: (): Promise<FilterContextDefinition> =>
-    Promise.resolve({
-      key: context.key,
-      version: context.schemaVersion,
-      resource: 'saved-view-security',
-      ownerModule: context.owner,
-      capabilities: {
-        text: false,
-        facets: false,
-        nestedGroups: true,
-        preferences: false,
-        relativeTime: false,
-        savedViews: true,
-        sharedViews: true,
-        alerts: true,
-        emptyRequest: false,
-        pagination: 'offset',
-        maxDepth: 1,
-        maxConditions: 5,
-      },
-      fields: [],
-      sorts: [],
-      defaultSort: [],
-      executionProfile: 'fake-search',
-      degradationPolicy: 'fail_closed',
-      limits: {
-        maxPageSize: 10,
-        maxFacetRequests: 0,
-        maxProjectionFields: 5,
-        maxSorts: 0,
-        maxSetValues: 5,
-        maxTextLength: 32,
-        maxRelationDepth: 0,
-        maxCost: 10,
-      },
-    }),
-}
-
-const semanticState: SavedFilterSemanticState = {
-  filter: {
-    kind: 'condition',
-    field: 'security.classification',
-    operator: 'eq',
-    effect: 'require',
-    value: { kind: 'scalar', value: hiddenValue },
-    unknown: 'exclude',
-  },
-  textQuery: null,
-  sort: [],
-  projection: [],
-}
-
-
   group.setup(async () => {
     await setupApp()
   })
@@ -126,19 +68,7 @@ const semanticState: SavedFilterSemanticState = {
   test('does not return shared criteria after organization membership is removed', async ({
     assert,
   }) => {
-    const owner = await UserFactory.create()
-    const organization = await OrganizationFactory.create({ owner_id: owner.id })
-    await OrganizationUserFactory.create({
-      organization_id: organization.id,
-      user_id: owner.id,
-      org_role: 'org_owner',
-    })
-    const reader = await UserFactory.create()
-    await OrganizationUserFactory.create({
-      organization_id: organization.id,
-      user_id: reader.id,
-      org_role: 'org_member',
-    })
+    const { owner, organization, reader } = await createSecurityOrgAndMembers()
 
     const ownerPrincipal = { kind: 'user' as const, id: owner.id, organizationId: organization.id }
     const repository = new PostgresFilterSavedViewRepository()
@@ -288,19 +218,7 @@ const semanticState: SavedFilterSemanticState = {
   test('fails closed for execute and alert access after page-load membership revocation', async ({
     assert,
   }) => {
-    const owner = await UserFactory.create()
-    const organization = await OrganizationFactory.create({ owner_id: owner.id })
-    await OrganizationUserFactory.create({
-      organization_id: organization.id,
-      user_id: owner.id,
-      org_role: 'org_owner',
-    })
-    const reader = await UserFactory.create()
-    await OrganizationUserFactory.create({
-      organization_id: organization.id,
-      user_id: reader.id,
-      org_role: 'org_member',
-    })
+    const { owner, organization, reader } = await createSecurityOrgAndMembers()
 
     const ownerPrincipal = { kind: 'user' as const, id: owner.id, organizationId: organization.id }
     const readerPrincipal = {
@@ -546,19 +464,7 @@ const semanticState: SavedFilterSemanticState = {
   test('allows a member owner to share a private view with their approved organization', async ({
     assert,
   }) => {
-    const owner = await UserFactory.create()
-    const organization = await OrganizationFactory.create({ owner_id: owner.id })
-    await OrganizationUserFactory.create({
-      organization_id: organization.id,
-      user_id: owner.id,
-      org_role: 'org_owner',
-    })
-    const reader = await UserFactory.create()
-    await OrganizationUserFactory.create({
-      organization_id: organization.id,
-      user_id: reader.id,
-      org_role: 'org_member',
-    })
+    const { owner, organization, reader } = await createSecurityOrgAndMembers()
 
     const ownerPrincipal = { kind: 'user' as const, id: owner.id, organizationId: organization.id }
     const repository = new PostgresFilterSavedViewRepository()
