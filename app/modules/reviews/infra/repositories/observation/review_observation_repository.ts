@@ -1,9 +1,16 @@
-import { createHash } from 'node:crypto'
-
 import db from '@adonisjs/lucid/services/db'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import { writeCreatedObservationAudit } from './review_observation_audit.js'
+import {
+  asNonEmpty,
+  asValidTimestamp,
+  assertRevisionInput,
+  assertStableIdentity,
+  ReviewObservationIdempotencyCollisionException,
+  revisionHash,
+} from './review_observation_validation.js'
+
 import InvariantViolationException from '#modules/errors/public_contracts/invariant_violation_exception'
 import type {
   AppendReviewObservationRevisionInput,
@@ -12,14 +19,10 @@ import type {
   ReviewObservationEvidenceLinkInput,
   ReviewObservationRevisionMetadata,
   ReviewObservationWriter,
-  ReviewRationaleClassification,
 } from '#modules/reviews/actions/ports/outbound/observation/review_observation_writer'
 import type { ReviewObservationV1 } from '#modules/reviews/public_contracts/observation/completion_review_contracts'
-import type {
-  TvaPrivacyClassification,
-  TvaSha256,
-} from '#modules/tasks/public_contracts/task-authoring/primitives'
-import { isReviewObservationV1 } from '#modules/tasks/public_contracts/task-authoring/validators'
+import type { TvaSha256 } from '#modules/tasks/public_contracts/task-authoring/primitives'
+
 
 export type {
   AppendReviewObservationRevisionInput,
@@ -29,14 +32,12 @@ export type {
   ReviewObservationRevisionMetadata,
 } from '#modules/reviews/actions/ports/outbound/observation/review_observation_writer'
 
+export { ReviewObservationIdempotencyCollisionException } from './review_observation_validation.js'
+
 const OBSERVATION_TABLE = 'review_observations'
 const REVISION_TABLE = 'review_observation_revisions'
 const EVIDENCE_TABLE = 'review_observation_evidence_links'
 const LOCK_TIMEOUT = '5000ms'
-const SHA256_PATTERN = /^sha256:[0-9a-f]{64}$/
-
-type EvidenceRelation = 'supports' | 'contradicts' | 'context'
-type ReviewerAccessState = 'available' | 'restricted' | 'unavailable' | 'unknown'
 
 interface ObservationRow {
   id: string
@@ -64,199 +65,6 @@ interface RevisionRow {
   governance_state: ReviewObservationV1['governanceState']
 }
 
-export class ReviewObservationIdempotencyCollisionException extends InvariantViolationException {
-  constructor(idempotencyKey: string) {
-    super(`Review observation idempotency key collision: ${idempotencyKey}`)
-  }
-}
-
-function canonicalJson(value: unknown): string {
-  if (value === undefined) return 'null'
-  if (value === null || typeof value !== 'object') return JSON.stringify(value)
-  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`
-
-  const record = value as Record<string, unknown>
-  return `{${Object.keys(record)
-    .sort()
-    .map((key) => `${JSON.stringify(key)}:${canonicalJson(record[key])}`)
-    .join(',')}}`
-}
-
-function asSha256(value: string, field: string): asserts value is TvaSha256 {
-  if (!SHA256_PATTERN.test(value)) {
-    throw new InvariantViolationException(`Review observation ${field} must be a SHA-256 hash`)
-  }
-}
-
-function asNonEmpty(value: string, field: string, maxLength: number): void {
-  if (value.trim().length === 0 || value.length > maxLength) {
-    throw new InvariantViolationException(`Review observation ${field} is invalid`)
-  }
-}
-
-function asValidTimestamp(value: string | null, field: string): Date | null {
-  if (value === null) return null
-  const parsed = new Date(value)
-  if (Number.isNaN(parsed.getTime())) {
-    throw new InvariantViolationException(`Review observation ${field} is invalid`)
-  }
-  return parsed
-}
-
-function sortedEvidenceLinks(
-  links: readonly ReviewObservationEvidenceLinkInput[]
-): readonly ReviewObservationEvidenceLinkInput[] {
-  return [...links].sort((left, right) => left.evidenceId.localeCompare(right.evidenceId))
-}
-
-function assertEvidenceLinks(
-  observation: ReviewObservationV1,
-  links: readonly ReviewObservationEvidenceLinkInput[]
-): void {
-  const allowedRelations = new Set<EvidenceRelation>(['supports', 'contradicts', 'context'])
-  const allowedClassifications = new Set<TvaPrivacyClassification>([
-    'private',
-    'internal',
-    'confidential',
-    'redacted',
-    'public_safe',
-    'public',
-  ])
-  const allowedAccessStates = new Set<ReviewerAccessState>([
-    'available',
-    'restricted',
-    'unavailable',
-    'unknown',
-  ])
-  const linkedIds = links.map((link) => link.evidenceId)
-
-  if (new Set(linkedIds).size !== linkedIds.length) {
-    throw new InvariantViolationException('Review observation evidence links must be unique')
-  }
-  if (
-    canonicalJson([...linkedIds].sort()) !== canonicalJson([...observation.evidenceRefs].sort())
-  ) {
-    throw new InvariantViolationException(
-      'Review observation evidence links must exactly match the contract evidence references'
-    )
-  }
-
-  for (const link of links) {
-    if (
-      !allowedRelations.has(link.relation) ||
-      !allowedClassifications.has(link.accessClassification) ||
-      !allowedAccessStates.has(link.reviewerAccessState)
-    ) {
-      throw new InvariantViolationException('Review observation evidence link metadata is invalid')
-    }
-    if (link.evidenceHash !== null) asSha256(link.evidenceHash, 'evidence hash')
-  }
-}
-
-function assertRevisionInput(
-  input: ReviewObservationRevisionMetadata & {
-    observation: ReviewObservationV1
-    evidenceLinks: readonly ReviewObservationEvidenceLinkInput[]
-  }
-): void {
-  if (!isReviewObservationV1(input.observation)) {
-    throw new InvariantViolationException('Review observation contract is invalid')
-  }
-  asNonEmpty(input.reviewerRole, 'reviewer role', 128)
-  asSha256(input.taskAssignmentHash, 'task assignment hash')
-  asSha256(input.assignmentSnapshotHash, 'assignment snapshot hash')
-  asSha256(input.completionReportHash, 'completion report hash')
-  asSha256(input.taskContractHash, 'task contract hash')
-
-  if ((input.completionClaimId === null) !== (input.completionClaimHash === null)) {
-    throw new InvariantViolationException(
-      'Review observation completion claim ID and hash must be supplied together'
-    )
-  }
-  if (input.completionClaimHash !== null) {
-    asSha256(input.completionClaimHash, 'completion claim hash')
-  }
-
-  const allowedRationaleClassifications = new Set<ReviewRationaleClassification>([
-    'private',
-    'internal',
-    'confidential',
-  ])
-  if (!allowedRationaleClassifications.has(input.rationaleClassification)) {
-    throw new InvariantViolationException(
-      'Review observation rationale cannot be classified for public disclosure'
-    )
-  }
-
-  const finalizedAt = asValidTimestamp(input.observation.finalizedAt, 'finalized timestamp')
-  if (
-    (input.observation.governanceState === 'draft' && finalizedAt !== null) ||
-    (input.observation.governanceState !== 'draft' && finalizedAt === null)
-  ) {
-    throw new InvariantViolationException(
-      'Review observation finalization must match its governance state'
-    )
-  }
-
-  const revokedAt = asValidTimestamp(input.revokedAt, 'revocation timestamp')
-  const hasCompleteRevocation =
-    revokedAt !== null &&
-    input.revokedBy !== null &&
-    input.revocationReason !== null &&
-    input.revocationReason.trim().length > 0
-  if (
-    (input.observation.governanceState === 'revoked' && !hasCompleteRevocation) ||
-    (input.observation.governanceState !== 'revoked' &&
-      (input.revokedAt !== null || input.revokedBy !== null || input.revocationReason !== null))
-  ) {
-    throw new InvariantViolationException(
-      'Review observation revocation metadata must match its governance state'
-    )
-  }
-
-  const disputeFrozenAt = asValidTimestamp(input.disputeFrozenAt, 'dispute freeze timestamp')
-  if (
-    (input.disputeId === null) !== (disputeFrozenAt === null) ||
-    (input.disputeId !== null &&
-      !['disputed', 'frozen'].includes(input.observation.governanceState))
-  ) {
-    throw new InvariantViolationException('Review observation dispute freeze metadata is invalid')
-  }
-
-  assertEvidenceLinks(input.observation, input.evidenceLinks)
-}
-
-function revisionHash(
-  input: ReviewObservationRevisionMetadata & {
-    observation: ReviewObservationV1
-    evidenceLinks: readonly ReviewObservationEvidenceLinkInput[]
-  }
-): TvaSha256 {
-  const value = canonicalJson({
-    observation: input.observation,
-    reviewerRole: input.reviewerRole,
-    taskAssignmentHash: input.taskAssignmentHash,
-    assignmentSnapshotHash: input.assignmentSnapshotHash,
-    completionReportId: input.completionReportId,
-    completionReportHash: input.completionReportHash,
-    completionClaimId: input.completionClaimId,
-    completionClaimHash: input.completionClaimHash,
-    sourceSnapshotId: input.sourceSnapshotId,
-    taskContractVersionId: input.taskContractVersionId,
-    taskContractHash: input.taskContractHash,
-    rationaleClassification: input.rationaleClassification,
-    evidenceSufficiency: input.evidenceSufficiency,
-    revokedAt: input.revokedAt,
-    revokedBy: input.revokedBy,
-    revocationReason: input.revocationReason,
-    disputeId: input.disputeId,
-    disputeFrozenAt: input.disputeFrozenAt,
-    revisionPayload: input.revisionPayload ?? input.observation,
-    evidenceLinks: sortedEvidenceLinks(input.evidenceLinks),
-  })
-  return `sha256:${createHash('sha256').update(value).digest('hex')}`
-}
-
 function resultFromRows(
   observation: ObservationRow,
   revision: RevisionRow,
@@ -275,84 +83,6 @@ function resultFromRows(
     revisionHash: revision.revision_hash,
     governanceState: revision.governance_state,
   }
-}
-
-async function writeCreatedObservationAudit(
-  trx: TransactionClientContract,
-  input: CreateReviewObservationInput,
-  observationId: string,
-  revision: RevisionRow
-): Promise<void> {
-  const auditContext = input.auditContext ?? {
-    userId: input.observation.reviewerId,
-    ip: '0.0.0.0',
-    userAgent: 'review-observation-repository',
-    organizationId: null,
-    requestId: null,
-    traceId: null,
-    workflowId: input.observation.reviewWorkflowId,
-  }
-
-  await auditPublicApi.write(
-    auditContext,
-    {
-      action: 'review_observation.created',
-      entity_type: 'review_observation',
-      entity_id: observationId,
-      user_id: auditContext.userId ?? undefined,
-      event_name: 'review_observation.created',
-      event_family: 'review_observation',
-      module: 'reviews',
-      subsystem: 'observation',
-      workflow: 'native_review_observation',
-      stage: 'create',
-      outcome: 'persisted',
-      actor_type: 'reviewer',
-      target_type: 'review_observation',
-      target_id: observationId,
-      correlation_key: input.idempotencyKey,
-      retention_class: 'review_audit',
-      source_occurred_at: new Date(input.observation.createdAt),
-      redaction_applied: true,
-      critical: true,
-      old_values: null,
-      new_values: {
-        reviewWorkflowId: input.observation.reviewWorkflowId,
-        reviewSessionId: input.observation.reviewSessionId,
-        taskAssignmentId: input.observation.taskAssignmentId,
-        assignmentSnapshotId: input.observation.assignmentSnapshotId,
-        sourceSnapshotId: input.sourceSnapshotId,
-        completionReportId: input.completionReportId,
-        completionClaimId: input.completionClaimId,
-        reviewerId: input.observation.reviewerId,
-        reviewerType: input.observation.reviewerType,
-        reviewerRole: input.reviewerRole,
-        observationType: input.observation.observationType,
-        targetRef: input.observation.targetRef,
-        disposition: input.observation.disposition,
-        reviewRevision: input.observation.reviewRevision,
-        revisionNumber: Number(revision.revision_number),
-        revisionId: revision.id,
-        observationFactId: revision.observation_fact_id,
-        revisionHash: revision.revision_hash,
-        taskAssignmentHash: input.taskAssignmentHash,
-        assignmentSnapshotHash: input.assignmentSnapshotHash,
-        completionReportHash: input.completionReportHash,
-        completionClaimHash: input.completionClaimHash,
-        taskContractVersionId: input.taskContractVersionId,
-        taskContractHash: input.taskContractHash,
-        evidenceIds: input.evidenceLinks.map((link) => link.evidenceId).sort(),
-        evidenceHashes: input.evidenceLinks
-          .map((link) => link.evidenceHash)
-          .filter((hash): hash is TvaSha256 => hash !== null)
-          .sort(),
-        evidenceSufficiency: input.evidenceSufficiency,
-        rationaleClassification: input.rationaleClassification,
-        governanceState: input.observation.governanceState,
-      },
-    },
-    trx
-  )
 }
 
 async function currentRevision(
@@ -382,28 +112,6 @@ async function revisionByFactId(
     .where('observation_id', observationId)
     .where('observation_fact_id', observationFactId)
     .first()) as RevisionRow | undefined
-}
-
-function assertStableIdentity(
-  observation: ObservationRow,
-  next: CreateReviewObservationInput
-): void {
-  const fact = next.observation
-  if (
-    observation.schema_version !== fact.schemaVersion ||
-    observation.review_workflow_id !== fact.reviewWorkflowId ||
-    observation.review_session_id !== fact.reviewSessionId ||
-    observation.task_assignment_id !== fact.taskAssignmentId ||
-    observation.completion_report_id !== next.completionReportId ||
-    observation.completion_claim_id !== next.completionClaimId ||
-    observation.subject_user_id !== fact.subjectUserId ||
-    observation.observation_type !== fact.observationType ||
-    observation.target_ref !== fact.targetRef
-  ) {
-    throw new InvariantViolationException(
-      'Review observation correction cannot change the stable observation identity'
-    )
-  }
 }
 
 async function insertRevision(

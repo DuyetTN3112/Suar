@@ -5,7 +5,7 @@ import type {
   SprintReviewDisputeAccessContext,
   SprintReviewDisputeComment,
   SprintReviewDisputeDetailRow,
-} from '#modules/reviews/actions/ports/outbound/sprint_review_dispute_unit_of_work'
+} from '#modules/disputes/actions/ports/outbound/sprint_review_dispute_unit_of_work'
 
 interface SprintReviewDisputeAccessRow {
   id: string
