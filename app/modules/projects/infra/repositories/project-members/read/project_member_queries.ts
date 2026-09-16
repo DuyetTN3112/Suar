@@ -28,12 +28,18 @@ const getCountTotal = (row: CountTotalRow | null): number => {
   return toNumberValue(row?.$extras?.['total'] ?? row?.total)
 }
 
+const projectMemberQuery = (trx?: TransactionClientContract) => {
+  return trx && typeof (trx as unknown as { modelQuery?: unknown }).modelQuery === 'function'
+    ? ProjectMember.query({ client: trx })
+    : ProjectMember.query()
+}
+
 export const findMember = async (
   projectId: string,
   userId: string,
   trx?: TransactionClientContract
 ) => {
-  const query = trx ? ProjectMember.query({ client: trx }) : ProjectMember.query()
+  const query = projectMemberQuery(trx)
   return query.where('project_id', projectId).where('user_id', userId).first()
 }
 
@@ -42,7 +48,7 @@ export const findMemberOrFail = async (
   userId: string,
   trx?: TransactionClientContract
 ) => {
-  const query = trx ? ProjectMember.query({ client: trx }) : ProjectMember.query()
+  const query = projectMemberQuery(trx)
   return query.where('project_id', projectId).where('user_id', userId).firstOrFail()
 }
 
@@ -51,7 +57,7 @@ export const isProjectManagerOrOwner = async (
   projectId: string,
   trx?: TransactionClientContract
 ): Promise<boolean> => {
-  const query = trx ? ProjectMember.query({ client: trx }) : ProjectMember.query()
+  const query = projectMemberQuery(trx)
   const member = await query
     .where('project_id', projectId)
     .where('user_id', userId)
@@ -66,7 +72,7 @@ export const findManagerOrOwnerIds = async (
   excludeUserId?: string,
   trx?: TransactionClientContract
 ): Promise<string[]> => {
-  const query = trx ? ProjectMember.query({ client: trx }) : ProjectMember.query()
+  const query = projectMemberQuery(trx)
   let scopedQuery = query
     .where('project_id', projectId)
     .whereIn('project_role', [ProjectRole.OWNER, ProjectRole.MANAGER])
@@ -84,7 +90,7 @@ export const getRoleName = async (
   userId: string,
   trx?: TransactionClientContract
 ): Promise<string> => {
-  const query = trx ? ProjectMember.query({ client: trx }) : ProjectMember.query()
+  const query = projectMemberQuery(trx)
   const member = await query.where('project_id', projectId).where('user_id', userId).first()
   return member?.project_role ?? 'unknown'
 }
@@ -94,7 +100,7 @@ export const isMember = async (
   userId: string,
   trx?: TransactionClientContract
 ): Promise<boolean> => {
-  const query = trx ? ProjectMember.query({ client: trx }) : ProjectMember.query()
+  const query = projectMemberQuery(trx)
   const member = await query
     .where('project_id', projectId)
     .where('user_id', userId)
@@ -106,7 +112,7 @@ export const findActiveByUser = async (
   userId: string,
   trx?: TransactionClientContract
 ) => {
-  const query = trx ? ProjectMember.query({ client: trx }) : ProjectMember.query()
+  const query = projectMemberQuery(trx)
   return query.where('user_id', userId).preload('project')
 }
 
@@ -114,7 +120,7 @@ export const listProjectIdsForMember = async (
   userId: string,
   trx?: TransactionClientContract
 ): Promise<string[]> => {
-  const query = trx ? ProjectMember.query({ client: trx }) : ProjectMember.query()
+  const query = projectMemberQuery(trx)
   const memberships = await query
     .where('user_id', userId)
     .select('project_id')
@@ -127,7 +133,7 @@ export const listMemberUserIds = async (
   projectId: string,
   trx?: TransactionClientContract
 ): Promise<string[]> => {
-  const query = trx ? ProjectMember.query({ client: trx }) : ProjectMember.query()
+  const query = projectMemberQuery(trx)
   const memberships = await query.where('project_id', projectId).select('user_id')
   return memberships.map((membership) => membership.user_id)
 }
@@ -136,7 +142,7 @@ export const countByProject = async (
   projectId: string,
   trx?: TransactionClientContract
 ): Promise<number> => {
-  const query = trx ? ProjectMember.query({ client: trx }) : ProjectMember.query()
+  const query = projectMemberQuery(trx)
   const result = await query.where('project_id', projectId).count('* as total').first()
   const countRow: CountTotalRow | null = result
   return getCountTotal(countRow)
@@ -232,7 +238,7 @@ export const hasAccess = async (
   userId: string,
   trx?: TransactionClientContract
 ): Promise<boolean> => {
-  const query = trx ? ProjectMember.query({ client: trx }) : ProjectMember.query()
+  const query = projectMemberQuery(trx)
   const member = await query
     .where('project_id', projectId)
     .where('user_id', userId)
@@ -248,7 +254,7 @@ export const countByProjectIds = async (
     return new Map<string, number>()
   }
 
-  const query = trx ? ProjectMember.query({ client: trx }) : ProjectMember.query()
+  const query = projectMemberQuery(trx)
   const rows = await query
     .whereIn('project_id', projectIds)
     .count('* as total')

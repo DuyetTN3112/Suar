@@ -1,12 +1,12 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
+import ProjectContextVersion from '#modules/projects/infra/models/project-context/project_context_version'
+import WorkPackage from '#modules/projects/infra/models/work-package/work_package'
+import WorkPackageVersion from '#modules/projects/infra/models/work-package/work_package_version'
 import type {
   ProjectContextVersionV1,
   WorkPackageVersionV1,
 } from '#modules/projects/public_contracts/project-context/task_to_accomplishment_project_contracts'
-import ProjectContextVersion from '#modules/projects/infra/models/project-context/project_context_version'
-import WorkPackage from '#modules/projects/infra/models/work-package/work_package'
-import WorkPackageVersion from '#modules/projects/infra/models/work-package/work_package_version'
 import type {
   TaskAuthoringInheritanceFactReaderV1,
   TaskAuthoringInheritanceFactsV1,

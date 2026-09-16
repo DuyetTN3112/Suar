@@ -1,8 +1,8 @@
 import { test } from '@japa/runner'
 
 import { projectMembershipCommandFactory } from '#composition/projects/project-membership/project_membership_composition'
-import { OrganizationRole } from '#modules/organizations/public_contracts/access/organization_constants'
 import * as membershipMutations from '#modules/organizations/infra/repositories/members/organization_user_repository/write/mutation_queries'
+import { OrganizationRole } from '#modules/organizations/public_contracts/access/organization_constants'
 import { AddProjectMemberDTO } from '#modules/projects/actions/dtos/request/add_project_member_dto'
 import { RemoveProjectMemberDTO } from '#modules/projects/actions/dtos/request/remove_project_member_dto'
 import { UpdateProjectMemberDTO } from '#modules/projects/actions/dtos/request/update_project_member_dto'

@@ -1,3 +1,4 @@
+import ValidationException from '#modules/errors/public_contracts/validation_exception'
 import {
   TVA_CHANGE_CLASSES,
   TVA_PRIVACY_CLASSIFICATIONS,
@@ -7,7 +8,6 @@ import {
   type TvaPrivacyClassification,
   type TvaSourceProvenanceV1,
 } from '#modules/tasks/public_contracts/task-authoring/primitives'
-import ValidationException from '#modules/errors/public_contracts/validation_exception'
 
 const CHANGE_CLASSES = new Set<string>(TVA_CHANGE_CLASSES)
 const PRIVACY_CLASSES = new Set<string>(TVA_PRIVACY_CLASSIFICATIONS)

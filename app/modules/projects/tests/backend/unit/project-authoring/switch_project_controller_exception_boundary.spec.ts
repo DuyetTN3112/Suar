@@ -22,6 +22,10 @@ class TestProjectQueryFactory extends ProjectQueryFactory {
     throw new Error('Not implemented')
   }
 
+  makeTaskAuthoringContext(): never {
+    throw new Error('Not implemented')
+  }
+
   makeMemberCandidates(): never {
     throw new Error('Not implemented')
   }

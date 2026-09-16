@@ -1,11 +1,11 @@
 import { createHash } from 'node:crypto'
 
+import type { ProjectContextContentHasher } from '#modules/projects/actions/ports/outbound/project-context/project_context_content_hasher'
 import type {
   TvaJsonObject,
   TvaJsonValue,
   TvaSha256,
 } from '#modules/tasks/public_contracts/task-authoring/primitives'
-import type { ProjectContextContentHasher } from '#modules/projects/actions/ports/outbound/project-context/project_context_content_hasher'
 
 function canonicalize(value: TvaJsonValue): TvaJsonValue {
   if (value === null || typeof value !== 'object') return value

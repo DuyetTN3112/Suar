@@ -1,8 +1,8 @@
 import { BaseModel, beforeUpdate, column } from '@adonisjs/lucid/orm'
 import { DateTime } from 'luxon'
 
-import type { ProjectContextVersionV1 } from '#modules/projects/public_contracts/project-context/task_to_accomplishment_project_contracts'
 import InvariantViolationException from '#modules/errors/public_contracts/invariant_violation_exception'
+import type { ProjectContextVersionV1 } from '#modules/projects/public_contracts/project-context/task_to_accomplishment_project_contracts'
 
 function prepareJsonColumn(value: unknown): unknown {
   if (value === null || value === undefined || typeof value === 'string') {

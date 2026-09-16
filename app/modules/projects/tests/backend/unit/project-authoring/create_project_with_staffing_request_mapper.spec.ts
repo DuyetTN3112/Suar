@@ -4,10 +4,10 @@ import ValidationException from '#modules/errors/public_contracts/validation_exc
 import { buildCreateProjectWithStaffingRequest } from '#modules/projects/controllers/mappers/request/project-context/create_project_with_staffing_request_mapper'
 
 function requestOf(values: Record<string, unknown>) {
-  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-  return {
+  const req = {
     input: (key: string) => values[key],
-  } as never
+  }
+  return req as never
 }
 
 

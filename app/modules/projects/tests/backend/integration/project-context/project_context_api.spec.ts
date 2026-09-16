@@ -136,7 +136,7 @@ test.group('Integration | Project Context API', (group) => {
     assert.equal(body.contextVersion.versionNumber, 1)
     assert.match(body.contextVersion.contentHash, /^sha256:/)
 
-    const stored = await db
+    const stored: unknown = await db
       .from('project_context_versions')
       .where('id', body.contextVersion.id)
       .first()

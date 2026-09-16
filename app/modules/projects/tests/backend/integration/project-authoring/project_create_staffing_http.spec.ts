@@ -1,7 +1,7 @@
 import { test } from '@japa/runner'
 
-import { OrganizationRole } from '#modules/organizations/public_contracts/access/organization_constants'
 import * as membershipMutations from '#modules/organizations/infra/repositories/members/organization_user_repository/write/mutation_queries'
+import { OrganizationRole } from '#modules/organizations/public_contracts/access/organization_constants'
 import Project from '#modules/projects/infra/models/project-context/project'
 import ProjectMemberRepository from '#modules/projects/infra/repositories/project-members/project_member_repository'
 import { ProfessionalRoleRepository } from '#modules/skills/infra/repositories/project-roles/professional_role_repository'

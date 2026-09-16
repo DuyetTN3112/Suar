@@ -1,13 +1,13 @@
 import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 
-import BusinessLogicException from '#modules/errors/public_contracts/business_logic_exception'
 import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
 import {
   actionContextFromHttp,
   requireCurrentOrganizationId,
 } from '#modules/http/boundary/http_execution_context'
 import { ProjectQueryFactory } from '#modules/projects/actions/ports/inbound/project_query_factory'
+import { buildProjectContextSwitchRequest } from '#modules/projects/controllers/mappers/request/project-context/project_context_switch_request_mapper'
 
 @inject()
 export default class SwitchProjectController {
@@ -15,16 +15,7 @@ export default class SwitchProjectController {
 
   async handle(ctx: HttpContext) {
     const { request, session } = ctx
-
-    const projectId =
-      (request.input('projectId') as string | undefined) ??
-      (request.input('project_id') as string | undefined)
-    const currentPath =
-      (request.input('currentPath') as string | undefined) ??
-      (request.input('current_path') as string | undefined)
-    if (!projectId) {
-      throw new BusinessLogicException('Yêu cầu ID dự án')
-    }
+    const { projectId, currentPath } = buildProjectContextSwitchRequest(request)
 
     const currentOrgId = requireCurrentOrganizationId(ctx)
     const userId = actionContextFromHttp(ctx).userId

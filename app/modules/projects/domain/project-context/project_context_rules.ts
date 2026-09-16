@@ -73,7 +73,10 @@ const unsafeMarkupPattern =
 
 function containsUnsafeRichContent(value: TvaJsonValue): boolean {
   if (typeof value === 'string') return unsafeMarkupPattern.test(value)
-  if (Array.isArray(value)) return value.some((entry) => containsUnsafeRichContent(entry))
+  if (Array.isArray(value)) {
+    const arrayValue = value as readonly TvaJsonValue[]
+    return arrayValue.some((entry) => containsUnsafeRichContent(entry))
+  }
   if (value !== null && typeof value === 'object') {
     return Object.values(value).some((entry) => containsUnsafeRichContent(entry))
   }

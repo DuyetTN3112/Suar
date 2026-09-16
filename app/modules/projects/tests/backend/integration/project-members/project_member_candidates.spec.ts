@@ -7,11 +7,11 @@ import {
   projectMemberCandidateReader,
   projectMembershipRepository,
 } from '#composition/projects/project-membership/project_persistence_composition'
+import * as membershipMutations from '#modules/organizations/infra/repositories/members/organization_user_repository/write/mutation_queries'
 import {
   OrganizationRole,
   OrganizationUserStatus,
 } from '#modules/organizations/public_contracts/access/organization_constants'
-import * as membershipMutations from '#modules/organizations/infra/repositories/members/organization_user_repository/write/mutation_queries'
 import type { ProjectActionContext } from '#modules/projects/actions/project_action_context'
 import { ProjectRole } from '#modules/projects/public_contracts/project_constants'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'

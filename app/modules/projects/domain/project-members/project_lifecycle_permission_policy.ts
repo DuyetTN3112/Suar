@@ -1,119 +1,20 @@
-/**
- * Project Permission Policy — Pure permission decision functions.
- *
- * All functions are synchronous, pure, and have 0 database dependencies.
- * They take pre-fetched data via context interfaces and return PolicyResult.
- *
- * Commands are responsible for:
- * 1. FETCH — Load project + user context from DB (via Fat Models)
- * 2. DECIDE — Call these pure functions with fetched data
- * 3. PERSIST — Save changes via Lucid ORM
- *
- * @module ProjectPermissionPolicy
- */
-
-import { ProjectRole } from '../../public_contracts/project_constants.js'
 import type {
-  ProjectPermissionContext,
   ProjectDeletionContext,
+  ProjectOwnershipTransferContext,
+  ProjectPermissionContext,
   ProjectUpdateFieldsResult,
-  ProjectWorkspaceAccessContext,
 } from '../project-context/project_types.js'
 
 import {
-  canViewProjectMembers,
+  canManageProject,
   canManageProjectMembers,
-  canAddProjectMember,
-  canRemoveProjectMember,
-  canTransferProjectOwnership,
-} from './project_member_permission_policy.js'
-import { ProjectOrgRole } from './role_contracts.js'
+  isOrgOwnerOrAdmin,
+  isSameId,
+  ProjectRole,
+} from './project_permission_helpers.js'
 
 import type { PolicyResult } from '#modules/authorization/public_contracts/policy_result'
 import { PolicyResult as PR } from '#modules/authorization/public_contracts/policy_result'
-
-export {
-  canViewProjectMembers,
-  canManageProjectMembers,
-  canAddProjectMember,
-  canRemoveProjectMember,
-  canTransferProjectOwnership,
-}
-
-const isSameId = (a: string, b: string): boolean => a === b
-
-// ============================================================================
-// Shared helpers (private)
-// ============================================================================
-
-function isOrgOwnerOrAdmin(orgRole: string | null): boolean {
-  return orgRole === ProjectOrgRole.OWNER || orgRole === ProjectOrgRole.ADMIN
-}
-
-function canManageProject(ctx: ProjectPermissionContext): boolean {
-  if (isSameId(ctx.projectOwnerId, ctx.actorId)) return true
-  if (isSameId(ctx.projectCreatorId, ctx.actorId)) return true
-  if (isOrgOwnerOrAdmin(ctx.actorOrgRole)) return true
-  return false
-}
-
-// ============================================================================
-// Permission Policies
-// ============================================================================
-
-/**
- * Check if actor can create a project in an organization.
- *
- * Rules:
- * 1. Org admin/owner → allow
- * 2. Others → deny
- */
-export function canCreateProject(ctx: {
-  isOrgAdminOrOwner: boolean
-}): PolicyResult {
-  if (ctx.isOrgAdminOrOwner) return PR.allow()
-
-  return PR.deny('Chỉ org_admin và org_owner mới có thể tạo project')
-}
-
-/**
- * Check whether a project can be accessed from the current organization scope.
- */
-export function canAccessProjectOrganizationScope(ctx: {
-  requestedOrganizationId: string | null
-  projectOrganizationId: string
-}): PolicyResult {
-  if (!ctx.requestedOrganizationId) return PR.allow()
-  if (isSameId(ctx.requestedOrganizationId, ctx.projectOrganizationId)) return PR.allow()
-
-  return PR.deny('Bạn không có quyền truy cập dự án ngoài tổ chức hiện tại')
-}
-
-/**
- * Check whether actor may enter the shared Project Workspace.
- *
- * Entering the workspace exposes project-wide boards, so mere membership is
- * insufficient. Organization roles need `can_view_all_projects`; project roles
- * need `can_view_all_tasks`. Project stakeholders remain allowed even if legacy
- * data is missing the corresponding project_members row.
- */
-export function canEnterProjectWorkspace(
-  ctx: ProjectWorkspaceAccessContext
-): PolicyResult {
-  if (ctx.actorHasOrganizationProjectAccess) return PR.allow()
-  if (isSameId(ctx.actorId, ctx.projectOwnerId ?? '')) return PR.allow()
-  if (isSameId(ctx.actorId, ctx.projectManagerId ?? '')) return PR.allow()
-  if (isSameId(ctx.actorId, ctx.projectCreatorId ?? '')) return PR.allow()
-  if (
-    ctx.actorProjectRole === ProjectRole.OWNER ||
-    ctx.actorProjectRole === ProjectRole.MANAGER ||
-    ctx.actorProjectRole === ProjectRole.VIEWER
-  ) {
-    return PR.allow()
-  }
-
-  return PR.deny('Bạn không có quyền truy cập không gian dự án dùng chung')
-}
 
 /**
  * Check if actor can update a project (general fields).
@@ -211,39 +112,31 @@ export function canDeleteProject(ctx: ProjectDeletionContext): PolicyResult {
   return PR.allow()
 }
 
-
-
 /**
- * Check if actor can view a project.
+ * Check if project ownership can be transferred.
  *
- * Priority:
- * 1. Project owner/creator → allow
- * 2. Org owner/admin → allow
- * 3. Project member (any role) → allow
- * 4. Deny
+ * Rules:
+ * 1. Must be current owner OR org admin/owner
+ * 2. Cannot transfer to self
+ * 3. New owner must be an approved org member
  */
-export function canViewProject(ctx: ProjectPermissionContext): PolicyResult {
-  if (isSameId(ctx.projectOwnerId, ctx.actorId)) return PR.allow()
-  if (isSameId(ctx.projectCreatorId, ctx.actorId)) return PR.allow()
-  if (isOrgOwnerOrAdmin(ctx.actorOrgRole)) return PR.allow()
-  if (ctx.actorProjectRole !== null) return PR.allow()
+export function canTransferProjectOwnership(ctx: ProjectOwnershipTransferContext): PolicyResult {
+  const isOwner = isSameId(ctx.actorId, ctx.projectOwnerId)
+  const isOrgAdmin = isOrgOwnerOrAdmin(ctx.actorOrgRole)
 
-  return PR.deny('Bạn không có quyền xem dự án này')
-}
+  if (!isOwner && !isOrgAdmin) {
+    return PR.deny('Chỉ owner hiện tại hoặc org_admin mới có thể transfer ownership')
+  }
 
-/**
- * Check if actor can view a project's basic preview information.
- *
- * Preview access is broader than internal detail access:
- * - Any internal viewer can also view preview
- * - Organization members can view the basic introduction/info card
- * - Non-members outside the organization stay denied
- */
-export function canViewProjectPreview(ctx: ProjectPermissionContext): PolicyResult {
-  if (canViewProject(ctx).allowed) return PR.allow()
-  if (ctx.actorOrgRole !== null) return PR.allow()
+  if (isSameId(ctx.actorId, ctx.newOwnerId)) {
+    return PR.deny('Không thể transfer ownership cho chính mình', 'BUSINESS_RULE')
+  }
 
-  return PR.deny('Bạn không có quyền xem thông tin sơ lược của dự án này')
+  if (!ctx.isNewOwnerOrgMember) {
+    return PR.deny('Owner mới phải là member của organization', 'BUSINESS_RULE')
+  }
+
+  return PR.allow()
 }
 
 /**

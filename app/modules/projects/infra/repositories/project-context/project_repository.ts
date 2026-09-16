@@ -1,7 +1,8 @@
-import * as accessQueries from './read/access_queries.js'
 import * as projectMemberQueries from '../project-members/read/project_member_queries.js'
-import * as modelQueries from './read/project_model_queries.js'
 import * as projectMemberMutations from '../project-members/write/project_member_mutations.js'
+
+import * as accessQueries from './read/access_queries.js'
+import * as modelQueries from './read/project_model_queries.js'
 import * as projectMutations from './write/project_mutations.js'
 
 import { ProjectInfraMapper } from '#modules/projects/infra/adapters/project-context/project_infra_mapper'

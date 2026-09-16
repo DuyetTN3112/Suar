@@ -5,6 +5,7 @@ import { mapRoleStaffingCandidatesApiBody } from '../mappers/response/project-co
 
 import { actionContextFromHttp } from '#modules/http/boundary/http_execution_context'
 import { ProjectQueryFactory } from '#modules/projects/actions/ports/inbound/project_query_factory'
+import { buildRoleStaffingCandidatesRequest } from '#modules/projects/controllers/mappers/request/project-members/role_staffing_candidates_request_mapper'
 
 /**
  * GET /api/projects/:projectId/roles/:roleId/candidates → Staffing candidates for a role
@@ -14,13 +15,10 @@ export default class GetRoleStaffingCandidatesController {
   constructor(private readonly queries: ProjectQueryFactory) {}
 
   async handle(ctx: HttpContext) {
-    const { params } = ctx
+    const input = buildRoleStaffingCandidatesRequest(ctx.params)
     const result = await this.queries
       .makeRoleStaffingCandidates(actionContextFromHttp(ctx))
-      .executeAndWrap({
-        project_id: params['projectId'] as string,
-        role_id: params['roleId'] as string,
-      })
+      .executeAndWrap(input)
       .then((outcome) => outcome.getValue())
     return mapRoleStaffingCandidatesApiBody(result)
   }
