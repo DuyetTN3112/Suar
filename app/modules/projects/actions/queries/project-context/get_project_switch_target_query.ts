@@ -1,6 +1,6 @@
-import { BaseQuery } from '#modules/projects/actions/base_query'
 import BusinessLogicException from '#modules/errors/public_contracts/business_logic_exception'
 import NotFoundException from '#modules/errors/public_contracts/not_found_exception'
+import { BaseQuery } from '#modules/projects/actions/base_query'
 import type {
   ProjectSwitchTarget,
   ProjectSwitchTargetReader,

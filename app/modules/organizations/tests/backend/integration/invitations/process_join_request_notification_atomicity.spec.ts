@@ -8,9 +8,9 @@ import {
   organizationTransactionRunner,
 } from '#composition/organizations/persistence/organization_persistence_composition'
 import { makeSystemOrganizationActionContext } from '#modules/organizations/actions/action_context'
-import type { OrganizationNotificationStager as NotificationStager } from '#modules/organizations/actions/ports/outbound/directory/organization_notification_stager'
 import ProcessJoinRequestCommand from '#modules/organizations/actions/commands/invitations/process_join_request_command'
 import { ProcessJoinRequestDTO } from '#modules/organizations/actions/dtos/request/invitations/process_join_request_dto'
+import type { OrganizationNotificationStager as NotificationStager } from '#modules/organizations/actions/ports/outbound/directory/organization_notification_stager'
 import * as membershipQueries from '#modules/organizations/infra/repositories/members/organization_user_repository/read/membership_queries'
 import { OrganizationMembershipScenario } from '#modules/organizations/tests/backend/support/members/membership_scenario'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'

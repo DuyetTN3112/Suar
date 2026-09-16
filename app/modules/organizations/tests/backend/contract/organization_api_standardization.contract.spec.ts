@@ -1,10 +1,10 @@
 import { test } from '@japa/runner'
 
+import * as membershipMutations from '#modules/organizations/infra/repositories/members/organization_user_repository/write/mutation_queries'
 import {
   OrganizationRole,
   OrganizationUserStatus,
 } from '#modules/organizations/public_contracts/access/organization_constants'
-import * as membershipMutations from '#modules/organizations/infra/repositories/members/organization_user_repository/write/mutation_queries'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   cleanupTestData,

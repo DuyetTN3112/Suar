@@ -26,7 +26,8 @@ test('organization workflow status listing unwraps expected query failures', asy
 
   let thrown: unknown
   try {
-    await new ListTaskStatusesController({ makeListTaskStatuses: () => query } as never).handle(
+    const actions = { makeListTaskStatuses: () => query }
+    await new ListTaskStatusesController(actions as never).handle(
       context() as never
     )
   } catch (error) {

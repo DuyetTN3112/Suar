@@ -5,10 +5,10 @@ import { makeInviteUserCommand } from '#composition/organizations/members/organi
 import { organizationAdministrationRepository } from '#composition/organizations/persistence/organization_persistence_composition'
 import AuditLog from '#modules/audit/infra/models/audit-log/audit_log'
 import { ForbiddenPolicyViolationException } from '#modules/authorization/public_contracts/policy_violation'
-import { OrganizationRole, OrganizationUserStatus } from '#modules/organizations/public_contracts/access/organization_constants'
 import { InviteUserDTO } from '#modules/organizations/actions/dtos/request/invitations/invite_user_dto'
 import ListInvitationsQuery from '#modules/organizations/actions/queries/invitations/list_invitations_query'
 import * as membershipQueries from '#modules/organizations/infra/repositories/members/organization_user_repository/read/membership_queries'
+import { OrganizationRole, OrganizationUserStatus } from '#modules/organizations/public_contracts/access/organization_constants'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   UserFactory,

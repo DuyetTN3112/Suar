@@ -14,7 +14,7 @@ test.group('Organization context switch request mapper', () => {
   test('maps canonical and legacy organization switch aliases', ({ assert }) => {
     assert.deepEqual(
       buildOrganizationContextSwitchRequest(
-        requestOf({ organization_id: ' org-1 ', current_path: '/tasks' }) as never
+        requestOf({ organization_id: ' org-1 ', current_path: '/tasks' })
       ),
       { organizationId: 'org-1', currentPath: '/tasks' }
     )
@@ -29,14 +29,14 @@ test.group('Organization context switch request mapper', () => {
       assert.throws(() => buildOrganizationSwitchRouteRequest(params), ValidationException)
     }
     assert.throws(
-      () => buildOrganizationContextSwitchRequest(requestOf({ organizationId: 42 }) as never),
+      () => buildOrganizationContextSwitchRequest(requestOf({ organizationId: 42 })),
       ValidationException
     )
   })
 
   test('rejects a malformed current path rather than passing it to redirect logic', ({ assert }) => {
     assert.throws(
-      () => buildOrganizationContextSwitchRequest(requestOf({ organizationId: 'org-1', currentPath: 42 }) as never),
+      () => buildOrganizationContextSwitchRequest(requestOf({ organizationId: 'org-1', currentPath: 42 })),
       ValidationException
     )
   })

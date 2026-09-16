@@ -1,7 +1,7 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import { OrganizationRole, OrganizationUserStatus } from '#modules/organizations/public_contracts/access/organization_constants'
 import OrganizationUser from '#modules/organizations/infra/models/members/organization_user'
+import { OrganizationRole, OrganizationUserStatus } from '#modules/organizations/public_contracts/access/organization_constants'
 
 /**
  * OrgAccessRepository

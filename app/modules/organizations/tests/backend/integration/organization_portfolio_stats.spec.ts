@@ -2,8 +2,8 @@ import { test } from '@japa/runner'
 import { DateTime } from 'luxon'
 
 import { makeGetOrganizationDetailQuery } from '#composition/organizations/dashboard/organization_portfolio_composition'
-import { GetOrganizationDetailDTO } from '#modules/organizations/actions/dtos/request/directory/get_organization_detail_dto'
 import { makeSystemOrganizationActionContext } from '#modules/organizations/actions/action_context'
+import { GetOrganizationDetailDTO } from '#modules/organizations/actions/dtos/request/directory/get_organization_detail_dto'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   cleanupTestData,

@@ -1,9 +1,14 @@
 import type {
   ProjectOrganizationReader,
-  ProjectOrganizationSummary,
   ProjectTaskReaderWriter,
   ProjectUserReader,
 } from '../../ports/outbound/project_external_dependencies.js'
+
+import {
+  loadProjectReverseReviews,
+  loadProjectReviewGovernance,
+} from './project_detail_governance_loader.js'
+import { buildProjectPreviewResult } from './project_detail_preview_builder.js'
 
 import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
 import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
@@ -18,8 +23,8 @@ import type { ProjectActionContext } from '#modules/projects/actions/project_act
 import { mapProjectContextPageProjection } from '#modules/projects/domain/project-context/project_context_page_projection'
 import type { ProjectPermissionContext } from '#modules/projects/domain/project-context/project_types'
 import {
-  canAccessProjectOrganizationScope,
   calculateProjectDetailPermissions,
+  canAccessProjectOrganizationScope,
   canUpdateProject,
   canViewProject,
   canViewProjectPreview,
@@ -30,12 +35,11 @@ import type {
 } from '#modules/projects/public_contracts/project_detail'
 import type { ProjectRecord } from '#modules/projects/types/project_records'
 
+
 /**
  * Member interface for query results
  */
 type ProjectMemberResult = GetProjectDetailResult['members'][number]
-type ProjectReviewGovernanceSummary = GetProjectDetailResult['review_governance']
-type ProjectReverseReviewSummary = GetProjectDetailResult['project_reverse_reviews']
 
 /**
  * Query to get detailed information about a single project
@@ -47,8 +51,6 @@ type ProjectReverseReviewSummary = GetProjectDetailResult['project_reverse_revie
  * - Recent activity (last 10 audit logs)
  * - User permissions (what actions user can perform)
  * - Cached for 5 minutes
- *
- * @extends {BaseQuery<number, GetProjectDetailResult>}
  */
 export default class GetProjectDetailQuery extends BaseQuery<
   GetProjectDetailInput,
@@ -93,7 +95,7 @@ export default class GetProjectDetailQuery extends BaseQuery<
     const canViewInternal = canViewProject(permissionContext).allowed
     if (!canViewInternal) {
       enforcePolicy(canViewProjectPreview(permissionContext))
-      return this.buildPreviewResult(project, organization, permissionContext)
+      return buildProjectPreviewResult(project, organization, permissionContext)
     }
 
     // Fetch all related data in parallel
@@ -116,8 +118,8 @@ export default class GetProjectDetailQuery extends BaseQuery<
       this.getTasks(projectId),
       this.getTasksSummary(projectId),
       this.getRecentActivity(projectId),
-      this.getReviewGovernance(projectId),
-      this.getProjectReverseReviews(projectId),
+      loadProjectReviewGovernance(projectId, this.detailProjection),
+      loadProjectReverseReviews(projectId, this.reverseReviews, this.detailProjection),
       this.projectContextFactReader?.readProjectContextFact({
         projectId,
         organizationId: project.organization_id,
@@ -166,66 +168,6 @@ export default class GetProjectDetailQuery extends BaseQuery<
       permissions,
       review_governance: reviewGovernance,
       project_reverse_reviews: projectReverseReviews,
-    }
-  }
-
-  private buildPreviewResult(
-    project: ProjectRecord,
-    organization: ProjectOrganizationSummary | null,
-    permissionContext: ProjectPermissionContext
-  ): GetProjectDetailResult {
-    return {
-      project_context: null,
-      project: {
-        id: project.id,
-        name: project.name,
-        description: project.description,
-        organization_id: project.organization_id,
-        organization_name: organization?.name ?? null,
-        creator_id: null,
-        creator_name: null,
-        manager_id: null,
-        manager_name: null,
-        owner_id: null,
-        owner_name: null,
-        start_date: project.start_date,
-        end_date: project.end_date,
-        status: project.status,
-        visibility: project.visibility,
-        business_domains: project.business_domains ?? [],
-        created_at: project.created_at,
-        updated_at: project.updated_at,
-      },
-      members: [],
-      tasks: [],
-      tasks_summary: {
-        total: 0,
-        pending: 0,
-        in_progress: 0,
-        completed: 0,
-        overdue: 0,
-      },
-      recent_activity: [],
-      permissions: calculateProjectDetailPermissions({
-        ...permissionContext,
-        projectManagerId: project.manager_id,
-      }),
-      review_governance: {
-        total_sessions: 0,
-        pending_sessions: 0,
-        overdue_sessions: 0,
-        disputed_sessions: 0,
-        completed_sessions: 0,
-        required_pending_assignments: 0,
-        fallback_pending_assignments: 0,
-        completion_rate: 0,
-      },
-      project_reverse_reviews: {
-        total_reviews: 0,
-        anonymous_reviews: 0,
-        average_rating: null,
-        recent: [],
-      },
     }
   }
 
@@ -328,42 +270,6 @@ export default class GetProjectDetailQuery extends BaseQuery<
     return this.auditActivityReader.listRecentProjectActivity(projectId, 10)
   }
 
-  private async getReviewGovernance(projectId: string): Promise<ProjectReviewGovernanceSummary> {
-    const { sessions: statusRows, pendingAssignmentRequirements } =
-      await this.detailProjection.loadReviewGovernanceRows(projectId)
-
-    const totalSessions = statusRows.length
-    const completedSessions = statusRows.filter((row) => row.status === 'completed').length
-    const disputedSessions = statusRows.filter((row) => row.status === 'disputed').length
-    const pendingSessions = statusRows.filter(
-      (row) => row.status === 'pending' || row.status === 'in_progress'
-    ).length
-    const overdueSessions = statusRows.filter((row) => {
-      if (row.status === 'completed' || row.status === 'disputed' || !row.deadline) {
-        return false
-      }
-
-      const deadline = new Date(row.deadline)
-      return !Number.isNaN(deadline.getTime()) && deadline.getTime() < Date.now()
-    }).length
-
-    const requiredPendingAssignments = pendingAssignmentRequirements.filter(Boolean).length
-    const fallbackPendingAssignments =
-      pendingAssignmentRequirements.length - requiredPendingAssignments
-
-    return {
-      total_sessions: totalSessions,
-      pending_sessions: pendingSessions,
-      overdue_sessions: overdueSessions,
-      disputed_sessions: disputedSessions,
-      completed_sessions: completedSessions,
-      required_pending_assignments: requiredPendingAssignments,
-      fallback_pending_assignments: fallbackPendingAssignments,
-      completion_rate:
-        totalSessions > 0 ? Math.round((completedSessions / totalSessions) * 100) : 0,
-    }
-  }
-
   /**
    * Get cache key for this query
    */
@@ -377,37 +283,5 @@ export default class GetProjectDetailQuery extends BaseQuery<
    */
   protected getCacheTTL(): number {
     return 5 * 60
-  }
-
-  private async getProjectReverseReviews(projectId: string): Promise<ProjectReverseReviewSummary> {
-    const [stats, recentRows] = await Promise.all([
-      this.reverseReviews.loadProjectStats(projectId),
-      this.detailProjection.listRecentReverseReviews(projectId, 5),
-    ])
-
-    const fallbackAverageRating =
-      recentRows.length > 0
-        ? Number(
-            (
-              recentRows.reduce((sum, row) => sum + Number(row.rating ?? 0), 0) / recentRows.length
-            ).toFixed(1)
-          )
-        : null
-
-    return {
-      total_reviews: stats?.total_reviews ?? recentRows.length,
-      anonymous_reviews:
-        stats?.anonymous_reviews ?? recentRows.filter((row) => row.is_anonymous === true).length,
-      average_rating: stats?.average_rating ?? fallbackAverageRating,
-      recent: recentRows.map((row) => ({
-        id: row.id,
-        reviewer_id: row.is_anonymous === true ? null : row.reviewer_id,
-        reviewer_username: row.is_anonymous === true ? null : row.reviewer_username,
-        rating: Number(row.rating ?? 0),
-        comment: row.comment,
-        is_anonymous: row.is_anonymous,
-        created_at: row.created_at instanceof Date ? row.created_at.toISOString() : row.created_at,
-      })),
-    }
   }
 }

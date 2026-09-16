@@ -2,8 +2,8 @@ import { test } from '@japa/runner'
 import { DateTime } from 'luxon'
 
 import { makeDeleteOrganizationCommand } from '#composition/organizations/projects/organization_project_lifecycle_composition'
-import { DeleteOrganizationDTO } from '#modules/organizations/actions/dtos/request/directory/delete_organization_dto'
 import { makeSystemOrganizationActionContext } from '#modules/organizations/actions/action_context'
+import { DeleteOrganizationDTO } from '#modules/organizations/actions/dtos/request/directory/delete_organization_dto'
 import Organization from '#modules/organizations/infra/models/directory/organization'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {

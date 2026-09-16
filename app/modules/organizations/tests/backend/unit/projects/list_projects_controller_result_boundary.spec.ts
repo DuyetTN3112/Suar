@@ -27,7 +27,8 @@ test('organization project listing unwraps expected query failures', async ({ as
 
   let thrown: unknown
   try {
-    await new ListProjectsController({ makeListProjects: () => query } as never).handle(
+    const actions = { makeListProjects: () => query }
+    await new ListProjectsController(actions as never).handle(
       context() as never
     )
   } catch (error) {

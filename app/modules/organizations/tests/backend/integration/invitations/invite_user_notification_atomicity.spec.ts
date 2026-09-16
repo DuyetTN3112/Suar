@@ -2,19 +2,19 @@ import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
 import { notificationApplication as notificationPublicApi } from '#composition/notifications/notification-feed/notification_composition'
+import { organizationUserReaderWriter } from '#composition/organizations/directory/organization_user_composition'
 import {
   organizationMembershipRepository,
   organizationReader,
   organizationTransactionRunner,
 } from '#composition/organizations/persistence/organization_persistence_composition'
-import { organizationUserReaderWriter } from '#composition/organizations/directory/organization_user_composition'
 import { buildNotificationEventId } from '#modules/notifications/public_contracts/notification_event_identity'
-import { OrganizationRole } from '#modules/organizations/public_contracts/access/organization_constants'
 import { makeSystemOrganizationActionContext } from '#modules/organizations/actions/action_context'
-import type { OrganizationNotificationStager as NotificationStager } from '#modules/organizations/actions/ports/outbound/directory/organization_notification_stager'
 import InviteUserCommand from '#modules/organizations/actions/commands/invitations/invite_user_command'
 import { InviteUserDTO } from '#modules/organizations/actions/dtos/request/invitations/invite_user_dto'
+import type { OrganizationNotificationStager as NotificationStager } from '#modules/organizations/actions/ports/outbound/directory/organization_notification_stager'
 import * as membershipQueries from '#modules/organizations/infra/repositories/members/organization_user_repository/read/membership_queries'
+import { OrganizationRole } from '#modules/organizations/public_contracts/access/organization_constants'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   cleanupTestData,

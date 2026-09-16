@@ -2,18 +2,18 @@ import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
 import { notificationApplication as notificationPublicApi } from '#composition/notifications/notification-feed/notification_composition'
+import { organizationUserReaderWriter } from '#composition/organizations/directory/organization_user_composition'
 import {
   organizationEventPublisher,
   organizationMembershipRepository,
   organizationTransactionRunner,
 } from '#composition/organizations/persistence/organization_persistence_composition'
-import { organizationUserReaderWriter } from '#composition/organizations/directory/organization_user_composition'
 import { buildNotificationEventId } from '#modules/notifications/public_contracts/notification_event_identity'
-import { OrganizationRole } from '#modules/organizations/public_contracts/access/organization_constants'
 import { makeSystemOrganizationActionContext } from '#modules/organizations/actions/action_context'
-import type { OrganizationNotificationStager as NotificationStager } from '#modules/organizations/actions/ports/outbound/directory/organization_notification_stager'
 import AddMemberCommand from '#modules/organizations/actions/commands/members/add_member_command'
 import { AddMemberDTO } from '#modules/organizations/actions/dtos/request/members/add_member_dto'
+import type { OrganizationNotificationStager as NotificationStager } from '#modules/organizations/actions/ports/outbound/directory/organization_notification_stager'
+import { OrganizationRole } from '#modules/organizations/public_contracts/access/organization_constants'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   cleanupTestData,

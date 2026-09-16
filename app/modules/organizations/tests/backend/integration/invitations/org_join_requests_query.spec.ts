@@ -1,8 +1,8 @@
 import { test } from '@japa/runner'
 
 import { organizationMembershipRepository } from '#composition/organizations/persistence/organization_persistence_composition'
-import { OrganizationRole, OrganizationUserStatus } from '#modules/organizations/public_contracts/access/organization_constants'
 import ListJoinRequestsQuery from '#modules/organizations/actions/queries/invitations/list_join_requests_query'
+import { OrganizationRole, OrganizationUserStatus } from '#modules/organizations/public_contracts/access/organization_constants'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   UserFactory,

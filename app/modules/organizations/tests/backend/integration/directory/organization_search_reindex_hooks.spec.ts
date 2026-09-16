@@ -1,6 +1,7 @@
 import { test } from '@japa/runner'
 
 import { notificationApplication as notificationPublicApi } from '#composition/notifications/notification-feed/notification_composition'
+import { organizationUserReaderWriter } from '#composition/organizations/directory/organization_user_composition'
 import { organizationTaskWorkflowInitializer } from '#composition/organizations/members/organization_notification_composition'
 import {
   organizationEventPublisher,
@@ -10,13 +11,12 @@ import {
   organizationWriter,
 } from '#composition/organizations/persistence/organization_persistence_composition'
 import { makeDeleteOrganizationCommand } from '#composition/organizations/projects/organization_project_lifecycle_composition'
-import { organizationUserReaderWriter } from '#composition/organizations/directory/organization_user_composition'
+import { makeSystemOrganizationActionContext } from '#modules/organizations/actions/action_context'
 import CreateOrganizationCommand from '#modules/organizations/actions/commands/directory/create_organization_command'
 import UpdateOrganizationCommand from '#modules/organizations/actions/commands/directory/update_organization_command'
 import { CreateOrganizationDTO } from '#modules/organizations/actions/dtos/request/directory/create_organization_dto'
 import { DeleteOrganizationDTO } from '#modules/organizations/actions/dtos/request/directory/delete_organization_dto'
 import { UpdateOrganizationDTO } from '#modules/organizations/actions/dtos/request/directory/update_organization_dto'
-import { makeSystemOrganizationActionContext } from '#modules/organizations/actions/action_context'
 import { SearchOrganizationsViaEngineQuery } from '#modules/search/actions/queries/entity-search/search_organizations_via_engine_query'
 import { OrganizationSearchIndexRepository } from '#modules/search/infra/repositories/entity-search/organizations/organization_search_index_repository'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'

@@ -1,12 +1,12 @@
 import { test } from '@japa/runner'
 
+import { organizationCacheInvalidator } from '#composition/organizations/access/organization_cache_composition'
 import {
   ComposedOrganizationCreationCommandFactory,
   ComposedOrganizationDeletionCommandFactory,
 } from '#composition/organizations/directory/factories/organization_directory_action_factories'
 import { ComposedOrganizationInvitationCommandFactory } from '#composition/organizations/invitations/factories/organization_invitation_action_factories'
 import { ComposedOrganizationMemberAdministrationCommandFactory } from '#composition/organizations/members/factories/organization_member_action_factories'
-import { organizationCacheInvalidator } from '#composition/organizations/access/organization_cache_composition'
 import {
   organizationEventPublisher,
   organizationMembershipRepository,
@@ -14,19 +14,19 @@ import {
   organizationTransactionRunner,
   organizationWriter,
 } from '#composition/organizations/persistence/organization_persistence_composition'
+import type { OrganizationActionContext } from '#modules/organizations/actions/action_context'
 import CreateOrganizationCommand from '#modules/organizations/actions/commands/directory/create_organization_command'
 import DeleteOrganizationCommand from '#modules/organizations/actions/commands/directory/delete_organization_command'
-import type { OrganizationActionContext } from '#modules/organizations/actions/action_context'
-import type { OrganizationUserReaderWriter } from '#modules/organizations/actions/ports/outbound/directory/organization_external_dependencies'
-import type { OrganizationNotificationStager } from '#modules/organizations/actions/ports/outbound/directory/organization_notification_stager'
-import type { OrganizationProjectLifecycleReader } from '#modules/organizations/actions/ports/outbound/directory/organization_project_lifecycle_reader'
-import type { OrganizationTaskWorkflowInitializer } from '#modules/organizations/actions/ports/outbound/directory/organization_task_workflow_initializer'
 import AcceptOrganizationInvitationCommand from '#modules/organizations/actions/commands/invitations/accept_organization_invitation_command'
 import InviteUserCommand from '#modules/organizations/actions/commands/invitations/invite_user_command'
 import ProcessJoinRequestCommand from '#modules/organizations/actions/commands/invitations/process_join_request_command'
 import RejectOrganizationInvitationCommand from '#modules/organizations/actions/commands/invitations/reject_organization_invitation_command'
 import RemoveMemberCommand from '#modules/organizations/actions/commands/members/remove_member_command'
 import UpdateMemberRoleCommand from '#modules/organizations/actions/commands/members/update_member_role_command'
+import type { OrganizationUserReaderWriter } from '#modules/organizations/actions/ports/outbound/directory/organization_external_dependencies'
+import type { OrganizationNotificationStager } from '#modules/organizations/actions/ports/outbound/directory/organization_notification_stager'
+import type { OrganizationProjectLifecycleReader } from '#modules/organizations/actions/ports/outbound/directory/organization_project_lifecycle_reader'
+import type { OrganizationTaskWorkflowInitializer } from '#modules/organizations/actions/ports/outbound/directory/organization_task_workflow_initializer'
 import type { OrganizationMemberProjectOffboarding } from '#modules/organizations/actions/ports/outbound/members/organization_member_project_offboarding'
 
 const context: OrganizationActionContext = {

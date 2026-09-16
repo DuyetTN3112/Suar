@@ -2,6 +2,7 @@ import { test } from '@japa/runner'
 
 import { notificationApplication as notificationPublicApi } from '#composition/notifications/notification-feed/notification_composition'
 import { makeGetUserNotifications } from '#composition/notifications/notification-feed/notification_feed_composition'
+import { organizationUserReaderWriter } from '#composition/organizations/directory/organization_user_composition'
 import { organizationTaskWorkflowInitializer } from '#composition/organizations/members/organization_notification_composition'
 import {
   organizationEventPublisher,
@@ -10,11 +11,10 @@ import {
   organizationTransactionRunner,
   organizationWriter,
 } from '#composition/organizations/persistence/organization_persistence_composition'
-import { organizationUserReaderWriter } from '#composition/organizations/directory/organization_user_composition'
 import AuditLog from '#modules/audit/infra/models/audit-log/audit_log'
+import { makeSystemOrganizationActionContext } from '#modules/organizations/actions/action_context'
 import CreateOrganizationCommand from '#modules/organizations/actions/commands/directory/create_organization_command'
 import { CreateOrganizationDTO } from '#modules/organizations/actions/dtos/request/directory/create_organization_dto'
-import { makeSystemOrganizationActionContext } from '#modules/organizations/actions/action_context'
 import type { OrganizationEventPublisher } from '#modules/organizations/actions/ports/outbound/directory/organization_event_publisher'
 import type { OrganizationNotificationStager as NotificationStager } from '#modules/organizations/actions/ports/outbound/directory/organization_notification_stager'
 import Organization from '#modules/organizations/infra/models/directory/organization'

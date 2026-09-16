@@ -20,36 +20,36 @@ test.group('Unit | Organization directory controller validation', () => {
       makeAllOrganizationsQuery: () => {
         throw new Error('query_must_not_run')
       },
-    } as never)
+    })
 
     for (const q of ['x'.repeat(201), ['bad']]) {
-      await assert.rejects(
-        () => controller.handle({ request: requestWithValues({ q }) } as never),
-        ValidationException
-      )
+      await assert.rejects(() => {
+        const ctx = { request: requestWithValues({ q }) }
+        return controller.handle(ctx as never)
+      }, ValidationException)
     }
   })
 
   test('show controller rejects an empty organization route id before query execution', async ({
     assert,
   }) => {
-    const controller = new ShowOrganizationController({
+    const actions = {
       makeShowPage: () => {
         throw new Error('query_must_not_run')
       },
-    } as never)
+    }
+    const controller = new ShowOrganizationController(actions as never)
 
-    await assert.rejects(
-      () =>
-        controller.handle({
-          auth: { user: { id: 'user-1' } },
-          params: { organizationId: '   ' },
-          request: requestWithValues({}),
-          session: { get: () => null },
-          inertia: { render: () => undefined },
-        } as never),
-      ValidationException
-    )
+    await assert.rejects(() => {
+      const ctx = {
+        auth: { user: { id: 'user-1' } },
+        params: { organizationId: '   ' },
+        request: requestWithValues({}),
+        session: { get: () => null },
+        inertia: { render: () => undefined },
+      }
+      return controller.handle(ctx as never)
+    }, ValidationException)
   })
 
   test('all-organizations controller rejects an oversized search before query execution', async ({
@@ -59,45 +59,44 @@ test.group('Unit | Organization directory controller validation', () => {
       makeAllOrganizationsQuery: () => {
         throw new Error('query_must_not_run')
       },
-    } as never)
+    })
 
     for (const search of ['x'.repeat(201), ['bad']]) {
-      await assert.rejects(
-        () =>
-          controller.handle({
-            auth: { user: { id: 'user-1' } },
-            request: requestWithValues({ search }),
-            session: { get: () => null },
-            inertia: { render: () => undefined },
-            currentOrganizationId: null,
-            currentOrganizationRole: null,
-          } as never),
-        ValidationException
-      )
+      await assert.rejects(() => {
+        const ctx = {
+          auth: { user: { id: 'user-1' } },
+          request: requestWithValues({ search }),
+          session: { get: () => null },
+          inertia: { render: () => undefined },
+          currentOrganizationId: null,
+          currentOrganizationRole: null,
+        }
+        return controller.handle(ctx as never)
+      }, ValidationException)
     }
   })
 
   test('show controller rejects invalid pagination aliases before query execution', async ({
     assert,
   }) => {
-    const controller = new ShowOrganizationController({
+    const actions = {
       makeShowPage: () => {
         throw new Error('query_must_not_run')
       },
-    } as never)
+    }
+    const controller = new ShowOrganizationController(actions as never)
 
     for (const values of [{ perPage: '0' }, { per_page: '101' }, { limit: ['bad'] }]) {
-      await assert.rejects(
-        () =>
-          controller.handle({
-            auth: { user: { id: 'user-1' } },
-            params: { organizationId: 'org-1' },
-            request: requestWithValues(values),
-            session: { get: () => null },
-            inertia: { render: () => undefined },
-          } as never),
-        ValidationException
-      )
+      await assert.rejects(() => {
+        const ctx = {
+          auth: { user: { id: 'user-1' } },
+          params: { organizationId: 'org-1' },
+          request: requestWithValues(values),
+          session: { get: () => null },
+          inertia: { render: () => undefined },
+        }
+        return controller.handle(ctx as never)
+      }, ValidationException)
     }
   })
 })

@@ -3,18 +3,18 @@ import { test } from '@japa/runner'
 import {
   buildOrganizationsListDTO,
 } from '#modules/organizations/controllers/mappers/request/directory/organization_request_mapper'
-import {
-  mapOrganizationDetailApiBody,
-  mapOrganizationMutationApiBody,
-  mapOrganizationsIndexPageProps,
-  mapOrganizationSuccessApiBody,
-} from '#modules/organizations/controllers/mappers/response/directory/organization_response_mapper'
 import { buildProcessJoinRequestDTO } from '#modules/organizations/controllers/mappers/request/invitations/current_organization_mutation_request_mapper'
 import {
   buildAddDirectMemberDTO,
   buildBulkAddMembersDTO,
   buildRemoveMemberDTO,
 } from '#modules/organizations/controllers/mappers/request/members/current_organization_mutation_request_mapper'
+import {
+  mapOrganizationDetailApiBody,
+  mapOrganizationMutationApiBody,
+  mapOrganizationsIndexPageProps,
+  mapOrganizationSuccessApiBody,
+} from '#modules/organizations/controllers/mappers/response/directory/organization_response_mapper'
 
 function fakeRequest(body: Record<string, unknown>) {
   return {

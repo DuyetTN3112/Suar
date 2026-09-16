@@ -1,14 +1,6 @@
 import { BaseCommand } from '../../base_command.js'
 
 import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
-import type {
-  TvaChangeClass,
-  TvaJsonObject,
-  TvaJsonValue,
-  TvaPrivacyClassification,
-  TvaSha256,
-  TvaSourceProvenanceV1,
-} from '#modules/tasks/public_contracts/task-authoring/primitives'
 import ConflictException from '#modules/errors/public_contracts/conflict_exception'
 import InvariantViolationException from '#modules/errors/public_contracts/invariant_violation_exception'
 import type { ProjectContextAuthorizationReader } from '#modules/projects/actions/ports/outbound/project-context/project_context_authorization_reader'
@@ -30,6 +22,14 @@ import {
   WORK_PACKAGE_CHANGED_SCHEMA_V1,
   type WorkPackageChangedV1,
 } from '#modules/projects/public_contracts/project-context/project_context_facts_v1'
+import type {
+  TvaChangeClass,
+  TvaJsonObject,
+  TvaJsonValue,
+  TvaPrivacyClassification,
+  TvaSha256,
+  TvaSourceProvenanceV1,
+} from '#modules/tasks/public_contracts/task-authoring/primitives'
 
 export interface PublishWorkPackageVersionInput {
   projectId: string

@@ -15,11 +15,11 @@ import type { ProjectTaskCacheInvalidator } from '#modules/projects/actions/port
 import type { ProjectTaskWorkflowInitializer } from '#modules/projects/actions/ports/outbound/project_task_workflow_initializer'
 import type { ProjectTransactionRunner } from '#modules/projects/actions/ports/outbound/project_transaction'
 import type { ProjectActionContext } from '#modules/projects/actions/project_action_context'
-import { canCreateProject } from '#modules/projects/domain/project-members/project_permission_policy'
 import {
   validateProjectStatus,
   validateProjectDates,
 } from '#modules/projects/domain/project-context/project_state_rules'
+import { canCreateProject } from '#modules/projects/domain/project-members/project_permission_policy'
 import { ProjectRole } from '#modules/projects/public_contracts/project_constants'
 import type { ProjectDetailRecord } from '#modules/projects/types/project_records'
 

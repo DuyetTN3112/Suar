@@ -8,8 +8,8 @@ import {
 } from '#modules/organizations/controllers/mappers/request/directory/organization_request_mapper'
 
 function requestOf(values: Record<string, unknown>) {
-  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-  return { input: (key: string) => values[key] } as never
+  const req = { input: (key: string) => values[key] }
+  return req as never
 }
 
 test.group('Organization request mapper', () => {

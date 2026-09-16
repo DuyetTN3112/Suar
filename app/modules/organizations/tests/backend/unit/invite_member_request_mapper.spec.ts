@@ -4,8 +4,8 @@ import ValidationException from '#modules/errors/public_contracts/validation_exc
 import { buildCurrentOrganizationInviteMemberInput } from '#modules/organizations/controllers/mappers/request/invitations/current_organization_mutation_request_mapper'
 
 function requestOf(values: Record<string, unknown>) {
-  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-  return { input: (key: string) => values[key] } as never
+  const req = { input: (key: string) => values[key] }
+  return req as never
 }
 
 test.group('Invite member request mapper', () => {

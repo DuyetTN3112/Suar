@@ -4,7 +4,7 @@ import ValidationException from '#modules/errors/public_contracts/validation_exc
 import {
   normalizeProjectBusinessDomains,
   type ProjectBusinessDomain,
-} from '#modules/projects/domain/project-context/project_business_domains'
+} from '#modules/projects/public_contracts/project-context/project_business_domains'
 import { ProjectStatus, ProjectVisibility } from '#modules/projects/public_contracts/project_constants'
 
 /**

@@ -1,7 +1,7 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import type { OrganizationCustomRoleDefinition as CustomRoleDefinition } from '#modules/organizations/public_contracts/access/custom_role_definition'
 import Organization from '#modules/organizations/infra/models/directory/organization'
+import type { OrganizationCustomRoleDefinition as CustomRoleDefinition } from '#modules/organizations/public_contracts/access/custom_role_definition'
 
 export interface UpdateOrganizationData {
   name?: string

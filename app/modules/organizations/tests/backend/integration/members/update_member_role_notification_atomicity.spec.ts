@@ -7,12 +7,12 @@ import {
   organizationReader,
   organizationTransactionRunner,
 } from '#composition/organizations/persistence/organization_persistence_composition'
-import { OrganizationRole } from '#modules/organizations/public_contracts/access/organization_constants'
 import { makeSystemOrganizationActionContext } from '#modules/organizations/actions/action_context'
-import type { OrganizationNotificationStager as NotificationStager } from '#modules/organizations/actions/ports/outbound/directory/organization_notification_stager'
 import UpdateMemberRoleCommand from '#modules/organizations/actions/commands/members/update_member_role_command'
 import { UpdateMemberRoleDTO } from '#modules/organizations/actions/dtos/request/members/update_member_role_dto'
+import type { OrganizationNotificationStager as NotificationStager } from '#modules/organizations/actions/ports/outbound/directory/organization_notification_stager'
 import * as membershipQueries from '#modules/organizations/infra/repositories/members/organization_user_repository/read/membership_queries'
+import { OrganizationRole } from '#modules/organizations/public_contracts/access/organization_constants'
 import { OrganizationMembershipScenario } from '#modules/organizations/tests/backend/support/members/membership_scenario'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import { cleanupTestData } from '#tests/helpers/factories'

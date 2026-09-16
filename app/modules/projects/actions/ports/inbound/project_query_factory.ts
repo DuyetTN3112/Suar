@@ -13,9 +13,7 @@ import type GetRoleStaffingCandidatesQuery from '#modules/projects/actions/queri
 export abstract class ProjectQueryFactory {
   abstract makeCreatePage(context: ProjectActionContext): GetProjectCreatePageQuery
   abstract makeDetail(context: ProjectActionContext): GetProjectDetailQuery
-  makeTaskAuthoringContext(_context: ProjectActionContext): GetProjectTaskAuthoringContextQuery {
-    throw new Error('Task authoring context query is not configured')
-  }
+  abstract makeTaskAuthoringContext(context: ProjectActionContext): GetProjectTaskAuthoringContextQuery
   abstract makeMemberCandidates(context: ProjectActionContext): GetProjectMemberCandidatesQuery
   abstract makeSwitchTarget(context: ProjectActionContext): GetProjectSwitchTargetQuery & { executeAndWrap: GetProjectSwitchTargetQuery['executeAndWrap'] }
   abstract makeProjectsIndex(context: ProjectActionContext): GetProjectsIndexQuery & { executeAndWrap: GetProjectsIndexQuery['executeAndWrap'] }
