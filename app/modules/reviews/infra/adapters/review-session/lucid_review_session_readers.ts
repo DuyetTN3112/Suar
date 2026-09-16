@@ -10,11 +10,11 @@ import type {
   ReviewSessionIdentity,
 } from '#modules/reviews/actions/ports/outbound/review_session_readers'
 import type { ReviewTransaction } from '#modules/reviews/actions/ports/outbound/review_transaction'
-import { loadReviewSessionActorAccessContext } from '#modules/reviews/infra/adapters/review-session/lucid_review_session_actor_access_reader'
 import { toLucidReviewTransaction } from '#modules/reviews/infra/adapters/review-core/lucid_review_transaction_runner'
-import FlaggedReviewRepository from '#modules/reviews/infra/repositories/review-core/flagged_review_repository'
-import ReviewEvidenceRepository from '#modules/reviews/infra/repositories/review-submission/review_evidence_repository'
+import { loadReviewSessionActorAccessContext } from '#modules/reviews/infra/adapters/review-session/lucid_review_session_actor_access_reader'
+import FlaggedReviewRepository from '#modules/moderation/infra/repositories/flagged_review_repository'
 import ReviewSessionRepository from '#modules/reviews/infra/repositories/review-session/review_session_repository'
+import ReviewEvidenceRepository from '#modules/reviews/infra/repositories/review-submission/review_evidence_repository'
 import TaskSelfAssessmentRepository from '#modules/reviews/infra/repositories/self-assessment/task_self_assessment_repository'
 import type { TaskSelfAssessmentRecord } from '#modules/reviews/types/review_records'
 

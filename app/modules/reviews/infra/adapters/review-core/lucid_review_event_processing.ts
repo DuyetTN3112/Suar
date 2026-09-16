@@ -7,8 +7,8 @@ import type {
 } from '#modules/reviews/actions/ports/outbound/review_event_processing'
 import type { ReviewTransaction } from '#modules/reviews/actions/ports/outbound/review_transaction'
 import { toLucidReviewTransaction } from '#modules/reviews/infra/adapters/review-core/lucid_review_transaction_runner'
-import { disputeResolvedProcessingReceiptRepository } from '#modules/reviews/infra/repositories/disputes/dispute_resolved_processing_receipt_repository'
-import { reviewConfirmedProcessingReceiptRepository } from '#modules/reviews/infra/repositories/disputes/review_confirmed_processing_receipt_repository'
+import { disputeResolvedProcessingReceiptRepository } from '#modules/disputes/infra/repositories/dispute_resolved_processing_receipt_repository'
+import { reviewConfirmedProcessingReceiptRepository } from '#modules/disputes/infra/repositories/review_confirmed_processing_receipt_repository'
 import { reviewSubmittedProcessingReceiptRepository } from '#modules/reviews/infra/repositories/review-submission/review_submitted_processing_receipt_repository'
 import { lockReviewConfirmedProjection } from '#modules/reviews/infra/repositories/write/review_confirmed_projection_lock'
 
