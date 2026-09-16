@@ -12,7 +12,7 @@ import type {
   AdvanceDisputeResolvedExternalEffectResult,
   ClaimDisputeResolvedReceiptResult,
   DisputeResolvedProcessingReceipt,
-} from '#modules/reviews/public_contracts/dispute_resolved_processing_receipt'
+} from '#modules/disputes/public_contracts/dispute_resolved_processing_receipt'
 import type {
   AdvanceReviewConfirmedExternalEffectInput,
   AdvanceReviewConfirmedExternalEffectResult,

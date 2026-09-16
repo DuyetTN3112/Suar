@@ -40,7 +40,8 @@ export interface AiProfileCapabilityApprovalWrite {
   proposalPayload: Record<string, unknown>
   evidenceRefs: string[]
   profileEffect: string
-  sourcePayloadHash: string
+  sourcePayloadHash?: string
+  sourcePayload?: unknown
   approvedBy: string
 }
 

@@ -1,4 +1,4 @@
-import type { ReviewDisputeAccessContext } from '#modules/reviews/actions/ports/outbound/review_dispute_artifact_reader'
+import type { ReviewDisputeAccessContext } from '#modules/disputes/actions/ports/outbound/review_dispute_artifact_reader'
 import type { ReviewActionContext } from '#modules/reviews/actions/review_action_context'
 
 export interface ReviewDisputeCommentWrite {

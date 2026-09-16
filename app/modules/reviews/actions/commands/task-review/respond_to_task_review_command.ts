@@ -14,8 +14,8 @@ import { TASK_REVIEW_WORKFLOW_STATUSES } from '#modules/reviews/domain/task-revi
 interface RespondToTaskReviewDTO {
   workflowId: string
   reviewMessageId: string
-  responseMessageId?: string
-  withdrawMessageId?: string
+  responseMessageId?: string | undefined
+  withdrawMessageId?: string | undefined
   body: string
 }
 

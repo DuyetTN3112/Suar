@@ -4,7 +4,7 @@ import NotFoundException from '#modules/errors/public_contracts/not_found_except
 import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
 import { BaseCommand } from '#modules/reviews/actions/base_command'
 import type { TaskReviewWorkflowOutcome } from '#modules/reviews/actions/dtos/task_review_workflow_outcome'
-import type { ReviewConfirmationDisputeUnitOfWork } from '#modules/reviews/actions/ports/outbound/review_confirmation_dispute_unit_of_work'
+import type { ReviewConfirmationDisputeUnitOfWork } from '#modules/disputes/actions/ports/outbound/review_confirmation_dispute_unit_of_work'
 import type { ReviewActionContext } from '#modules/reviews/actions/review_action_context'
 import { TASK_REVIEW_WORKFLOW_STATUSES } from '#modules/reviews/domain/task-review/task_review_workflow'
 import { ReviewSessionStatus } from '#modules/reviews/public_contracts/review_constants'
@@ -61,10 +61,8 @@ export default class AcceptTaskReviewCommand extends BaseCommand<
       if (isReviewAuthor) {
         if (
           dto.decision !== 'accepted' ||
-          ![
-            TASK_REVIEW_WORKFLOW_STATUSES.AWAITING_RESPONSE,
-            TASK_REVIEW_WORKFLOW_STATUSES.DISPUTED,
-          ].includes(workflow.status)
+          (workflow.status !== TASK_REVIEW_WORKFLOW_STATUSES.AWAITING_RESPONSE &&
+            workflow.status !== TASK_REVIEW_WORKFLOW_STATUSES.DISPUTED)
         ) {
           throw new ForbiddenException('Reviewer chỉ có thể xác nhận sau khi người thực hiện đã phản hồi')
         }

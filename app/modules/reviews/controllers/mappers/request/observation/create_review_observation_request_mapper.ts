@@ -1,10 +1,10 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-import type { ReviewObservationV1 } from '#modules/reviews/public_contracts/observation/completion_review_contracts'
-import { isReviewObservationV1 } from '#modules/tasks/public_contracts/task-authoring/validators'
 import ValidationException from '#modules/errors/public_contracts/validation_exception'
 import { validationIssue, type ValidationIssue } from '#modules/errors/public_contracts/validation_issue'
 import type { CreateReviewObservationDTO } from '#modules/reviews/actions/commands/observation/create_review_observation_command'
+import type { ReviewObservationV1 } from '#modules/reviews/public_contracts/observation/completion_review_contracts'
+import { isReviewObservationV1 } from '#modules/tasks/public_contracts/task-authoring/validators'
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 const EVIDENCE_SUFFICIENCY = new Set(['pending', 'adequate', 'governed_exception', 'inadequate'])

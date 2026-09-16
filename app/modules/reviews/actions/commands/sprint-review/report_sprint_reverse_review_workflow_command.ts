@@ -11,7 +11,7 @@ import type { SprintReverseReviewWorkflowOutcome } from '#modules/reviews/action
 import type { ReviewCryptography } from '#modules/reviews/actions/ports/outbound/review_cryptography'
 import type { ReviewSprintReverseWorkflowUnitOfWork } from '#modules/reviews/actions/ports/outbound/review_sprint_reverse_workflow_unit_of_work'
 import type { ReviewActionContext } from '#modules/reviews/actions/review_action_context'
-import { aiDisputeAutoQueuePublicApi } from '#modules/reviews/public_contracts/ai_dispute_auto_queue'
+import { aiDisputeAutoQueuePublicApi } from '#modules/disputes/public_contracts/ai_dispute_auto_queue'
 
 type ReportSprintReverseReviewWorkflowInput = { workflow_id: string; body: string }
 

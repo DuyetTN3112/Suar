@@ -18,7 +18,7 @@ import {
   validateSprintReviewPackage,
   type SprintEnvironmentTargetType,
   type SprintManagerTargetRole,
-} from '#modules/reviews/domain/sprint_review_rules'
+} from '#modules/reviews/domain/sprint-review/sprint_review_rules'
 
 export interface SubmitSprintManagerReviewInput {
   target_user_id: string

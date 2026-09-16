@@ -9,12 +9,12 @@ import NotFoundException from '#modules/errors/public_contracts/not_found_except
 import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
 import { BaseCommand } from '#modules/reviews/actions/base_command'
 import type { ConfirmReviewDTO } from '#modules/reviews/actions/dtos/request/review_dtos'
-import type { ReviewConfirmationDisputeUnitOfWork } from '#modules/reviews/actions/ports/outbound/review_confirmation_dispute_unit_of_work'
+import type { ReviewConfirmationDisputeUnitOfWork } from '#modules/disputes/actions/ports/outbound/review_confirmation_dispute_unit_of_work'
 import type { ReviewActionContext } from '#modules/reviews/actions/review_action_context'
 import {
   canOpenReviewDispute,
   isActiveReviewDisputeStatus,
-} from '#modules/reviews/domain/disputes/review_dispute_rules'
+} from '#modules/disputes/domain/review_dispute_rules'
 import { isReviewSessionQuorumSatisfied } from '#modules/reviews/domain/review-core/review_formulas'
 import {
   ReviewDisputeStatus,

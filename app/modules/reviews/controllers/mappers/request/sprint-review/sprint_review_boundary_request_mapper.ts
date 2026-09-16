@@ -2,8 +2,8 @@ import ValidationException from '#modules/errors/public_contracts/validation_exc
 import { validationIssue, type ValidationIssue } from '#modules/errors/public_contracts/validation_issue'
 import type {
   CreateSprintReviewDisputeCommentDTO,
-} from '#modules/reviews/actions/commands/disputes/create_sprint_review_dispute_comment_command'
-import type { ReportSprintReviewDisputeDTO } from '#modules/reviews/actions/commands/disputes/report_sprint_review_dispute_command'
+} from '#modules/disputes/actions/commands/create_sprint_review_dispute_comment_command'
+import type { ReportSprintReviewDisputeDTO } from '#modules/disputes/actions/commands/report_sprint_review_dispute_command'
 import type {
   SubmitSprintEnvironmentReviewInput,
   SubmitSprintManagerReviewInput,

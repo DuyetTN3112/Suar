@@ -14,7 +14,7 @@ import type {
 } from '#modules/reviews/actions/ports/outbound/review_task_workflow_unit_of_work'
 import type { ReviewActionContext } from '#modules/reviews/actions/review_action_context'
 import { TASK_REVIEW_WORKFLOW_STATUSES } from '#modules/reviews/domain/task-review/task_review_workflow'
-import { aiDisputeAutoQueuePublicApi } from '#modules/reviews/public_contracts/ai_dispute_auto_queue'
+import { aiDisputeAutoQueuePublicApi } from '#modules/disputes/public_contracts/ai_dispute_auto_queue'
 
 interface ReportTaskReviewDisputeDTO {
   workflowId: string

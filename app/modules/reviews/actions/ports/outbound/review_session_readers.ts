@@ -1,4 +1,4 @@
-import type { FlaggedReviewModerationSource } from '#modules/reviews/actions/mappers/flagged_review_moderation_projection_mapper'
+import type { FlaggedReviewModerationSource } from '#modules/moderation/actions/mappers/flagged_review_moderation_projection_mapper'
 import type { ReviewSessionProjectionSource } from '#modules/reviews/actions/mappers/review_session_projection_mapper'
 import type { ReviewTransaction } from '#modules/reviews/actions/ports/outbound/review_transaction'
 import type { ReviewConfirmationEntry } from '#modules/reviews/types/review_confirmation_entry'

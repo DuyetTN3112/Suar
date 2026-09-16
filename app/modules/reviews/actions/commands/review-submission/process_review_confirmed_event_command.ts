@@ -1,11 +1,8 @@
-import CalculatePerformanceScoreCommand from '../review-core/calculate_performance_score_command.js'
-import CalculateTrustScoreCommand from '../review-core/calculate_trust_score_command.js'
-import RecalculateRevieweeSkillScoresCommand from './recalculate_reviewee_skill_scores_command.js'
-import UpdateReviewerCredibilityCommand from './update_reviewer_credibility_command.js'
 
 import InvariantViolationException from '#modules/errors/public_contracts/invariant_violation_exception'
 import { DomainEventDeliveryError } from '#modules/events/public_contracts/domain_event_delivery_error'
 import type { ReviewConfirmedOutboxPayload } from '#modules/events/public_contracts/domain_event_outbox'
+import { ReputationProjector } from '#modules/reputation/actions/reputation_projector'
 import type { TransactionalAuditWrite } from '#modules/reviews/actions/dtos/request/transactional_audit_options'
 import type {
   ReviewConfirmedAccomplishmentProjector,
@@ -166,38 +163,23 @@ export default class ProcessReviewConfirmedEventCommand {
     }
     let skillScoreUpdated: ReviewConfirmedExternalEffects['skillScoreUpdated'] = []
     if (event.action === 'confirmed') {
-      for (const reviewerId of event.reviewerIds) {
-        signal?.throwIfAborted()
-        await new UpdateReviewerCredibilityCommand(
-          execCtx,
-          this.dependencies.user,
-          this.metricsReader
-        ).handleInTransaction({ user_id: reviewerId }, trx, signal ? { signal } : {})
-      }
-
-      const skillResult = await new RecalculateRevieweeSkillScoresCommand(
-        execCtx,
-        this.dependencies.userSkill,
+      const reputationProjector = new ReputationProjector(
+        this.dependencies,
         this.metricsReader,
         this.externalEffects
-      ).handleInTransaction({ userId: event.revieweeId }, trx, transactionOptions)
-      skillScoreUpdated = [...skillResult.deferredSkillScoreUpdatedEvents]
-
-      await new CalculatePerformanceScoreCommand(
+      )
+      const projectionResult = await reputationProjector.projectReviewConfirmed(
+        {
+          revieweeId: event.revieweeId,
+          reviewerIds: event.reviewerIds,
+          action: event.action,
+          confirmedBy: event.confirmedBy,
+        },
         execCtx,
-        this.dependencies.user,
-        this.metricsReader
-      ).handleInTransaction({ userId: event.revieweeId }, trx, transactionOptions)
-      await new CalculateTrustScoreCommand(
-        execCtx,
-        this.dependencies.organization,
-        this.dependencies.user,
-        this.metricsReader
-      ).handleInTransaction({ userId: event.revieweeId }, trx, transactionOptions)
-      await this.dependencies.user.refreshProfileAggregates(event.revieweeId, execCtx, {
         trx,
-        ...transactionOptions,
-      })
+        transactionOptions
+      )
+      skillScoreUpdated = [...projectionResult.skillScoreUpdated]
     }
 
     signal?.throwIfAborted()

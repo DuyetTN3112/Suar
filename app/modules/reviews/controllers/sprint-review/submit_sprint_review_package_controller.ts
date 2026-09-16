@@ -8,7 +8,7 @@ import { actionContextFromHttp } from '#modules/http/boundary/http_execution_con
 import {
   type SubmitSprintEnvironmentReviewInput,
   type SubmitSprintManagerReviewInput,
-} from '#modules/reviews/actions/commands/submit_sprint_review_package_command'
+} from '#modules/reviews/actions/commands/sprint-review/submit_sprint_review_package_command'
 import { ReviewActionFactory } from '#modules/reviews/actions/ports/inbound/review_action_factory'
 
 @inject()

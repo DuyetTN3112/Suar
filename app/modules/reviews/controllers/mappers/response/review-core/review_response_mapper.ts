@@ -222,34 +222,6 @@ export function mapReviewDataApiBody(data: unknown) {
   }
 }
 
-export function mapReviewDisputeCommentApiBody(
-  comment: SerializableModelRecord | SerializedModelRecord
-) {
-  const record = serializeModelForHttpResponse(comment) as Record<string, unknown>
-
-  return {
-    data: {
-      id: record['id'],
-      disputeId: record['disputeId'] ?? record['dispute_id'] ?? null,
-      authorId: record['authorId'] ?? record['author_id'] ?? null,
-      authorContext: record['authorContext'] ?? record['author_context'] ?? null,
-      authorSystemRole: record['authorSystemRole'] ?? record['author_system_role'] ?? null,
-      body: record['body'] ?? null,
-      visibility: record['visibility'] ?? null,
-      createdAt: record['createdAt'] ?? record['created_at'] ?? null,
-      updatedAt: record['updatedAt'] ?? record['updated_at'] ?? null,
-    },
-  }
-}
-
-export function mapReviewCommentCollectionApiBody(
-  comments: (SerializableModelRecord | SerializedModelRecord)[]
-) {
-  return {
-    data: comments.map((comment) => mapReviewDisputeCommentApiBody(comment).data),
-  }
-}
-
 export function mapReviewCollectionApiBody(
   records: (SerializableModelRecord | SerializedModelRecord)[],
   meta?: {

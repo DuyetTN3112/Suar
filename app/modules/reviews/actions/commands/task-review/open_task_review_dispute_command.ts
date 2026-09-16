@@ -14,7 +14,7 @@ import { TASK_REVIEW_WORKFLOW_STATUSES } from '#modules/reviews/domain/task-revi
 interface OpenTaskReviewDisputeDTO {
   workflowId: string
   reviewMessageId: string
-  responseMessageId?: string
+  responseMessageId?: string | undefined
 }
 
 /**

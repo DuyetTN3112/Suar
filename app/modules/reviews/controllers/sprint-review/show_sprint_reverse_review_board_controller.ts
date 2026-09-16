@@ -7,8 +7,10 @@ import {
 } from '#modules/http/boundary/http_execution_context'
 import { ProjectWorkspaceAccessReader } from '#modules/projects/actions/ports/outbound/project_workspace_access_reader'
 import { ReviewActionFactory } from '#modules/reviews/actions/ports/inbound/review_action_factory'
-import { emptySprintReverseReviewBoardSection } from '#modules/reviews/domain/sprint-review/sprint_reverse_review_workflow'
-import type { SprintReverseReviewTargetType } from '#modules/reviews/domain/sprint_reverse_review_workflow'
+import {
+  emptySprintReverseReviewBoardSection,
+  type SprintReverseReviewTargetType,
+} from '#modules/reviews/domain/sprint-review/sprint_reverse_review_workflow'
 
 type SprintReverseReviewPageType = 'manager' | 'environment'
 

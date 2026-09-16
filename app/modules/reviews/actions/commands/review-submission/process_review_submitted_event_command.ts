@@ -1,4 +1,4 @@
-import DetectAnomalyCommand from '../moderation/detect_anomaly_command.js'
+import DetectAnomalyCommand from '#modules/moderation/actions/commands/detect_anomaly_command'
 
 import InvariantViolationException from '#modules/errors/public_contracts/invariant_violation_exception'
 import { DomainEventDeliveryError } from '#modules/events/public_contracts/domain_event_delivery_error'
@@ -7,7 +7,7 @@ import {
   type ReviewSubmittedOutboxPayload,
 } from '#modules/events/public_contracts/domain_event_outbox'
 import { BaseCommand } from '#modules/reviews/actions/base_command'
-import type { ReviewAnomalyFlagWriter } from '#modules/reviews/actions/ports/outbound/review_anomaly_flag_writer'
+import type { ReviewAnomalyFlagWriter } from '#modules/moderation/actions/ports/outbound/review_anomaly_flag_writer'
 import type { ReviewCryptography } from '#modules/reviews/actions/ports/outbound/review_cryptography'
 import type {
   ReviewEventSourceReader,
