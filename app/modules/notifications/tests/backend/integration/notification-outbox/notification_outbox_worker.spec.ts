@@ -13,8 +13,8 @@ import {
   NotificationPermanentDeliveryError,
   NotificationTransientDeliveryError,
 } from '#modules/notifications/domain/notification-outbox/notification_outbox_errors'
-import { PostgresNotificationOutboxRepository } from '#modules/notifications/infra/repositories/notification-outbox/postgres_notification_outbox_repository'
 import { NotificationOutboxWorker } from '#modules/notifications/infra/adapters/notification-outbox/notification_outbox_worker'
+import { PostgresNotificationOutboxRepository } from '#modules/notifications/infra/repositories/notification-outbox/postgres_notification_outbox_repository'
 import type { PlatformEvent } from '#modules/observability/public_contracts/platform_observability'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import { UserFactory, cleanupTestData } from '#tests/helpers/factories'

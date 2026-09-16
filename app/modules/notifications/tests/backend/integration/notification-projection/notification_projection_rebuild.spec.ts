@@ -7,13 +7,13 @@ import { PromoteNotificationProjectionCommand } from '#modules/notifications/act
 import { RebuildNotificationProjectionCommand } from '#modules/notifications/actions/commands/notification-feed/rebuild_notification_projection_command'
 import { RollbackNotificationProjectionCommand } from '#modules/notifications/actions/commands/notification-feed/rollback_notification_projection_command'
 import type { NotificationProjectionRun } from '#modules/notifications/domain/notification-feed/notification_projection_lifecycle'
+import type { NotificationSearchDocument } from '#modules/notifications/infra/repositories/notification-observability/notification_search_index_repository'
 import {
   DEFAULT_NOTIFICATION_PHYSICAL_INDEX,
   DEFAULT_NOTIFICATION_READ_ALIAS,
   DEFAULT_NOTIFICATION_WRITE_ALIAS,
 } from '#modules/notifications/infra/repositories/notification-outbox/postgres_notification_projection_delivery_repository'
 import { PostgresNotificationProjectionOperationsRepository } from '#modules/notifications/infra/repositories/notification-outbox/postgres_notification_projection_operations_repository'
-import type { NotificationSearchDocument } from '#modules/notifications/infra/repositories/notification-observability/notification_search_index_repository'
 import { BACKEND_NOTIFICATION_TYPES } from '#modules/notifications/public_contracts/notification_constants'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import { UserFactory, cleanupTestData } from '#tests/helpers/factories'

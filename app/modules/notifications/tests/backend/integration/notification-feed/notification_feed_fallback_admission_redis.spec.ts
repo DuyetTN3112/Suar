@@ -2,13 +2,13 @@ import Redis from '@adonisjs/redis/services/main'
 import { test } from '@japa/runner'
 
 import { notificationApplication as notificationPublicApi } from '#composition/notifications/notification-feed/notification_composition'
+import { NotificationFeedCursorCodec } from '#modules/notifications/infra/adapters/notification-feed/notification_feed_cursor_codec'
 import {
   NOTIFICATION_FEED_FALLBACK_ADMISSION_KEY,
   RedisNotificationFeedFallbackAdmissionController,
 } from '#modules/notifications/infra/adapters/notification-feed/notification_feed_fallback_admission'
-import { PostgresNotificationCanonicalFeedReader } from '#modules/notifications/infra/repositories/notification-feed/postgres_notification_canonical_feed_reader'
 import { ResilientNotificationFeedReader } from '#modules/notifications/infra/adapters/notification-feed/resilient_notification_feed_reader'
-import { NotificationFeedCursorCodec } from '#modules/notifications/infra/adapters/notification-feed/notification_feed_cursor_codec'
+import { PostgresNotificationCanonicalFeedReader } from '#modules/notifications/infra/repositories/notification-feed/postgres_notification_canonical_feed_reader'
 import { BACKEND_NOTIFICATION_TYPES } from '#modules/notifications/public_contracts/notification_constants'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import { cleanupTestData, UserFactory } from '#tests/helpers/factories'

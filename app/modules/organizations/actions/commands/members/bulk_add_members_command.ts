@@ -2,9 +2,8 @@ import { enforcePolicy } from '#modules/authorization/public_contracts/policy_en
 import { serializeObservabilityError } from '#modules/errors/public_contracts/observability_error'
 import { publicErrorMessage } from '#modules/errors/public_contracts/public_error_message'
 import loggerService from '#modules/logger/public_contracts/application_logger'
-import { canBulkAddOrganizationMembers } from '#modules/organizations/domain/access/org_permission_policy'
-import { OrganizationRole } from '#modules/organizations/public_contracts/access/organization_constants'
 import type { OrganizationActionContext } from '#modules/organizations/actions/action_context'
+import { BaseCommand } from '#modules/organizations/actions/commands/base_command'
 import AddMemberCommand from '#modules/organizations/actions/commands/members/add_member_command'
 import { AddMemberDTO } from '#modules/organizations/actions/dtos/request/members/add_member_dto'
 import type { BulkAddMembersDTO } from '#modules/organizations/actions/dtos/request/members/bulk_add_members_dto'
@@ -13,7 +12,8 @@ import type { OrganizationUserReaderWriter } from '#modules/organizations/action
 import type { OrganizationNotificationStager } from '#modules/organizations/actions/ports/outbound/members/organization_notification_stager'
 import type { OrganizationMembershipRepository } from '#modules/organizations/actions/ports/outbound/members/organization_persistence'
 import type { OrganizationTransactionRunner } from '#modules/organizations/actions/ports/outbound/organization_transaction'
-import { BaseCommand } from '#modules/organizations/actions/commands/base_command'
+import { canBulkAddOrganizationMembers } from '#modules/organizations/domain/access/org_permission_policy'
+import { OrganizationRole } from '#modules/organizations/public_contracts/access/organization_constants'
 
 interface BulkAddResult {
   user_id: string

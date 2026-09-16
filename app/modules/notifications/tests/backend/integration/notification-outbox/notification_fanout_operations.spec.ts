@@ -8,8 +8,8 @@ import {
   makeNotificationFanoutStager,
 } from '#composition/notifications/notification-runtime/notification_operations_composition'
 import { makeSystemAuditActionContext } from '#modules/audit/public_contracts/audit_action_context'
-import { PostgresNotificationFanoutRepository } from '#modules/notifications/infra/repositories/notification-outbox/postgres_notification_fanout_repository'
 import { NotificationFanoutWorker } from '#modules/notifications/infra/adapters/notification-outbox/notification_fanout_worker'
+import { PostgresNotificationFanoutRepository } from '#modules/notifications/infra/repositories/notification-outbox/postgres_notification_fanout_repository'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import { UserFactory, cleanupTestData } from '#tests/helpers/factories'
 

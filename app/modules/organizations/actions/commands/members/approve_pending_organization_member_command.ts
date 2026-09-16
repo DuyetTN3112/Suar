@@ -1,4 +1,5 @@
 import { BaseCommand } from '../base_command.js'
+
 import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
 import type { OrganizationActionContext } from '#modules/organizations/actions/action_context'
 import type { OrganizationPendingMemberApprovalGateway } from '#modules/organizations/actions/ports/outbound/members/organization_pending_member_approval_gateway'

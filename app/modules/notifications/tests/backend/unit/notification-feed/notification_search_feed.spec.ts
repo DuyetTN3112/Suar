@@ -1,10 +1,10 @@
 import { test } from '@japa/runner'
 
+import { NotificationFeedCursorCodec } from '#modules/notifications/infra/adapters/notification-feed/notification_feed_cursor_codec'
 import {
   NotificationSearchFeedRepository,
   type NotificationSearchFeedTransport,
 } from '#modules/notifications/infra/repositories/notification-feed/notification_search_feed_repository'
-import { NotificationFeedCursorCodec } from '#modules/notifications/infra/adapters/notification-feed/notification_feed_cursor_codec'
 
 test.group('Unit | Notification Search Feed', () => {
   test('forces recipient isolation, bounded search_after pagination, and no exact count', async ({

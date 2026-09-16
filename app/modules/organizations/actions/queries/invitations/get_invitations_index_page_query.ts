@@ -1,9 +1,9 @@
 import type ListInvitationsQuery from './list_invitations_query.js';
 import { type ListInvitationsDTO } from './list_invitations_query.js'
 
-import { BaseQuery } from '#modules/organizations/actions/queries/base_query'
 import type { OrganizationActionContext } from '#modules/organizations/actions/action_context'
 import type GetAssignableOrganizationRolesQuery from '#modules/organizations/actions/queries/access/get_assignable_organization_roles_query'
+import { BaseQuery } from '#modules/organizations/actions/queries/base_query'
 
 export type InvitationsIndexPageInput = ListInvitationsDTO
 

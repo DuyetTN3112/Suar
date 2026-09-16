@@ -5,7 +5,7 @@ import BusinessLogicException from '#modules/errors/public_contracts/business_lo
 import { ErrorMessages } from '#modules/errors/public_contracts/error_constants'
 import { actionContextFromHttp } from '#modules/http/boundary/http_execution_context'
 import { respondCreatedMutationSuccess } from '#modules/http/boundary/http_mutation_response'
-import { OrganizationWorkflowCommandFactory } from '#modules/organizations/actions/ports/inbound/organization_workflow_command_factory'
+import { OrganizationWorkflowCommandFactory } from '#modules/organizations/actions/ports/inbound/workflow/organization_workflow_command_factory'
 import { buildCurrentOrganizationWorkflowCreateTaskStatusDTO } from '#modules/organizations/controllers/mappers/request/workflow/current_task_status_request_mapper'
 import { mapCurrentOrganizationTaskStatusMutationApiBody } from '#modules/organizations/controllers/mappers/response/workflow/current_task_status_response_mapper'
 

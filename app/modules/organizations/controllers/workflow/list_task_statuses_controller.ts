@@ -2,7 +2,7 @@ import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 
 import { actionContextFromHttp } from '#modules/http/boundary/http_execution_context'
-import { OrganizationWorkflowQueryFactory } from '#modules/organizations/actions/ports/inbound/organization_workflow_query_factory'
+import { OrganizationWorkflowQueryFactory } from '#modules/organizations/actions/ports/inbound/workflow/organization_workflow_query_factory'
 
 /**
  * ListTaskStatusesController

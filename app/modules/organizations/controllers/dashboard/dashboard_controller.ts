@@ -5,7 +5,7 @@ import {
   actionContextFromHttp,
   resolveCurrentOrganizationId,
 } from '#modules/http/boundary/http_execution_context'
-import { OrganizationDashboardQueryFactory } from '#modules/organizations/actions/ports/inbound/organization_dashboard_query_factory'
+import { OrganizationDashboardQueryFactory } from '#modules/organizations/actions/ports/inbound/dashboard/organization_dashboard_query_factory'
 
 /**
  * OrgDashboardController

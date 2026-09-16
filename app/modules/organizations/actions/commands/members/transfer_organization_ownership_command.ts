@@ -10,8 +10,6 @@ import {
   BACKEND_NOTIFICATION_TYPES,
 } from '#modules/notifications/public_contracts/notification_constants'
 import { buildNotificationEventId } from '#modules/notifications/public_contracts/notification_event_identity'
-import { canTransferOwnership } from '#modules/organizations/domain/access/org_permission_policy'
-import { OrganizationRole } from '#modules/organizations/public_contracts/access/organization_constants'
 import type { OrganizationActionContext } from '#modules/organizations/actions/action_context'
 import type { OrganizationEventPublisher } from '#modules/organizations/actions/ports/outbound/members/organization_event_publisher'
 import type { OrganizationUserReaderWriter } from '#modules/organizations/actions/ports/outbound/members/organization_external_dependencies'
@@ -25,6 +23,8 @@ import type {
   OrganizationTransaction,
   OrganizationTransactionRunner,
 } from '#modules/organizations/actions/ports/outbound/organization_transaction'
+import { canTransferOwnership } from '#modules/organizations/domain/access/org_permission_policy'
+import { OrganizationRole } from '#modules/organizations/public_contracts/access/organization_constants'
 
 async function settlePostCommitEffect(
   effectName: string,

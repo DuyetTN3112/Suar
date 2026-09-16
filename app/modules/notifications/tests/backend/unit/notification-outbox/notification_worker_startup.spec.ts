@@ -6,7 +6,7 @@ test.group('Notification worker startup wiring', () => {
   test('Playwright E2E server starts notification workers by default and stops them on exit', ({
     assert,
   }) => {
-    const source = readFileSync('scripts/start_e2e_server.sh', 'utf8')
+    const source = readFileSync('scripts/tests/e2e/start_e2e_server.sh', 'utf8')
 
     assert.include(source, 'E2E_START_NOTIFICATION_FANOUT_WORKER:-true')
     assert.include(source, 'node ace notification:fanout-work --poll-ms=100 --batch-size=25 --concurrency=1')

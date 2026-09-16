@@ -1,9 +1,9 @@
 import { EntityType } from '#modules/audit/public_contracts/audit_constants'
 import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
-import AppException from '#modules/errors/public_contracts/application_exception'
+import type AppException from '#modules/errors/public_contracts/application_exception'
 import InvariantViolationException from '#modules/errors/public_contracts/invariant_violation_exception'
 import NotFoundException from '#modules/errors/public_contracts/not_found_exception'
-import { Result } from '#modules/errors/public_contracts/result'
+import { type Result } from '#modules/errors/public_contracts/result'
 import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
 import loggerService from '#modules/logger/public_contracts/application_logger'
 import {
@@ -16,6 +16,7 @@ import {
   platformWorkflowLogger,
 } from '#modules/observability/public_contracts/platform_observability'
 import type { OrganizationActionContext } from '#modules/organizations/actions/action_context'
+import { BaseCommand } from '#modules/organizations/actions/commands/base_command'
 import type { OrganizationEventPublisher } from '#modules/organizations/actions/ports/outbound/invitations/organization_event_publisher'
 import type { OrganizationNotificationStager } from '#modules/organizations/actions/ports/outbound/invitations/organization_notification_stager'
 import type {
@@ -23,7 +24,6 @@ import type {
   OrganizationReader,
 } from '#modules/organizations/actions/ports/outbound/invitations/organization_persistence'
 import type { OrganizationTransactionRunner } from '#modules/organizations/actions/ports/outbound/organization_transaction'
-import { BaseCommand } from '#modules/organizations/actions/commands/base_command'
 import { buildOrganizationMembershipEvent } from '#modules/organizations/observability/invitations/organization_event_factory'
 
 async function settlePostCommitEffect(

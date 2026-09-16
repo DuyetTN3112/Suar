@@ -3,9 +3,6 @@ import { GetOrganizationMembersDTO } from '../../dtos/request/members/get_organi
 import GetOrganizationMembersQuery from './get_organization_members_query.js'
 
 import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
-import GetOrganizationMetadataQuery from '#modules/organizations/actions/queries/access/get_organization_metadata_query'
-import GetOrganizationBasicInfoQuery from '#modules/organizations/actions/queries/directory/get_organization_basic_info_query'
-import GetPendingRequestsQuery from '#modules/organizations/actions/queries/invitations/get_pending_requests_query'
 import type { OrganizationActionContext } from '#modules/organizations/actions/action_context'
 import {
   disabledOrganizationMemberSearchCandidateReader,
@@ -15,6 +12,9 @@ import type {
   OrganizationMembershipRepository,
   OrganizationReader,
 } from '#modules/organizations/actions/ports/outbound/members/organization_persistence'
+import GetOrganizationMetadataQuery from '#modules/organizations/actions/queries/access/get_organization_metadata_query'
+import GetOrganizationBasicInfoQuery from '#modules/organizations/actions/queries/directory/get_organization_basic_info_query'
+import GetPendingRequestsQuery from '#modules/organizations/actions/queries/invitations/get_pending_requests_query'
 import GetOrganizationShowDataQuery from '#modules/organizations/actions/queries/members/get_organization_show_data_query'
 
 type OptionalPayloadKeys<T extends object> = {

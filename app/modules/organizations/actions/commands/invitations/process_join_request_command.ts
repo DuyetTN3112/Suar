@@ -21,6 +21,7 @@ import {
 } from '#modules/observability/public_contracts/platform_observability'
 import type { OrganizationActionContext } from '#modules/organizations/actions/action_context'
 import { BaseCommand } from '#modules/organizations/actions/commands/base_command'
+import type { OrganizationCacheInvalidator } from '#modules/organizations/actions/ports/outbound/directory/organization_cache_invalidator'
 import type { OrganizationEventPublisher } from '#modules/organizations/actions/ports/outbound/invitations/organization_event_publisher'
 import type { OrganizationNotificationStager } from '#modules/organizations/actions/ports/outbound/invitations/organization_notification_stager'
 import type { OrganizationMembershipRepository } from '#modules/organizations/actions/ports/outbound/invitations/organization_persistence'
@@ -28,7 +29,6 @@ import type {
   OrganizationTransaction,
   OrganizationTransactionRunner,
 } from '#modules/organizations/actions/ports/outbound/organization_transaction'
-import type { OrganizationCacheInvalidator } from '#modules/organizations/actions/ports/outbound/directory/organization_cache_invalidator'
 import { canProcessJoinRequest } from '#modules/organizations/domain/access/org_permission_policy'
 import { buildOrganizationMembershipEvent } from '#modules/organizations/observability/invitations/organization_event_factory'
 import { OrganizationRole } from '#modules/organizations/public_contracts/access/organization_constants'

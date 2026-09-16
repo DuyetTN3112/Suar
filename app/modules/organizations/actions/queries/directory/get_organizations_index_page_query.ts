@@ -1,6 +1,6 @@
 import type { GetOrganizationsListDTO } from '../../dtos/request/directory/get_organizations_list_dto.js'
-
 import { BaseQuery } from '../base_query.js'
+
 import GetAllOrganizationsQuery from './get_all_organizations_query.js'
 import GetOrganizationsListQuery from './get_organizations_list_query.js'
 

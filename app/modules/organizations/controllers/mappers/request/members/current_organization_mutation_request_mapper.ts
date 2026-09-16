@@ -1,11 +1,11 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-import { OrganizationRole } from '#modules/organizations/public_contracts/access/organization_constants'
 import { ORGANIZATION_PAGINATION as PAGINATION } from '#modules/organizations/actions/dtos/common/members/organization_pagination'
 import { AddMemberDTO } from '#modules/organizations/actions/dtos/request/members/add_member_dto'
 import { BulkAddMembersDTO } from '#modules/organizations/actions/dtos/request/members/bulk_add_members_dto'
 import { RemoveMemberDTO } from '#modules/organizations/actions/dtos/request/members/remove_member_dto'
 import type { OrganizationMembersPageFilters } from '#modules/organizations/actions/queries/members/get_organization_members_page_query'
+import { OrganizationRole } from '#modules/organizations/public_contracts/access/organization_constants'
 import { normalizePagination } from '#modules/pagination/public_contracts/pagination_public_api'
 
 type OptionalPayloadKeys<T extends object> = {

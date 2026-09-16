@@ -28,11 +28,12 @@ test.group('Unit | Notification controller validation', () => {
   test('inertia controller rejects invalid unread_only before invoking the use case', async ({
     assert,
   }) => {
-    const controller = new ListNotificationsController({
+    const actions = {
       makeGetUserNotifications: () => {
         throw new Error('use_case_must_not_run')
       },
-    } as never)
+    }
+    const controller = new ListNotificationsController(actions as never)
 
     await assert.rejects(
       () => controller.handle(notificationContext({ unread_only: 'yes' }) as never),
@@ -43,11 +44,12 @@ test.group('Unit | Notification controller validation', () => {
   test('api v1 controller rejects invalid unreadOnly before invoking the use case', async ({
     assert,
   }) => {
-    const controller = new ListNotificationsV1Controller({
+    const actions = {
       makeGetUserNotifications: () => {
         throw new Error('use_case_must_not_run')
       },
-    } as never)
+    }
+    const controller = new ListNotificationsV1Controller(actions as never)
 
     await assert.rejects(
       () => controller.handle(notificationContext({ unreadOnly: 'truthy' }) as never),

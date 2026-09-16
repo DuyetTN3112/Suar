@@ -1,7 +1,7 @@
 import { privateCacheKeyDigest } from '#modules/cache/public_contracts/cache_contract'
 import ValidationException from '#modules/errors/public_contracts/validation_exception'
-import { OrganizationRole } from '#modules/organizations/public_contracts/access/organization_constants'
 import { ORGANIZATION_PAGINATION as PAGINATION } from '#modules/organizations/actions/dtos/common/members/organization_pagination'
+import { OrganizationRole } from '#modules/organizations/public_contracts/access/organization_constants'
 import { toLastPage, toOffset } from '#modules/pagination/public_contracts/pagination_public_api'
 /**
  * DTO for getting organization members list with filters and pagination

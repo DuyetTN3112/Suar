@@ -5,8 +5,8 @@
  * These are what gets sent back to the client.
  */
 
-import type { OrganizationCustomRoleDefinition as CustomRoleDefinition } from '#modules/organizations/public_contracts/access/custom_role_definition'
 import type { OrganizationEntity } from '#modules/organizations/domain/directory/entities/organization_entity'
+import type { OrganizationCustomRoleDefinition as CustomRoleDefinition } from '#modules/organizations/public_contracts/access/custom_role_definition'
 
 export interface OrganizationDetailResponseDTOProps {
   id: string

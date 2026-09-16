@@ -1,6 +1,6 @@
 import type { CreateOrganizationDTO } from '../../dtos/request/directory/create_organization_dto.js'
-
 import { BaseCommand } from '../base_command.js'
+
 import { AuditAction, EntityType } from '#modules/audit/public_contracts/audit_constants'
 import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
 import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
@@ -13,10 +13,6 @@ import {
   BACKEND_NOTIFICATION_TYPES,
 } from '#modules/notifications/public_contracts/notification_constants'
 import { buildNotificationEventId } from '#modules/notifications/public_contracts/notification_event_identity'
-import {
-  OrganizationRole,
-  OrganizationUserStatus,
-} from '#modules/organizations/public_contracts/access/organization_constants'
 import type { OrganizationActionContext } from '#modules/organizations/actions/action_context'
 import type { OrganizationEventPublisher } from '#modules/organizations/actions/ports/outbound/directory/organization_event_publisher'
 import type { OrganizationUserReaderWriter } from '#modules/organizations/actions/ports/outbound/directory/organization_external_dependencies'
@@ -37,6 +33,10 @@ import {
   resolveOrganizationBaseSlug,
   resolveUniqueOrganizationSlug,
 } from '#modules/organizations/domain/directory/organization_rules'
+import {
+  OrganizationRole,
+  OrganizationUserStatus,
+} from '#modules/organizations/public_contracts/access/organization_constants'
 
 type OptionalPayloadKeys<T extends object> = {
   [Key in keyof T]-?: undefined extends T[Key] ? Key : never

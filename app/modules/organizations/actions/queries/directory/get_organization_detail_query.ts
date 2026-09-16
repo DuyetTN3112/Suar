@@ -1,7 +1,7 @@
 
 import type { GetOrganizationDetailDTO } from '../../dtos/request/directory/get_organization_detail_dto.js'
-
 import { BaseQuery } from '../base_query.js'
+
 import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
 import {
   CACHE_COLLECTION_GENERATION_NAMESPACES,
@@ -9,7 +9,6 @@ import {
 } from '#modules/cache/public_contracts/cache_contract'
 import { cacheStore } from '#modules/cache/public_contracts/cache_store'
 import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
-import { canViewOrganization } from '#modules/organizations/domain/access/org_permission_policy'
 import type { OrganizationActionContext } from '#modules/organizations/actions/action_context'
 import type { OrganizationUserReaderWriter } from '#modules/organizations/actions/ports/outbound/directory/organization_external_dependencies'
 import type {
@@ -17,6 +16,7 @@ import type {
   OrganizationReader,
 } from '#modules/organizations/actions/ports/outbound/directory/organization_persistence'
 import type { OrganizationPortfolioStatsReader } from '#modules/organizations/actions/ports/outbound/directory/organization_portfolio_stats_reader'
+import { canViewOrganization } from '#modules/organizations/domain/access/org_permission_policy'
 
 interface OwnerRecord {
   id: string

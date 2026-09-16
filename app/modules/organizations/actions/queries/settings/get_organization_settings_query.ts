@@ -3,13 +3,13 @@ import BusinessLogicException from '#modules/errors/public_contracts/business_lo
 import { ErrorMessages } from '#modules/errors/public_contracts/error_constants'
 import NotFoundException from '#modules/errors/public_contracts/not_found_exception'
 import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
-import { canUpdateOrganization } from '#modules/organizations/domain/access/org_permission_policy'
 import type { OrganizationActionContext } from '#modules/organizations/actions/action_context'
 import type {
   OrganizationMembershipRepository,
   OrganizationReader,
 } from '#modules/organizations/actions/ports/outbound/settings/organization_persistence'
 import { BaseQuery } from '#modules/organizations/actions/queries/base_query'
+import { canUpdateOrganization } from '#modules/organizations/domain/access/org_permission_policy'
 
 /**
  * GetOrganizationSettingsQuery

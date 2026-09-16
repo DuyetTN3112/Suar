@@ -1,6 +1,6 @@
-import { BaseQuery } from '#modules/organizations/actions/queries/base_query'
 import type { OrganizationActionContext } from '#modules/organizations/actions/action_context'
 import type { OrganizationProjectDetailReader } from '#modules/organizations/actions/ports/outbound/projects/organization_project_detail_reader'
+import { BaseQuery } from '#modules/organizations/actions/queries/base_query'
 
 export interface GetOrganizationProjectDetailInput {
   projectId: string

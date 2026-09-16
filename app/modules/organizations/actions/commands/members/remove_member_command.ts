@@ -17,7 +17,6 @@ import {
   platformOperationalLogger,
   platformWorkflowLogger,
 } from '#modules/observability/public_contracts/platform_observability'
-import { canRemoveMember } from '#modules/organizations/domain/access/org_permission_policy'
 import type { OrganizationActionContext } from '#modules/organizations/actions/action_context'
 import { BaseCommand } from '#modules/organizations/actions/commands/base_command'
 import type { OrganizationEventPublisher } from '#modules/organizations/actions/ports/outbound/members/organization_event_publisher'
@@ -28,6 +27,7 @@ import type {
   OrganizationTransaction,
   OrganizationTransactionRunner,
 } from '#modules/organizations/actions/ports/outbound/organization_transaction'
+import { canRemoveMember } from '#modules/organizations/domain/access/org_permission_policy'
 import { buildOrganizationMembershipEvent } from '#modules/organizations/observability/organization_event_factory'
 
 async function settlePostCommitEffect(

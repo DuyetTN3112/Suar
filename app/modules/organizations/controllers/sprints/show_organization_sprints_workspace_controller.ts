@@ -2,7 +2,7 @@ import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 
 import { actionContextFromHttp } from '#modules/http/boundary/http_execution_context'
-import { OrganizationProjectQueryFactory } from '#modules/organizations/actions/ports/inbound/organization_project_query_factory'
+import { OrganizationProjectQueryFactory } from '#modules/organizations/actions/ports/inbound/projects/organization_project_query_factory'
 import { buildCurrentOrganizationProjectsListInput } from '#modules/organizations/controllers/mappers/request/projects/current_project_request_mapper'
 import { toCanonicalPagePagination } from '#modules/pagination/public_contracts/pagination_public_api'
 

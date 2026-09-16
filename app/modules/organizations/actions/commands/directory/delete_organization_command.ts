@@ -1,12 +1,11 @@
 import type { DeleteOrganizationDTO } from '../../dtos/request/directory/delete_organization_dto.js'
-
 import { BaseCommand } from '../base_command.js'
+
 import { EntityType } from '#modules/audit/public_contracts/audit_constants'
 import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
 import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
 import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
 import loggerService from '#modules/logger/public_contracts/application_logger'
-import { canDeleteOrganization } from '#modules/organizations/domain/access/org_permission_policy'
 import type { OrganizationActionContext } from '#modules/organizations/actions/action_context'
 import type { OrganizationEventPublisher } from '#modules/organizations/actions/ports/outbound/directory/organization_event_publisher'
 import type {
@@ -16,6 +15,7 @@ import type {
 } from '#modules/organizations/actions/ports/outbound/directory/organization_persistence'
 import type { OrganizationProjectLifecycleReader } from '#modules/organizations/actions/ports/outbound/directory/organization_project_lifecycle_reader'
 import type { OrganizationTransactionRunner } from '#modules/organizations/actions/ports/outbound/organization_transaction'
+import { canDeleteOrganization } from '#modules/organizations/domain/access/org_permission_policy'
 
 async function settlePostCommitEffect(
   effectName: string,

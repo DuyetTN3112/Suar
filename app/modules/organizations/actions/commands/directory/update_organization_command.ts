@@ -1,12 +1,11 @@
 import type { UpdateOrganizationDTO } from '../../dtos/request/directory/update_organization_dto.js'
-
 import { BaseCommand } from '../base_command.js'
+
 import { AuditAction, EntityType } from '#modules/audit/public_contracts/audit_constants'
 import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
 import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
 import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
 import loggerService from '#modules/logger/public_contracts/application_logger'
-import { canUpdateOrganization } from '#modules/organizations/domain/access/org_permission_policy'
 import type { OrganizationActionContext } from '#modules/organizations/actions/action_context'
 import type { OrganizationEventPublisher } from '#modules/organizations/actions/ports/outbound/directory/organization_event_publisher'
 import type {
@@ -19,6 +18,7 @@ import type {
   OrganizationTransaction,
   OrganizationTransactionRunner,
 } from '#modules/organizations/actions/ports/outbound/organization_transaction'
+import { canUpdateOrganization } from '#modules/organizations/domain/access/org_permission_policy'
 
 async function settlePostCommitEffect(
   effectName: string,

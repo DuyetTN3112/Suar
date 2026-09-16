@@ -3,16 +3,16 @@ import { enforcePolicy } from '#modules/authorization/public_contracts/policy_en
 import BusinessLogicException from '#modules/errors/public_contracts/business_logic_exception'
 import { ErrorMessages } from '#modules/errors/public_contracts/error_constants'
 import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
-import { canUpdateOrganization } from '#modules/organizations/domain/access/org_permission_policy'
 import type { OrganizationActionContext } from '#modules/organizations/actions/action_context'
 import { BaseCommand } from '#modules/organizations/actions/commands/base_command'
 import type { UpdateOrganizationSettingsDTO } from '#modules/organizations/actions/dtos/request/settings/update_organization_settings_dto'
+import type { OrganizationTransactionRunner } from '#modules/organizations/actions/ports/outbound/organization_transaction'
 import type {
   OrganizationMembershipRepository,
   OrganizationReader,
   OrganizationWriter,
 } from '#modules/organizations/actions/ports/outbound/settings/organization_persistence'
-import type { OrganizationTransactionRunner } from '#modules/organizations/actions/ports/outbound/organization_transaction'
+import { canUpdateOrganization } from '#modules/organizations/domain/access/org_permission_policy'
 
 type OptionalPayloadKeys<T extends object> = {
   [Key in keyof T]-?: undefined extends T[Key] ? Key : never
