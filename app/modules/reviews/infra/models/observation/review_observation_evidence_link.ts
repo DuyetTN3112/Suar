@@ -1,8 +1,8 @@
 import { BaseModel, beforeUpdate, column } from '@adonisjs/lucid/orm'
 import { DateTime } from 'luxon'
 
-import type { TvaPrivacyClassification } from '#modules/tasks/public_contracts/task-authoring/primitives'
 import InvariantViolationException from '#modules/errors/public_contracts/invariant_violation_exception'
+import type { TvaPrivacyClassification } from '#modules/tasks/public_contracts/task-authoring/primitives'
 
 export default class ReviewObservationEvidenceLink extends BaseModel {
   static override table = 'review_observation_evidence_links'

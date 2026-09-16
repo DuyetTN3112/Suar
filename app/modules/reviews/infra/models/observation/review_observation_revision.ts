@@ -7,13 +7,13 @@ import {
   prepareReviewObservationJson,
 } from './review_observation_json_column.js'
 
-import type { ReviewObservationV1 } from '#modules/reviews/public_contracts/observation/completion_review_contracts'
-import type { TvaJsonObject } from '#modules/tasks/public_contracts/task-authoring/primitives'
 import InvariantViolationException from '#modules/errors/public_contracts/invariant_violation_exception'
 import type {
   ReviewEvidenceSufficiency,
   ReviewRationaleClassification,
 } from '#modules/reviews/actions/ports/outbound/observation/review_observation_writer'
+import type { ReviewObservationV1 } from '#modules/reviews/public_contracts/observation/completion_review_contracts'
+import type { TvaJsonObject } from '#modules/tasks/public_contracts/task-authoring/primitives'
 
 export type {
   ReviewEvidenceSufficiency,

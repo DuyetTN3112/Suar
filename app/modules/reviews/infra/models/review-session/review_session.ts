@@ -3,8 +3,9 @@ import type { HasMany } from '@adonisjs/lucid/types/relations'
 import { DateTime } from 'luxon'
 
 
-import ReviewSessionReviewerAssignment from './review_session_reviewer_assignment.js'
 import SkillReview from '../self-assessment/skill_review.js'
+
+import ReviewSessionReviewerAssignment from './review_session_reviewer_assignment.js'
 
 import type { ReviewConfirmationEntry } from '#modules/reviews/types/review_confirmation_entry'
 
