@@ -1,7 +1,13 @@
 import { DateTime } from 'luxon'
 
 import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
-import { BaseCommand } from '#modules/reviews/actions/base_command'
+import { BaseCommand } from '#modules/reputation/actions/base_command'
+import {
+  calculateSkillConfidence,
+  calculateSkillWeightedScore,
+  mapWeightedScoreToLevelCode,
+  SKILL_AGGREGATION_SCORING_VERSION,
+} from '#modules/reputation/domain/reputation_formulas'
 import type { TransactionalAuditDeferralOptions } from '#modules/reviews/actions/dtos/request/transactional_audit_options'
 import type { ReviewUserSkillWriter } from '#modules/reviews/actions/ports/outbound/review_external_dependencies'
 import type { ReviewExternalEffectPublisher } from '#modules/reviews/actions/ports/outbound/review_external_effects'
@@ -14,12 +20,6 @@ import type {
   ReviewTransactionRunner,
 } from '#modules/reviews/actions/ports/outbound/review_transaction'
 import type { ReviewActionContext } from '#modules/reviews/actions/review_action_context'
-import {
-  calculateSkillConfidence,
-  calculateSkillWeightedScore,
-  mapWeightedScoreToLevelCode,
-  SKILL_AGGREGATION_SCORING_VERSION,
-} from '#modules/reviews/domain/review-core/review_formulas'
 import type { SkillScoreUpdatedEvent } from '#modules/skills/public_contracts/skill_events'
 
 export interface RecalculateRevieweeSkillScoresDTO {
@@ -68,6 +68,7 @@ interface PersistedUserSkillResult {
 /**
  * RecalculateRevieweeSkillScoresCommand
  *
+ * Mastered in reputation bounded context.
  * Recomputes reviewed skill levels for a user from completed review sessions
  * using weighted formulas (reviewer type, credibility, recency).
  */

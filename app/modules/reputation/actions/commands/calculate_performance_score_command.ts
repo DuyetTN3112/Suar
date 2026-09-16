@@ -1,7 +1,8 @@
 import { DateTime } from 'luxon'
 
 import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
-import { BaseCommand } from '#modules/reviews/actions/base_command'
+import { BaseCommand } from '#modules/reputation/actions/base_command'
+import { calculatePerformanceScore } from '#modules/reputation/domain/reputation_formulas'
 import type { TransactionalAuditDeferralOptions } from '#modules/reviews/actions/dtos/request/transactional_audit_options'
 import type { ReviewUserReaderWriter } from '#modules/reviews/actions/ports/outbound/review_external_dependencies'
 import type {
@@ -14,7 +15,6 @@ import type {
   ReviewTransactionRunner,
 } from '#modules/reviews/actions/ports/outbound/review_transaction'
 import type { ReviewActionContext } from '#modules/reviews/actions/review_action_context'
-import { calculatePerformanceScore } from '#modules/reviews/domain/review-core/review_formulas'
 
 export interface CalculatePerformanceScoreDTO {
   userId: string
@@ -48,6 +48,7 @@ interface PerformanceMetrics {
 /**
  * CalculatePerformanceScoreCommand
  *
+ * Mastered in reputation bounded context.
  * Computes execution performance score (0-100) from completed assignments +
  * completed review sessions and stores results in both:
  * - users.trust_data (compat)
@@ -68,14 +69,6 @@ export default class CalculatePerformanceScoreCommand extends BaseCommand<
     super(execCtx, transactions)
   }
 
-  /**
-   * Command flow:
-   * 1. Load completion data from review metrics views.
-   * 2. Derive aggregate performance signals.
-   * 3. Persist compatibility data on users.trust_data.
-   * 4. Upsert the source-of-truth user_performance_stats row.
-   * 5. Emit audit trail and return the normalized result.
-   */
   async handle(dto: CalculatePerformanceScoreDTO): Promise<PerformanceScoreResult> {
     return await this.executeInTransaction((trx) => this.handleInTransaction(dto, trx))
   }

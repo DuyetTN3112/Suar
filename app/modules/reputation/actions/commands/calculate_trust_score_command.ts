@@ -1,7 +1,16 @@
 import { DateTime } from 'luxon'
 
 import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
-import { BaseCommand } from '#modules/reviews/actions/base_command'
+import { BaseCommand } from '#modules/reputation/actions/base_command'
+import {
+  calculateTrustScoreV2,
+  determineTier,
+  mapLevelCodeToNumber,
+} from '#modules/reputation/domain/reputation_formulas'
+import type {
+  CalculateTrustScoreDTO,
+  TrustScoreResult,
+} from '#modules/reputation/public_contracts/reputation_contracts'
 import type { TransactionalAuditDeferralOptions } from '#modules/reviews/actions/dtos/request/transactional_audit_options'
 import type {
   ReviewOrganizationReader,
@@ -17,30 +26,8 @@ import type {
   ReviewTransactionRunner,
 } from '#modules/reviews/actions/ports/outbound/review_transaction'
 import type { ReviewActionContext } from '#modules/reviews/actions/review_action_context'
-import {
-  calculateTrustScoreV2,
-  determineTier,
-  mapLevelCodeToNumber,
-} from '#modules/reviews/domain/review-core/review_formulas'
 
-/**
- * DTO for CalculateTrustScore
- */
-export interface CalculateTrustScoreDTO {
-  userId: string
-}
-
-/**
- * Result of trust score calculation
- */
-export interface TrustScoreResult {
-  userId: string
-  rawScore: number
-  calculatedScore: number
-  tierCode: string
-  tierName: string
-  totalVerifiedReviews: number
-}
+export type { CalculateTrustScoreDTO, TrustScoreResult }
 
 export interface CalculateTrustScoreTransactionOptions
   extends TransactionalAuditDeferralOptions {
@@ -50,7 +37,8 @@ export interface CalculateTrustScoreTransactionOptions
 /**
  * Command: Calculate Trust Score for a User
  *
- * v3: Trust score stored as JSONB trust_data on users table.
+ * Mastered in reputation bounded context.
+ * Trust score stored as JSONB trust_data on users table.
  *
  * Pattern: FETCH → DECIDE (pure formulas) → PERSIST
  */
@@ -178,8 +166,6 @@ export default class CalculateTrustScoreCommand extends BaseCommand<
       fetched.belongsToPartnerOrg
     )
 
-    // v2: org trust signal already contributes in orgPartnerWeight.
-    // Keep `calculated_score` equal to raw score to avoid double weighting.
     const calculatedScore = rawScore
 
     return {

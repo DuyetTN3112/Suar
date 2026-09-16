@@ -1,5 +1,10 @@
 import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
-import { BaseCommand } from '#modules/reviews/actions/base_command'
+import { BaseCommand } from '#modules/reputation/actions/base_command'
+import { getLevelCodeFromPercentage } from '#modules/reputation/domain/reputation_formulas'
+import type {
+  CalculateSpiderChartDTO,
+  SpiderChartResult,
+} from '#modules/reputation/public_contracts/reputation_contracts'
 import type {
   ReviewSkillReader,
   ReviewUserSkillWriter,
@@ -10,38 +15,14 @@ import type {
   ReviewTransactionRunner,
 } from '#modules/reviews/actions/ports/outbound/review_transaction'
 import type { ReviewActionContext } from '#modules/reviews/actions/review_action_context'
-import { getLevelCodeFromPercentage } from '#modules/reviews/domain/review-core/review_formulas'
 
-/**
- * DTO for CalculateSpiderChart
- */
-export interface CalculateSpiderChartDTO {
-  userId: string
-}
-
-/**
- * Result of spider chart calculation
- */
-export interface SpiderChartResult {
-  userId: string
-  skillsCalculated: number
-  totalReviews: number
-}
+export type { CalculateSpiderChartDTO, SpiderChartResult }
 
 /**
  * Command: Calculate Spider Chart Data for a User
  *
- * Di chuyển từ database procedure: calculate_spider_chart(p_user_id)
- *
- * v3: Spider chart data is now stored inline on user_skills table
- * (avg_percentage, verified_public_proficiency_code, last_calculated_at) instead of separate
- * user_spider_chart_data table.
- *
- * Business logic:
- * 1. Lấy tất cả skills có display_type = 'spider_chart' (soft_skill, delivery)
- * 2. Với mỗi skill, tính avg_percentage từ skill_reviews
- * 3. Xác định level tương ứng với avg_percentage
- * 4. Upsert vào user_skills
+ * Mastered in reputation bounded context.
+ * Spider chart data is stored inline on user_skills table.
  */
 export default class CalculateSpiderChartCommand extends BaseCommand<
   CalculateSpiderChartDTO,
@@ -52,13 +33,13 @@ export default class CalculateSpiderChartCommand extends BaseCommand<
     private readonly skillReader: ReviewSkillReader,
     private readonly userSkillWriter: ReviewUserSkillWriter,
     private readonly metricsReader: ReviewMetricsReader,
-    private readonly transactionRunner: ReviewTransactionRunner
+    private readonly transactionRunnerInstance: ReviewTransactionRunner
   ) {
-    super(execCtx, transactionRunner)
+    super(execCtx, transactionRunnerInstance)
   }
 
   async handle(dto: CalculateSpiderChartDTO): Promise<SpiderChartResult> {
-    return this.transactionRunner.run(async (trx) => {
+    return this.transactionRunnerInstance.run(async (trx) => {
       // 1. Lấy tất cả skills có display_type = 'spider_chart'
       const skills = await this.getSpiderChartSkills(trx)
 
@@ -74,7 +55,7 @@ export default class CalculateSpiderChartCommand extends BaseCommand<
 
         totalReviewsCount += totalReviews
 
-        // 3. Upsert vào user_skills (v3: inline spider chart data)
+        // 3. Upsert vào user_skills
         await this.upsertUserSkillData(
           dto.userId,
           skill.id,
@@ -113,35 +94,23 @@ export default class CalculateSpiderChartCommand extends BaseCommand<
     })
   }
 
-  /**
-   * Lấy tất cả skills có display_type = 'spider_chart'
-   */
   private async getSpiderChartSkills(trx: ReviewTransaction): Promise<{ id: string }[]> {
     return this.skillReader.listSpiderChartSkillIds(trx)
   }
 
-  /**
-   * Tính average percentage và total reviews cho một skill
-   * v3: uses review formula mapping instead of ProficiencyLevel.findByPercentageRange
-   */
   private async calculateSkillData(
     userId: string,
     skillId: string,
     trx: ReviewTransaction
   ): Promise<{ avgPercentage: number; totalReviews: number; levelCode: string }> {
-    // Tính average percentage từ skill_reviews → delegate to SkillReview
     const { avgPercentage, totalReviews } =
       await this.metricsReader.calculateSkillAveragePercentage(userId, skillId, trx)
 
-    // v3: Tìm level tương ứng từ review formula
     const levelCode = getLevelCodeFromPercentage(avgPercentage)
 
     return { avgPercentage, totalReviews, levelCode }
   }
 
-  /**
-   * v3: Upsert vào user_skills table (replaces user_spider_chart_data)
-   */
   private async upsertUserSkillData(
     userId: string,
     skillId: string,

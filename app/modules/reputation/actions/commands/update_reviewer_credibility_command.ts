@@ -1,6 +1,11 @@
 import { DateTime } from 'luxon'
 
-import { BaseCommand } from '#modules/reviews/actions/base_command'
+import { BaseCommand } from '#modules/reputation/actions/base_command'
+import { calculateCredibilityScore } from '#modules/reputation/domain/reputation_formulas'
+import type {
+  ReviewerCredibilityResult,
+  UpdateReviewerCredibilityDTO,
+} from '#modules/reputation/public_contracts/reputation_contracts'
 import type { ReviewUserReaderWriter } from '#modules/reviews/actions/ports/outbound/review_external_dependencies'
 import type { ReviewMetricsReader } from '#modules/reviews/actions/ports/outbound/review_metrics_reader'
 import type {
@@ -8,26 +13,20 @@ import type {
   ReviewTransactionRunner,
 } from '#modules/reviews/actions/ports/outbound/review_transaction'
 import type { ReviewActionContext } from '#modules/reviews/actions/review_action_context'
-import { calculateCredibilityScore } from '#modules/reviews/domain/review-core/review_formulas'
 
-
-/**
- * DTO for updating reviewer credibility
- */
-export interface UpdateReviewerCredibilityDTO {
-  user_id: string
-}
+export type { ReviewerCredibilityResult, UpdateReviewerCredibilityDTO }
 
 /**
  * Command: Update Reviewer Credibility
  *
- * v3: Credibility data stored as JSONB credibility_data on users table.
+ * Mastered in reputation bounded context.
+ * Credibility data stored as JSONB credibility_data on users table.
  *
  * Pattern: FETCH → DECIDE (pure formula) → PERSIST
  */
 export default class UpdateReviewerCredibilityCommand extends BaseCommand<
   UpdateReviewerCredibilityDTO,
-  { credibility_score: number; total_reviews: number }
+  ReviewerCredibilityResult
 > {
   constructor(
     execCtx: ReviewActionContext,
@@ -38,10 +37,7 @@ export default class UpdateReviewerCredibilityCommand extends BaseCommand<
     super(execCtx, transactions)
   }
 
-  async handle(dto: UpdateReviewerCredibilityDTO): Promise<{
-    credibility_score: number
-    total_reviews: number
-  }> {
+  async handle(dto: UpdateReviewerCredibilityDTO): Promise<ReviewerCredibilityResult> {
     return await this.executeInTransaction((trx) => this.handleInTransaction(dto, trx))
   }
 
@@ -49,7 +45,7 @@ export default class UpdateReviewerCredibilityCommand extends BaseCommand<
     dto: UpdateReviewerCredibilityDTO,
     trx: ReviewTransaction,
     options: { signal?: AbortSignal } = {}
-  ): Promise<{ credibility_score: number; total_reviews: number }> {
+  ): Promise<ReviewerCredibilityResult> {
     options.signal?.throwIfAborted()
 
     // ── FETCH ──────────────────────────────────────────────────────────
