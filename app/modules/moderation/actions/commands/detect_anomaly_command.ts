@@ -1,7 +1,7 @@
 import InvariantViolationException from '#modules/errors/public_contracts/invariant_violation_exception'
 import loggerService from '#modules/logger/public_contracts/application_logger'
 import { BaseCommand } from '#modules/reviews/actions/base_command'
-import type { ReviewAnomalyFlagWriter } from '#modules/reviews/actions/ports/outbound/review_anomaly_flag_writer'
+import type { ReviewAnomalyFlagWriter } from '#modules/moderation/actions/ports/outbound/review_anomaly_flag_writer'
 import type { ReviewUserReaderWriter } from '#modules/reviews/actions/ports/outbound/review_external_dependencies'
 import type { ReviewMetricsReader } from '#modules/reviews/actions/ports/outbound/review_metrics_reader'
 import type { ReviewSessionReadStore } from '#modules/reviews/actions/ports/outbound/review_session_readers'

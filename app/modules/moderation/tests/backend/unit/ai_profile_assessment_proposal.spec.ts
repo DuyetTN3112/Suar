@@ -1,7 +1,7 @@
 import { test } from '@japa/runner'
 
 import ValidationException from '#modules/errors/public_contracts/validation_exception'
-import { validateProfileAssessmentProposal } from '#modules/reviews/actions/commands/disputes/process_ai_dispute_callback_command'
+import { validateProfileAssessmentProposal } from '#modules/disputes/actions/commands/process_ai_dispute_callback_command'
 
 function proposal() {
   return {

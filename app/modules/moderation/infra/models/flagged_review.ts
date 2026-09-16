@@ -2,7 +2,7 @@ import { BaseModel, column, belongsTo } from '@adonisjs/lucid/orm'
 import type { BelongsTo } from '@adonisjs/lucid/types/relations'
 import { DateTime } from 'luxon'
 
-import SkillReview from '../self-assessment/skill_review.js'
+import SkillReview from '#modules/reviews/infra/models/self-assessment/skill_review'
 
 
 /**

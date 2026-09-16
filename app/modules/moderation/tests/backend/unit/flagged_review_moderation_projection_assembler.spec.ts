@@ -5,7 +5,7 @@ import {
   collectFlaggedReviewModerationProjectionIds,
   type FlaggedReviewModerationProjectionFacts,
   type FlaggedReviewModerationSource,
-} from '#modules/reviews/actions/mappers/flagged_review_moderation_projection_mapper'
+} from '#modules/moderation/actions/mappers/flagged_review_moderation_projection_mapper'
 
 const date = (value: string) => ({ toISO: () => value })
 

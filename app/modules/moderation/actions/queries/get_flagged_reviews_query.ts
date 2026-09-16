@@ -4,7 +4,7 @@ import {
   assembleFlaggedReviewModerationProjections,
   collectFlaggedReviewModerationProjectionIds,
   toLegacyFlaggedReviewPageProjection,
-} from '#modules/reviews/actions/mappers/flagged_review_moderation_projection_mapper'
+} from '#modules/moderation/actions/mappers/flagged_review_moderation_projection_mapper'
 import type {
   ReviewAssignmentProjectionReader,
   ReviewModeratorIdentityProjectionReader,

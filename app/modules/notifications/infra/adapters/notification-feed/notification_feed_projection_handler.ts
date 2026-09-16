@@ -1,5 +1,11 @@
 import db from '@adonisjs/lucid/services/db'
 
+import {
+  toActiveNotificationSearchDocument,
+  toNotificationTombstoneSearchDocument,
+  type CanonicalNotificationProjectionRow,
+  type NotificationTombstoneProjectionRow,
+} from '#modules/notifications/domain/notification-feed/notification_projection_document'
 import type {
   NotificationOutboxHandler,
   NotificationOutboxHandlerContext,
@@ -10,21 +16,15 @@ import {
   NotificationTransientDeliveryError,
 } from '#modules/notifications/domain/notification-outbox/notification_outbox_errors'
 import {
-  toActiveNotificationSearchDocument,
-  toNotificationTombstoneSearchDocument,
-  type CanonicalNotificationProjectionRow,
-  type NotificationTombstoneProjectionRow,
-} from '#modules/notifications/domain/notification-feed/notification_projection_document'
+  NotificationSearchIndexRepository,
+  type NotificationProjectionBatchResult,
+  type NotificationSearchDocument,
+} from '#modules/notifications/infra/repositories/notification-observability/notification_search_index_repository'
 import {
   DEFAULT_NOTIFICATION_READ_ALIAS,
   DEFAULT_NOTIFICATION_WRITE_ALIAS,
   PostgresNotificationProjectionDeliveryRepository,
 } from '#modules/notifications/infra/repositories/notification-outbox/postgres_notification_projection_delivery_repository'
-import {
-  NotificationSearchIndexRepository,
-  type NotificationProjectionBatchResult,
-  type NotificationSearchDocument,
-} from '#modules/notifications/infra/repositories/notification-observability/notification_search_index_repository'
 
 export interface NotificationSearchProjector {
   ensureIndex(input: {

@@ -5,10 +5,10 @@ import type {
   ResolveFlaggedReviewPersistenceInput,
   ReviewFlaggedModerationPersistenceSession,
   ReviewFlaggedModerationUnitOfWork,
-} from '#modules/reviews/actions/ports/outbound/review_flagged_moderation_unit_of_work'
+} from '#modules/moderation/actions/ports/outbound/review_flagged_moderation_unit_of_work'
 import { stageTalentExplainabilityProjectionV1 } from '#modules/reviews/infra/adapters/self-assessment/lucid_talent_explainability_projection_stager'
-import type FlaggedReview from '#modules/reviews/infra/models/review-core/flagged_review'
-import FlaggedReviewRepository from '#modules/reviews/infra/repositories/review-core/flagged_review_repository'
+import type FlaggedReview from '#modules/moderation/infra/models/flagged_review'
+import FlaggedReviewRepository from '#modules/moderation/infra/repositories/flagged_review_repository'
 import ReviewSessionRepository from '#modules/reviews/infra/repositories/review-session/review_session_repository'
 import SkillReviewRepository from '#modules/reviews/infra/repositories/self-assessment/skill_review_repository'
 import type { FlaggedReviewRecord } from '#modules/reviews/types/review_records'

@@ -1,6 +1,6 @@
 import { test } from '@japa/runner'
 
-import ApproveAiProfileCapabilityProposalCommand from '#modules/reviews/actions/commands/disputes/approve_ai_profile_capability_proposal_command'
+import ApproveAiProfileCapabilityProposalCommand from '#modules/disputes/actions/commands/approve_ai_profile_capability_proposal_command'
 import type {
   AiProfileAssessmentApprovalCandidate,
   AiProfileAssessmentApprovalUnitOfWork,
@@ -77,16 +77,16 @@ function approvals(input: {
   return {
     async run(work) {
       return work({
-        findActorSystemRole: async () => input.role ?? 'system_admin',
-        loadCandidateForUpdate: async () => input.candidate ?? candidate(),
-        createOrLoadCapabilityApproval: async (write) => {
+        findActorSystemRole: () => Promise.resolve(input.role ?? 'system_admin'),
+        loadCandidateForUpdate: () => Promise.resolve(input.candidate ?? candidate()),
+        createOrLoadCapabilityApproval: (write) => {
           input.writes.push(write)
-          return {
+          return Promise.resolve({
             id: 'approval-1',
             evaluationId: write.evaluationId,
             proposalIndex: write.proposalIndex,
             approvedAt: new Date('2026-08-13T10:00:00.000Z'),
-          }
+          })
         },
       })
     },

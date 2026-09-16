@@ -4,7 +4,7 @@ import {
   NOTIFICATION_FEED_PROMETHEUS_CONTENT_TYPE,
   notificationFeedRuntimeMetrics,
   renderNotificationFeedPrometheusMetrics,
-} from '#modules/notifications/observability/notification_feed_runtime_metrics'
+} from '#modules/notifications/observability/notification-feed/notification_feed_runtime_metrics'
 
 export default class NotificationMetricsController {
   handle({ response }: HttpContext) {

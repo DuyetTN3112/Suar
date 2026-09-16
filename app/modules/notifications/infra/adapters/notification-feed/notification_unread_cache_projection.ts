@@ -1,10 +1,10 @@
 import notificationConfig from '#config/notification'
 import { cacheRedisCommandStore } from '#modules/cache/public_contracts/cache_store'
+import type { NotificationUnreadProjectionValue } from '#modules/notifications/domain/notification-feed/notification_unread_state'
 import {
   NotificationPermanentDeliveryError,
   NotificationTransientDeliveryError,
 } from '#modules/notifications/domain/notification-outbox/notification_outbox_errors'
-import type { NotificationUnreadProjectionValue } from '#modules/notifications/domain/notification-feed/notification_unread_state'
 
 export type { NotificationUnreadProjectionValue } from '#modules/notifications/domain/notification-feed/notification_unread_state'
 

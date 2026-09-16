@@ -1,10 +1,10 @@
 import type { NotificationRecord } from '#modules/notifications/actions/ports/outbound/notification_repository'
 import { NotificationFeedCursorError } from '#modules/notifications/domain/notification-feed/notification_contract_errors'
-import type { ActiveNotificationSearchDocument } from '#modules/notifications/infra/repositories/notification-observability/notification_search_index_repository'
 import type {
   NotificationFeedCursorCodec,
   NotificationFeedCursorValue,
 } from '#modules/notifications/infra/adapters/notification-feed/notification_feed_cursor_codec'
+import type { ActiveNotificationSearchDocument } from '#modules/notifications/infra/repositories/notification-observability/notification_search_index_repository'
 import { searchClient } from '#platform/search/elasticsearch_client'
 
 const NOTIFICATION_FEED_SOURCE_FIELDS = [

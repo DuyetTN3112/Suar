@@ -1,5 +1,5 @@
-import AppException from '#modules/errors/public_contracts/application_exception'
-import { Result } from '#modules/errors/public_contracts/result'
+import type AppException from '#modules/errors/public_contracts/application_exception'
+import { type Result } from '#modules/errors/public_contracts/result'
 import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
 import { BaseCommand } from '#modules/notifications/actions/base_command'
 import type { NotificationActionContext } from '#modules/notifications/actions/notification_action_context'

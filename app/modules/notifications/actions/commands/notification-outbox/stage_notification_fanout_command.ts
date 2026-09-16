@@ -3,6 +3,7 @@ import type { NotificationTransaction } from '#modules/notifications/actions/por
 import type { NotificationDigestGenerator } from '#modules/notifications/actions/ports/outbound/notification_cryptography'
 import type { NotificationFanoutStagingRepository } from '#modules/notifications/actions/ports/outbound/notification_fanout_staging_repository'
 import { parseNotificationCommandV1 } from '#modules/notifications/domain/notification-feed/notification_command'
+import { canonicalNotificationJson } from '#modules/notifications/domain/notification-feed/notification_limits'
 import type {
   NotificationFanoutStageResult,
   NotificationFanoutTemplateV1Input,
@@ -13,7 +14,6 @@ import {
   normalizeNotificationFanoutRecipients,
   notificationFanoutSemanticTemplate,
 } from '#modules/notifications/domain/notification-outbox/notification_fanout_policy'
-import { canonicalNotificationJson } from '#modules/notifications/domain/notification-feed/notification_limits'
 import { buildNotificationEventId } from '#modules/notifications/public_contracts/notification_event_identity'
 
 const DEFAULT_MAX_TARGETS = 10_000
