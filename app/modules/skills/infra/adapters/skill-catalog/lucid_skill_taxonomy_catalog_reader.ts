@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto'
 
 import db from '@adonisjs/lucid/services/db'
 
+import PersistedDataIntegrityException from '#modules/errors/public_contracts/persisted_data_integrity_exception'
 import type {
   SkillTaxonomyCatalogReader,
   SkillTaxonomyCatalogSnapshot,
@@ -13,7 +14,6 @@ import {
   SKILL_CATEGORY_ORDER,
 } from '#modules/skills/public_contracts/skill_constants'
 
-import PersistedDataIntegrityException from '#modules/errors/public_contracts/persisted_data_integrity_exception'
 
 type TaxonomyTerm = SkillTaxonomySourceTerm['term']
 type TaxonomyAlias = TaxonomyTerm['aliases'][number]

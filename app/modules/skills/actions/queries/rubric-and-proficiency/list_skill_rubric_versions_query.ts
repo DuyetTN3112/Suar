@@ -1,9 +1,9 @@
 import NotFoundException from '#modules/errors/public_contracts/not_found_exception'
+import { BaseQuery } from '#modules/skills/actions/base_query'
 import type {
   SkillRubricRepository,
   SkillRubricVersionRecord,
-} from '#modules/skills/actions/ports/outbound/skill_rubric_repository'
-import { BaseQuery } from '#modules/skills/actions/base_query'
+} from '#modules/skills/actions/ports/outbound/rubric-and-proficiency/skill_rubric_repository'
 
 export default class ListSkillRubricVersionsQuery extends BaseQuery<string, SkillRubricVersionRecord[]> {
   constructor(private readonly repository: SkillRubricRepository) {

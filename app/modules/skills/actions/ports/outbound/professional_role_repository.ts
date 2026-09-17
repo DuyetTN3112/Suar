@@ -1,5 +1,5 @@
-import type { ProficiencyLevelRecord } from './rubric-and-proficiency/proficiency_scale_repository.js'
 import type { ProjectSkillRecord } from './project_skill_repository.js'
+import type { ProficiencyLevelRecord } from './rubric-and-proficiency/proficiency_scale_repository.js'
 import type { SkillRecord } from './skill_catalog_repository.js'
 import type { SkillTransaction } from './skill_transaction.js'
 

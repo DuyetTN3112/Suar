@@ -3,7 +3,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 
 import ValidationException from '#modules/errors/public_contracts/validation_exception'
 import { wrapApiV1Data } from '#modules/http/boundary/api_v1_response'
-import ListActiveSkillsCatalogQuery from '#modules/skills/actions/queries/list_active_skills_catalog_query'
+import ListActiveSkillsCatalogQuery from '#modules/skills/actions/queries/skill-catalog/list_active_skills_catalog_query'
 
 @inject()
 export default class ListActiveSkillsController {

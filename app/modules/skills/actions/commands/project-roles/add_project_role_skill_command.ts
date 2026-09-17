@@ -10,8 +10,8 @@ import type {
   ProfessionalRoleRepository,
   ProjectProfessionalRoleSkillRecord,
 } from '#modules/skills/actions/ports/outbound/professional_role_repository'
-import type { ProficiencyScaleRepository } from '#modules/skills/actions/ports/outbound/proficiency_scale_repository'
 import type { ProjectSkillRepository } from '#modules/skills/actions/ports/outbound/project_skill_repository'
+import type { ProficiencyScaleRepository } from '#modules/skills/actions/ports/outbound/rubric-and-proficiency/proficiency_scale_repository'
 import {
   assertValidProfessionalRoleLevelConfiguration,
   getConfiguredProficiencyLevelIds,

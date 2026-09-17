@@ -1,9 +1,9 @@
+import { BaseQuery } from '#modules/skills/actions/base_query'
 import type {
   ProficiencyScaleRecord,
   ProficiencyScaleRepository,
-} from '#modules/skills/actions/ports/outbound/proficiency_scale_repository'
+} from '#modules/skills/actions/ports/outbound/rubric-and-proficiency/proficiency_scale_repository'
 import type { SkillTransaction } from '#modules/skills/actions/ports/outbound/skill_transaction'
-import { BaseQuery } from '#modules/skills/actions/base_query'
 
 export default class GetActiveProficiencyScaleQuery extends BaseQuery<undefined, ProficiencyScaleRecord | null> {
   constructor(private readonly repository: ProficiencyScaleRepository) {

@@ -1,6 +1,7 @@
-import type { ProficiencyLevelRecord } from './proficiency_scale_repository.js'
 import type { SkillDateValue, SkillRecord } from '../skill_catalog_repository.js'
 import type { SkillTransaction } from '../skill_transaction.js'
+
+import type { ProficiencyLevelRecord } from './proficiency_scale_repository.js'
 
 import type { SkillRubricVersionStatus } from '#modules/skills/public_contracts/skill_constants'
 

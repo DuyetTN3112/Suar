@@ -5,13 +5,13 @@ import {
 } from '#modules/audit/public_contracts/audit_log_writer'
 import NotFoundException from '#modules/errors/public_contracts/not_found_exception'
 import ValidationException from '#modules/errors/public_contracts/validation_exception'
-import type { ProficiencyScaleRepository } from '#modules/skills/actions/ports/outbound/proficiency_scale_repository'
 import type {
   ProjectSkillRecord,
   ProjectSkillRepository,
   UpdateProjectSkillRecord,
 } from '#modules/skills/actions/ports/outbound/project_skill_repository'
 import type { ProjectSkillTaskMetadataCacheInvalidator } from '#modules/skills/actions/ports/outbound/project_skill_task_metadata_cache_invalidator'
+import type { ProficiencyScaleRepository } from '#modules/skills/actions/ports/outbound/rubric-and-proficiency/proficiency_scale_repository'
 import {
   assertValidProjectTaskRequirementRange,
   getProjectTaskRequirementRangeLevelIds,

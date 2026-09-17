@@ -4,7 +4,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import { camelizeResponseValue } from '../mappers/response/skill-catalog/camelize_response.js'
 
 import { wrapApiV1Data } from '#modules/http/boundary/api_v1_response'
-import ListProfessionalRoleTemplatesQuery from '#modules/skills/actions/queries/list_professional_role_templates_query'
+import ListProfessionalRoleTemplatesQuery from '#modules/skills/actions/queries/skill-catalog/list_professional_role_templates_query'
 
 @inject()
 export default class ListRoleTemplatesController {

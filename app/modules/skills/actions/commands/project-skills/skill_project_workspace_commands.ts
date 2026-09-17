@@ -1,5 +1,6 @@
 import type { AuditActionContext } from '#modules/audit/public_contracts/audit_action_context'
 import BusinessLogicException from '#modules/errors/public_contracts/business_logic_exception'
+import ValidationException from '#modules/errors/public_contracts/validation_exception'
 import { BaseCommand } from '#modules/skills/actions/base_command'
 import type AddProjectRoleSkillCommand from '#modules/skills/actions/commands/project-roles/add_project_role_skill_command'
 import type { AddProjectRoleSkillInput } from '#modules/skills/actions/commands/project-roles/add_project_role_skill_command'
@@ -65,13 +66,17 @@ export class AddProjectSkillWorkspaceCommand extends AuthorizedSkillProjectWrite
   async execute(input: AddProjectSkillWorkspaceInput): Promise<ProjectSkillRecord> {
     const userId = await this.authorizeWrite(input.projectId)
     if (!input.skillId) {
-      throw new BusinessLogicException('skillId is required')
+      throw new ValidationException('skillId is required')
     }
     return this.addProjectSkill.execute({
       projectId: input.projectId,
       skillId: input.skillId,
-      minimumTaskRequirementLevelId: input.minimumTaskRequirementLevelId ?? null,
-      maximumTaskRequirementLevelId: input.maximumTaskRequirementLevelId ?? null,
+      ...(input.minimumTaskRequirementLevelId !== undefined
+        ? { minimumTaskRequirementLevelId: input.minimumTaskRequirementLevelId }
+        : {}),
+      ...(input.maximumTaskRequirementLevelId !== undefined
+        ? { maximumTaskRequirementLevelId: input.maximumTaskRequirementLevelId }
+        : {}),
       addedBy: userId,
       auditContext: input.auditContext,
     })

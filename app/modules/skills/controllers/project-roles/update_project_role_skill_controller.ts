@@ -44,11 +44,11 @@ export default class UpdateProjectRoleSkillController {
     const roleSkillId =
       ctx.params['roleSkillId'] === undefined ? undefined : String(ctx.params['roleSkillId'])
     const auditContext = actionContextFromHttp(ctx)
+    const upsertRoleSkill = this.actions.makeUpsertRoleSkill(auditContext)
 
     if (roleSkillId) {
       const input = readUpdateProjectRoleSkillInput(ctx.request, roleSkillId)
-      const result = await this.actions
-        .makeUpsertRoleSkill(auditContext)
+      const result = await upsertRoleSkill
         .executeAndWrap({
           projectId,
           roleId,
@@ -60,8 +60,7 @@ export default class UpdateProjectRoleSkillController {
     }
 
     const input = readAddProjectRoleSkillInput(ctx.request, roleId)
-    const result = await this.actions
-      .makeUpsertRoleSkill(auditContext)
+    const result = await upsertRoleSkill
       .executeAndWrap({
         projectId,
         roleId,

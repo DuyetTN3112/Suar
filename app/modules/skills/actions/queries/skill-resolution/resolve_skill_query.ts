@@ -1,5 +1,5 @@
-import type { SkillRecord } from '#modules/skills/actions/ports/outbound/skill_catalog_repository'
 import type { SkillRubricRepository } from '#modules/skills/actions/ports/outbound/rubric-and-proficiency/skill_rubric_repository'
+import type { SkillRecord } from '#modules/skills/actions/ports/outbound/skill_catalog_repository'
 import type { SkillTransaction } from '#modules/skills/actions/ports/outbound/skill_transaction'
 
 export default class ResolveSkillQuery {

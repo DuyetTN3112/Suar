@@ -39,16 +39,22 @@ export default class AddProjectSkillController {
       })
       .then((outcome) => outcome.getValue())
 
+    const payload: Record<string, unknown> = {
+      id: projectSkill.id,
+      project_id: projectSkill.project_id,
+      skill_id: projectSkill.skill_id,
+      is_active: projectSkill.is_active,
+      is_selectable_for_tasks: projectSkill.is_selectable_for_tasks,
+    }
+    if (typeof projectSkill.minimum_task_requirement_level_id === 'string') {
+      payload['minimum_task_requirement_level_id'] = projectSkill.minimum_task_requirement_level_id
+    }
+    if (typeof projectSkill.maximum_task_requirement_level_id === 'string') {
+      payload['maximum_task_requirement_level_id'] = projectSkill.maximum_task_requirement_level_id
+    }
+
     return ctx.response.created({
-      data: camelizeResponseValue({
-        id: projectSkill.id,
-        project_id: projectSkill.project_id,
-        skill_id: projectSkill.skill_id,
-        is_active: projectSkill.is_active,
-        is_selectable_for_tasks: projectSkill.is_selectable_for_tasks,
-        minimum_task_requirement_level_id: projectSkill.minimum_task_requirement_level_id,
-        maximum_task_requirement_level_id: projectSkill.maximum_task_requirement_level_id,
-      }),
+      data: camelizeResponseValue(payload),
     })
   }
 }

@@ -1,12 +1,12 @@
 import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 
-import ShowPublishedSkillRubricQuery from '#modules/skills/actions/queries/show_published_skill_rubric_query'
+import ShowPublishedSkillRubricQuery from '#modules/skills/actions/queries/rubric-and-proficiency/show_published_skill_rubric_query'
 import {
   findCanonicalProficiencyLevelOption,
   getCanonicalProficiencyLevelValue,
-} from '#modules/skills/public_contracts/proficiency_level_catalog'
-import { buildProficiencyFrameworkDescriptor } from '#modules/skills/public_contracts/proficiency_level_mapping'
+} from '#modules/skills/public_contracts/rubric-and-proficiency/proficiency_level_catalog'
+import { buildProficiencyFrameworkDescriptor } from '#modules/skills/public_contracts/rubric-and-proficiency/proficiency_level_mapping'
 
 function mapCanonicalLevelDisplay(level: {
   code: string

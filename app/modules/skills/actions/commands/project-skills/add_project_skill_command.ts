@@ -9,9 +9,9 @@ import type {
   ProjectSkillRecord,
   ProjectSkillRepository,
 } from '#modules/skills/actions/ports/outbound/project_skill_repository'
-import type { SkillTransaction } from '#modules/skills/actions/ports/outbound/skill_transaction'
-import type { ProficiencyScaleRepository } from '#modules/skills/actions/ports/outbound/proficiency_scale_repository'
 import type { ProjectSkillTaskMetadataCacheInvalidator } from '#modules/skills/actions/ports/outbound/project_skill_task_metadata_cache_invalidator'
+import type { ProficiencyScaleRepository } from '#modules/skills/actions/ports/outbound/rubric-and-proficiency/proficiency_scale_repository'
+import type { SkillTransaction } from '#modules/skills/actions/ports/outbound/skill_transaction'
 import {
   assertValidProjectTaskRequirementRange,
   getProjectTaskRequirementRangeLevelIds,

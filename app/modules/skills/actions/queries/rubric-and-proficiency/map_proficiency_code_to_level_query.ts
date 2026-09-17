@@ -1,7 +1,7 @@
 import type {
   ProficiencyLevelRecord,
   ProficiencyScaleRepository,
-} from '#modules/skills/actions/ports/outbound/proficiency_scale_repository'
+} from '#modules/skills/actions/ports/outbound/rubric-and-proficiency/proficiency_scale_repository'
 import type { SkillTransaction } from '#modules/skills/actions/ports/outbound/skill_transaction'
 import { findMatchingProficiencyLevel } from '#modules/skills/public_contracts/rubric-and-proficiency/proficiency_level_mapping'
 

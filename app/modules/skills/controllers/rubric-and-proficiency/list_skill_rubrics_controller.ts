@@ -1,11 +1,11 @@
 import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 
-import ListSkillRubricVersionsQuery from '#modules/skills/actions/queries/list_skill_rubric_versions_query'
+import ListSkillRubricVersionsQuery from '#modules/skills/actions/queries/rubric-and-proficiency/list_skill_rubric_versions_query'
 import {
   findCanonicalProficiencyLevelOption,
   getCanonicalProficiencyLevelValue,
-} from '#modules/skills/public_contracts/proficiency_level_catalog'
+} from '#modules/skills/public_contracts/rubric-and-proficiency/proficiency_level_catalog'
 
 function mapCanonicalLevelDisplay(level: { code: string; display_name?: string | null }) {
   const option =

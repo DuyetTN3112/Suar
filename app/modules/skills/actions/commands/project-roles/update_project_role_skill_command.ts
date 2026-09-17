@@ -9,7 +9,7 @@ import type {
   ProjectProfessionalRoleSkillRecord,
   UpdateProjectProfessionalRoleSkillRecord,
 } from '#modules/skills/actions/ports/outbound/professional_role_repository'
-import type { ProficiencyScaleRepository } from '#modules/skills/actions/ports/outbound/proficiency_scale_repository'
+import type { ProficiencyScaleRepository } from '#modules/skills/actions/ports/outbound/rubric-and-proficiency/proficiency_scale_repository'
 import type {
   SkillTransaction,
   SkillTransactionRunner,

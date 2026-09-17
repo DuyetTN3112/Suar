@@ -3,12 +3,12 @@ import type { HttpContext } from '@adonisjs/core/http'
 
 import { camelizeResponseValue } from '../mappers/response/skill-catalog/camelize_response.js'
 
-import GetProficiencyScaleQuery from '#modules/skills/actions/queries/get_proficiency_scale_query'
+import GetProficiencyScaleQuery from '#modules/skills/actions/queries/rubric-and-proficiency/get_proficiency_scale_query'
 import {
   findCanonicalProficiencyLevelOption,
   getCanonicalProficiencyLevelValue,
-} from '#modules/skills/public_contracts/proficiency_level_catalog'
-import { buildProficiencyFrameworkDescriptor } from '#modules/skills/public_contracts/proficiency_level_mapping'
+} from '#modules/skills/public_contracts/rubric-and-proficiency/proficiency_level_catalog'
+import { buildProficiencyFrameworkDescriptor } from '#modules/skills/public_contracts/rubric-and-proficiency/proficiency_level_mapping'
 
 function mapCanonicalLevelDisplay(level: {
   code: string
