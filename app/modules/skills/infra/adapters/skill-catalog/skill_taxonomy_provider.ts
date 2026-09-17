@@ -1,16 +1,10 @@
-import { Buffer } from 'node:buffer'
-import { createHmac, timingSafeEqual } from 'node:crypto'
+import { SkillTaxonomyCursorVerifier } from './skill_taxonomy_cursor_verifier.js'
 
 import type {
   SkillTaxonomyCatalogReader,
   SkillTaxonomyCatalogSnapshot,
   SkillTaxonomySourceTerm,
 } from '#modules/skills/actions/ports/outbound/skill_taxonomy_catalog_reader'
-import {
-  buildTaxonomyAncestorPaths,
-  canonicalTaxonomyRef,
-  validateTaxonomyGraph,
-} from '#modules/taxonomy/public_contracts/taxonomy-governance/taxonomy_term_contracts'
 import type {
   TaxonomyAccessContext,
   TaxonomyAliasResolution,
@@ -18,10 +12,12 @@ import type {
   TaxonomyTermSearchInput,
   TaxonomyTermSearchResult,
 } from '#modules/taxonomy/public_contracts/taxonomy-governance/taxonomy_provider'
+import { TaxonomyProviderUnavailableError } from '#modules/taxonomy/public_contracts/taxonomy-governance/taxonomy_provider'
 import {
-  TaxonomyCursorError,
-  TaxonomyProviderUnavailableError,
-} from '#modules/taxonomy/public_contracts/taxonomy-governance/taxonomy_provider'
+  buildTaxonomyAncestorPaths,
+  canonicalTaxonomyRef,
+  validateTaxonomyGraph,
+} from '#modules/taxonomy/public_contracts/taxonomy-governance/taxonomy_term_contracts'
 
 type TaxonomyTerm = Awaited<ReturnType<TaxonomyProvider['resolveTerms']>>[number]
 type TaxonomyTermRef = Parameters<TaxonomyProvider['resolveTerms']>[0][number]
@@ -30,18 +26,9 @@ interface SkillTaxonomyProviderOptions {
   readonly cursorSigningKey: string
 }
 
-interface CursorPayload {
-  readonly format: 1
-  readonly offset: number
-  readonly scope: string
-  readonly version: number
-}
-
 const SKILL_TAXONOMY_NAMESPACE = 'skills'
 const DEFAULT_LOCALE = 'en'
 const MAX_PAGE_SIZE = 200
-const MAX_CURSOR_SIZE = 1_024
-const MIN_CURSOR_SIGNING_KEY_LENGTH = 32
 
 function normalizeTaxonomyMatchValue(value: string): string {
   return value.normalize('NFKC').trim().replace(/\s+/gu, ' ').toLocaleLowerCase('en-US')
@@ -152,132 +139,6 @@ function visiblePublishedTerms(
   return terms
 }
 
-function canonicalJson(
-  value: unknown,
-  visiting = new WeakSet<object>(),
-  depth = 0,
-  budget: { nodes: number } = { nodes: 0 }
-): string {
-  if (depth > 20) throw new TaxonomyCursorError('invalid')
-  budget.nodes += 1
-  if (budget.nodes > 1_000) throw new TaxonomyCursorError('invalid')
-  if (value === null) return 'null'
-  if (typeof value === 'string' || typeof value === 'boolean') return JSON.stringify(value)
-  if (typeof value === 'number') {
-    if (!Number.isFinite(value)) throw new TaxonomyCursorError('invalid')
-    return JSON.stringify(value)
-  }
-  if (Array.isArray(value)) {
-    if (visiting.has(value)) throw new TaxonomyCursorError('invalid')
-    visiting.add(value)
-    const serialized = `[${value
-      .map((item) => canonicalJson(item, visiting, depth + 1, budget))
-      .join(',')}]`
-    visiting.delete(value)
-    return serialized
-  }
-  if (typeof value === 'object') {
-    if (visiting.has(value)) throw new TaxonomyCursorError('invalid')
-    const prototype = Reflect.getPrototypeOf(value)
-    if (prototype !== Object.prototype && prototype !== null) {
-      throw new TaxonomyCursorError('invalid')
-    }
-    visiting.add(value)
-    const serialized = `{${Object.entries(value)
-      .sort(([left], [right]) => left.localeCompare(right))
-      .map(
-        ([key, item]) =>
-          `${JSON.stringify(key)}:${canonicalJson(item, visiting, depth + 1, budget)}`
-      )
-      .join(',')}}`
-    visiting.delete(value)
-    return serialized
-  }
-  throw new TaxonomyCursorError('invalid')
-}
-
-function hmac(value: string, signingKey: string): string {
-  return createHmac('sha256', signingKey).update(value, 'utf8').digest('base64url')
-}
-
-function cursorScope(
-  input: TaxonomyTermSearchInput,
-  context: TaxonomyAccessContext | undefined,
-  signingKey: string,
-  fallbackLocale: string
-): string {
-  return hmac(
-    canonicalJson({
-      access: {
-        attributes: context?.attributes ?? {},
-        authorizationToken: context?.authorizationToken ?? null,
-      },
-      includeInactive: input.includeInactive === true,
-      locale: normalizeLocale(input.locale, fallbackLocale),
-      query: normalizeTaxonomyMatchValue(input.query),
-    }),
-    signingKey
-  )
-}
-
-function encodeCursor(payload: CursorPayload, signingKey: string): string {
-  const body = Buffer.from(canonicalJson(payload), 'utf8').toString('base64url')
-  return `${body}.${hmac(body, signingKey)}`
-}
-
-function isCursorPayload(value: unknown): value is CursorPayload {
-  if (value === null || typeof value !== 'object' || Array.isArray(value)) return false
-  const candidate = value as Record<string, unknown>
-  return (
-    Object.keys(candidate).sort().join(',') === 'format,offset,scope,version' &&
-    candidate['format'] === 1 &&
-    Number.isSafeInteger(candidate['offset']) &&
-    Number(candidate['offset']) >= 0 &&
-    typeof candidate['scope'] === 'string' &&
-    /^[A-Za-z0-9_-]{43}$/u.test(candidate['scope']) &&
-    Number.isSafeInteger(candidate['version']) &&
-    Number(candidate['version']) >= 1
-  )
-}
-
-function decodeCursor(
-  cursor: string | undefined,
-  expectedVersion: number,
-  expectedScope: string,
-  signingKey: string
-): number {
-  if (cursor === undefined) return 0
-  if (cursor.length === 0 || cursor.length > MAX_CURSOR_SIZE) {
-    throw new TaxonomyCursorError('invalid')
-  }
-  const [body, signature, extra] = cursor.split('.')
-  if (
-    !body ||
-    !signature ||
-    extra !== undefined ||
-    !/^[A-Za-z0-9_-]+$/u.test(body) ||
-    !/^[A-Za-z0-9_-]{43}$/u.test(signature)
-  ) {
-    throw new TaxonomyCursorError('invalid')
-  }
-  const expectedSignature = hmac(body, signingKey)
-  const actualBytes = Buffer.from(signature, 'utf8')
-  const expectedBytes = Buffer.from(expectedSignature, 'utf8')
-  if (actualBytes.length !== expectedBytes.length || !timingSafeEqual(actualBytes, expectedBytes)) {
-    throw new TaxonomyCursorError('invalid')
-  }
-  try {
-    const payload: unknown = JSON.parse(Buffer.from(body, 'base64url').toString('utf8'))
-    if (!isCursorPayload(payload)) throw new TaxonomyCursorError('invalid')
-    if (payload.version !== expectedVersion) throw new TaxonomyCursorError('stale')
-    if (payload.scope !== expectedScope) throw new TaxonomyCursorError('invalid')
-    return payload.offset
-  } catch (error) {
-    if (error instanceof TaxonomyCursorError) throw error
-    throw new TaxonomyCursorError('invalid')
-  }
-}
-
 function pageSize(limit: number): number {
   if (!Number.isFinite(limit)) return 0
   return Math.min(Math.max(Math.trunc(limit), 0), MAX_PAGE_SIZE)
@@ -293,16 +154,13 @@ function taxonomyCollator(locale: string, fallbackLocale: string): Intl.Collator
 export class SkillTaxonomyProvider implements TaxonomyProvider<TaxonomyAccessContext> {
   readonly namespace = SKILL_TAXONOMY_NAMESPACE
   readonly fallbackLocale = DEFAULT_LOCALE
-  readonly #cursorSigningKey: string
+  readonly #cursorVerifier: SkillTaxonomyCursorVerifier
 
   constructor(
     private readonly reader: SkillTaxonomyCatalogReader,
     options: SkillTaxonomyProviderOptions
   ) {
-    if (options.cursorSigningKey.length < MIN_CURSOR_SIGNING_KEY_LENGTH) {
-      throw new TypeError('Skill taxonomy cursor signing key must contain at least 32 characters')
-    }
-    this.#cursorSigningKey = options.cursorSigningKey
+    this.#cursorVerifier = new SkillTaxonomyCursorVerifier(options.cursorSigningKey)
   }
 
   async getVersion(): Promise<number> {
@@ -365,22 +223,20 @@ export class SkillTaxonomyProvider implements TaxonomyProvider<TaxonomyAccessCon
         )
       })
 
-    const scope = cursorScope(input, accessContext, this.#cursorSigningKey, this.fallbackLocale)
+    const scope = this.#cursorVerifier.computeScope(input, accessContext, locale, query)
     const limit = pageSize(input.limit)
-    const offset = decodeCursor(input.cursor, snapshot.version, scope, this.#cursorSigningKey)
+    const offset = this.#cursorVerifier.decodeCursor(input.cursor, snapshot.version, scope)
     const items = matches.slice(offset, offset + limit)
     const nextOffset = offset + items.length
     return {
       items,
       nextCursor:
         limit > 0 && nextOffset < matches.length
-          ? encodeCursor(
-              { format: 1, version: snapshot.version, offset: nextOffset, scope },
-              this.#cursorSigningKey
-            )
+          ? this.#cursorVerifier.encodeCursor(nextOffset, snapshot.version, scope)
           : null,
     }
   }
+
 
   async getAncestorPaths(
     refs: readonly TaxonomyTermRef[],

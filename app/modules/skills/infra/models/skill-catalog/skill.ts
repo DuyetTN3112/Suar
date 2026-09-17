@@ -3,8 +3,9 @@ import type { HasMany } from '@adonisjs/lucid/types/relations'
 import { DateTime } from 'luxon'
 
 import ProjectSkill from '../project-skills/project_skill.js'
-import SkillAlias from './skill_alias.js'
 import SkillRubricVersion from '../rubric-and-proficiency/skill_rubric_version.js'
+
+import SkillAlias from './skill_alias.js'
 
 /**
  * Skill Model

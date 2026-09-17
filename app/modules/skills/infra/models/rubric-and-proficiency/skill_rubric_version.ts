@@ -3,6 +3,7 @@ import type { BelongsTo, HasMany } from '@adonisjs/lucid/types/relations'
 import { DateTime } from 'luxon'
 
 import Skill from '../skill-catalog/skill.js'
+
 import SkillRubricLevel from './skill_rubric_level.js'
 
 import type { SkillRubricVersionStatus } from '#modules/skills/public_contracts/skill_constants'

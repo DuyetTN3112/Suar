@@ -1,8 +1,8 @@
-import { BaseCommand } from '#modules/tasks/actions/base_command'
 import BusinessLogicException from '#modules/errors/public_contracts/business_logic_exception'
 import NotFoundException from '#modules/errors/public_contracts/not_found_exception'
 import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
 import ValidationException from '#modules/errors/public_contracts/validation_exception'
+import { BaseCommand } from '#modules/tasks/actions/base_command'
 import type {
   TaskAssignmentExpectedSnapshotDTO,
   TaskAssignmentInteractionCommandDependencies,

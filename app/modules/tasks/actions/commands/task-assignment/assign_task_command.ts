@@ -1,17 +1,11 @@
 import type AssignTaskDTO from '../../dtos/request/assign_task_dto.js'
 
+import { stageAssignmentNotifications } from './assign_task_notification_stager.js'
+import { ensureAssignmentPreconditions } from './assign_task_precondition_validator.js'
+
 import { AuditAction, EntityType } from '#modules/audit/public_contracts/audit_constants'
 import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
-import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
-import InvariantViolationException from '#modules/errors/public_contracts/invariant_violation_exception'
-import NotFoundException from '#modules/errors/public_contracts/not_found_exception'
 import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
-import {
-  BACKEND_NOTIFICATION_ENTITY_TYPES,
-  BACKEND_NOTIFICATION_TYPES,
-  type BackendNotificationType,
-} from '#modules/notifications/public_contracts/notification_constants'
-import { buildNotificationEventId } from '#modules/notifications/public_contracts/notification_event_identity'
 import { PLATFORM_EVENT_NAMES } from '#modules/observability/public_contracts/platform_event_names'
 import {
   platformOperationalLogger,
@@ -27,11 +21,9 @@ import type { TaskExternalDependencies } from '#modules/tasks/actions/ports/outb
 import type { TaskNotificationStager } from '#modules/tasks/actions/ports/outbound/task_notification_stager'
 import type { TaskTransaction } from '#modules/tasks/actions/ports/outbound/task_transaction'
 import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
-import { buildTaskPermissionContext } from '#modules/tasks/actions/task_permission_context'
-import { validateDirectTaskAssignee } from '#modules/tasks/domain/task-assignment/task_assignment_rules'
-import { canAssignTask } from '#modules/tasks/domain/task-assignment/task_permission_policy'
 import { buildTaskAssignmentEvent } from '#modules/tasks/observability/task_event_factory'
-import type { TaskRecord, TaskDetailRecord } from '#modules/tasks/types/task_records'
+import type { TaskDetailRecord, TaskRecord } from '#modules/tasks/types/task_records'
+
 
 interface PersistedTaskAssignment {
   task: TaskRecord
@@ -149,70 +141,6 @@ export default class AssignTaskCommand extends BaseCommand<AssignTaskDTO, TaskDe
     return this.taskExternalDependencies.lifecycle.lockActiveTask(taskId, trx)
   }
 
-  private async ensureAssignmentPreconditions(
-    userId: string,
-    dto: AssignTaskDTO,
-    task: TaskRecord,
-    trx: TaskTransaction
-  ): Promise<void> {
-    const permissionContext = await buildTaskPermissionContext(
-      userId,
-      task,
-      trx,
-      this.taskExternalDependencies.permission
-      , this.taskExternalDependencies.activeAssignmentReader
-    )
-    enforcePolicy(canAssignTask(permissionContext))
-
-    if (!dto.isAssigning() || dto.assigned_to === null) {
-      return
-    }
-
-    const assignee = await this.taskExternalDependencies.user.findUserIdentity(dto.assigned_to, trx)
-    if (!assignee) {
-      throw new NotFoundException('Người được giao không tồn tại')
-    }
-
-    const isProjectMember = Boolean(
-      task.project_id &&
-        (await this.taskExternalDependencies.permission.getProjectRoleName(
-          dto.assigned_to,
-          task.project_id,
-          trx
-        ))
-    )
-    const isActorProjectMember = Boolean(
-      task.project_id &&
-        (await this.taskExternalDependencies.permission.getProjectRoleName(
-          userId,
-          task.project_id,
-          trx
-        ))
-    )
-    const reviewerIds = task.project_id
-      ? await this.taskExternalDependencies.review.listTaskReviewerIds(task.id, trx)
-      : []
-    let isReviewerProjectMember: boolean | undefined
-    if (reviewerIds[0] && task.project_id) {
-      isReviewerProjectMember = Boolean(
-        await this.taskExternalDependencies.permission.getProjectRoleName(
-          reviewerIds[0],
-          task.project_id,
-          trx
-        )
-      )
-    }
-
-    enforcePolicy(
-      validateDirectTaskAssignee({
-        taskVisibility: task.task_visibility ?? 'public',
-        isActorProjectMember,
-        isAssigneeProjectMember: isProjectMember,
-        ...(isReviewerProjectMember === undefined ? {} : { isReviewerProjectMember }),
-      })
-    )
-  }
-
   private async persistAssignment(
     task: TaskRecord,
     dto: AssignTaskDTO,
@@ -264,7 +192,15 @@ export default class AssignTaskCommand extends BaseCommand<AssignTaskDTO, TaskDe
     )
 
     if (dto.shouldNotify()) {
-      await this.stageAssignmentNotifications(updatedTask, userId, dto, oldAssignedTo, trx)
+      await stageAssignmentNotifications(
+        updatedTask,
+        userId,
+        dto,
+        oldAssignedTo,
+        this.taskExternalDependencies,
+        this.notificationStager,
+        trx
+      )
     }
 
     return {
@@ -279,7 +215,7 @@ export default class AssignTaskCommand extends BaseCommand<AssignTaskDTO, TaskDe
   ): Promise<PersistedTaskAssignment> {
     return this.taskExternalDependencies.transactions.run(async (trx) => {
       const task = await this.loadTaskForAssignment(dto.task_id, trx)
-      await this.ensureAssignmentPreconditions(userId, dto, task, trx)
+      await ensureAssignmentPreconditions(userId, dto, task, this.taskExternalDependencies, trx)
       return this.persistAssignment(task, dto, userId, trx)
     })
   }
@@ -320,84 +256,5 @@ export default class AssignTaskCommand extends BaseCommand<AssignTaskDTO, TaskDe
         },
       ],
     })
-  }
-
-  private async stageAssignmentNotifications(
-    task: TaskRecord,
-    assignerId: string,
-    dto: AssignTaskDTO,
-    oldAssignedTo: string | null,
-    trx: TaskTransaction
-  ): Promise<void> {
-    const occurredAt = task.updated_at
-    if (!occurredAt) {
-      throw new InvariantViolationException(
-        'Persisted task assignment transition is missing its update timestamp'
-      )
-    }
-    const assigner = await this.taskExternalDependencies.user.findUserIdentity(assignerId, trx)
-    const assignerName = assigner?.username ?? assigner?.email ?? 'Unknown'
-    const plan: Array<{
-      recipientId: string
-      type: BackendNotificationType
-      eventName: string
-      assignmentChange: 'assigned' | 'unassigned' | 'reassigned'
-    }> = []
-
-    if (dto.isUnassigning() && oldAssignedTo && oldAssignedTo !== assignerId) {
-      plan.push({
-        recipientId: oldAssignedTo,
-        type: BACKEND_NOTIFICATION_TYPES.TASK_UNASSIGNED,
-        eventName: 'task.unassigned',
-        assignmentChange: 'unassigned',
-      })
-    }
-
-    if (dto.isAssigning() && dto.assigned_to !== null && dto.assigned_to !== assignerId) {
-      plan.push({
-        recipientId: dto.assigned_to,
-        type: BACKEND_NOTIFICATION_TYPES.TASK_ASSIGNED,
-        eventName: 'task.assigned',
-        assignmentChange: 'assigned',
-      })
-      if (oldAssignedTo && oldAssignedTo !== dto.assigned_to && oldAssignedTo !== assignerId) {
-        plan.push({
-          recipientId: oldAssignedTo,
-          type: BACKEND_NOTIFICATION_TYPES.TASK_REASSIGNED,
-          eventName: 'task.reassigned',
-          assignmentChange: 'reassigned',
-        })
-      }
-    }
-
-    for (const notification of plan) {
-      await this.notificationStager.stage(
-        {
-          eventId: buildNotificationEventId({
-            eventName: notification.eventName,
-            businessEventId: `${task.id}:${oldAssignedTo ?? 'none'}:${dto.assigned_to ?? 'none'}:${occurredAt}`,
-            recipientId: notification.recipientId,
-          }),
-          schemaVersion: 1,
-          type: notification.type,
-          recipientId: notification.recipientId,
-          scope: { kind: 'organization', id: task.organization_id },
-          actor: { type: 'user', id: assignerId },
-          subject: {
-            type: BACKEND_NOTIFICATION_ENTITY_TYPES.TASK,
-            id: task.id,
-          },
-          parameters: {
-            taskTitle: task.title,
-            assignerName,
-            assignmentChange: notification.assignmentChange,
-            ...(dto.reason === undefined ? {} : { reason: dto.reason }),
-          },
-          occurredAt,
-          correlationId: `${task.id}:${occurredAt}`,
-        },
-        { trx }
-      )
-    }
   }
 }

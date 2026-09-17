@@ -1,8 +1,8 @@
 import BusinessLogicException from '#modules/errors/public_contracts/business_logic_exception'
+import { BaseCommand } from '#modules/tasks/actions/base_command'
 import type { TaskAttachmentStorage } from '#modules/tasks/actions/ports/outbound/task_attachment_storage'
 import type { TaskExternalDependencies } from '#modules/tasks/actions/ports/outbound/task_external_dependencies'
 import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
-import { BaseCommand } from '#modules/tasks/actions/base_command'
 import {
   assertTaskCompletionPackageAccess,
   loadTaskForCompletionPackage,

@@ -4,7 +4,7 @@ import ValidationException from '#modules/errors/public_contracts/validation_exc
 import {
   getCanonicalProficiencyLevelValue,
   isCanonicalProficiencyLevelCode,
-} from '#modules/skills/public_contracts/proficiency_framework'
+} from '#modules/skills/public_contracts/rubric-and-proficiency/proficiency_framework'
 import type { TaskSkillReader } from '#modules/tasks/actions/ports/outbound/task_external_dependencies'
 import type {
   TaskRequirementImportance,
@@ -17,7 +17,7 @@ import type { TaskTransactionRunner } from '#modules/tasks/actions/ports/outboun
 import {
   getTaskRequirementLevelConfigurationViolation,
   getTaskRequirementValueViolation,
-} from '#modules/tasks/domain/task_skill_requirement_rules'
+} from '#modules/tasks/domain/task-requirements/task_skill_requirement_rules'
 
 type OptionalPayloadKeys<T extends object> = {
   [Key in keyof T]-?: undefined extends T[Key] ? Key : never

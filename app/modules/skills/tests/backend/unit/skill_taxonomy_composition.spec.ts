@@ -1,8 +1,8 @@
 import app from '@adonisjs/core/services/app'
 import { test } from '@japa/runner'
 
-import { skillTaxonomyProvider } from '#composition/skills/skill-taxonomy/skill_taxonomy_composition'
 import SkillsCatalogProvider from '#composition/skills/skill-catalog/skills_catalog_provider'
+import { skillTaxonomyProvider } from '#composition/skills/skill-taxonomy/skill_taxonomy_composition'
 import { SkillTaxonomyProvider } from '#modules/skills/infra/adapters/skill-catalog/skill_taxonomy_provider'
 
 test.group('Skill taxonomy composition', () => {

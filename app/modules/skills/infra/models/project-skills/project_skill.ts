@@ -2,9 +2,9 @@ import { BaseModel, column, belongsTo } from '@adonisjs/lucid/orm'
 import type { BelongsTo } from '@adonisjs/lucid/types/relations'
 import { DateTime } from 'luxon'
 
-import Skill from '../skill-catalog/skill.js'
-import SkillRubricVersion from '../rubric-and-proficiency/skill_rubric_version.js'
 import ProficiencyLevel from '../rubric-and-proficiency/proficiency_level.js'
+import SkillRubricVersion from '../rubric-and-proficiency/skill_rubric_version.js'
+import Skill from '../skill-catalog/skill.js'
 
 export default class ProjectSkill extends BaseModel {
   static override table = 'project_skills'

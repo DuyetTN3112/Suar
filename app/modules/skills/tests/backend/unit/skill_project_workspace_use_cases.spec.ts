@@ -1,5 +1,6 @@
 import { test } from '@japa/runner'
 
+import type CreateCustomProjectRoleCommand from '#modules/skills/actions/commands/project-roles/create_custom_project_role_command'
 import type AddProjectSkillCommand from '#modules/skills/actions/commands/project-skills/add_project_skill_command'
 import AuthorizeSkillProjectAccessCommand from '#modules/skills/actions/commands/project-skills/authorize_skill_project_access_command'
 import {
@@ -7,7 +8,6 @@ import {
   CreateProjectRoleWorkspaceCommand,
 } from '#modules/skills/actions/commands/project-skills/skill_project_workspace_commands'
 import type CloneProfessionalRoleTemplateCommand from '#modules/skills/actions/commands/skill-catalog/clone_professional_role_template_command'
-import type CreateCustomProjectRoleCommand from '#modules/skills/actions/commands/project-roles/create_custom_project_role_command'
 import type { SkillProjectAccessAuthorizer } from '#modules/skills/actions/ports/outbound/skill_project_access_authorizer'
 import type ListProjectSkillsQuery from '#modules/skills/actions/queries/project-skills/list_project_skills_query'
 import { ListProjectSkillsWorkspaceQuery } from '#modules/skills/actions/queries/project-skills/skill_project_workspace_queries'
@@ -43,13 +43,15 @@ test.group('Unit | Skill project workspace use cases', () => {
         return Promise.resolve()
       },
     }
+    const emptyAudit = {}
     const command = new AddProjectSkillWorkspaceCommand(
       context,
       new AuthorizeSkillProjectAccessCommand(authorizer),
       {
         execute: (input: unknown) => {
           calls.push({ type: 'add', input })
-          return Promise.resolve({ id: 'project-skill-1' } as never)
+          const skillResult = { id: 'project-skill-1' }
+          return Promise.resolve(skillResult as never)
         },
       } as unknown as AddProjectSkillCommand
     )
@@ -57,7 +59,7 @@ test.group('Unit | Skill project workspace use cases', () => {
     await command.execute({
       projectId: 'project-1',
       skillId: 'skill-1',
-      auditContext: {} as never,
+      auditContext: emptyAudit as never,
     })
 
     assert.deepEqual(calls, [
@@ -83,6 +85,7 @@ test.group('Unit | Skill project workspace use cases', () => {
   })
 
   test('role creation branch is orchestrated after authorization', async ({ assert }) => {
+    const emptyAudit = {}
     const calls: string[] = []
     const authorizer: SkillProjectAccessAuthorizer = {
       enforce: () => {
@@ -96,13 +99,15 @@ test.group('Unit | Skill project workspace use cases', () => {
       {
         execute: () => {
           calls.push('clone')
-          return Promise.resolve({ id: 'role-1' } as never)
+          const role1 = { id: 'role-1' }
+          return Promise.resolve(role1 as never)
         },
       } as unknown as CloneProfessionalRoleTemplateCommand,
       {
         execute: () => {
           calls.push('custom')
-          return Promise.resolve({ id: 'role-2' } as never)
+          const role2 = { id: 'role-2' }
+          return Promise.resolve(role2 as never)
         },
       } as unknown as CreateCustomProjectRoleCommand
     )
@@ -110,7 +115,7 @@ test.group('Unit | Skill project workspace use cases', () => {
     await command.execute({
       projectId: 'project-1',
       templateId: 'template-1',
-      auditContext: {} as never,
+      auditContext: emptyAudit as never,
     })
 
     assert.deepEqual(calls, ['authorize', 'clone'])

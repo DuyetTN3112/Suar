@@ -3,7 +3,7 @@ import ValidationException from '#modules/errors/public_contracts/validation_exc
 import type { TaskSkillReader } from '#modules/tasks/actions/ports/outbound/task_external_dependencies'
 import type { TaskRequirementReader, TaskRequirementWriter } from '#modules/tasks/actions/ports/outbound/task_requirement_repository'
 import type { TaskTransactionRunner } from '#modules/tasks/actions/ports/outbound/task_transaction'
-import { countTaskRequiredSkillCategories, formatTaskRequiredSkillCategoryViolations, getTaskRequiredSkillCategoryViolations } from '#modules/tasks/domain/task_required_skill_category_rules'
+import { countTaskRequiredSkillCategories, formatTaskRequiredSkillCategoryViolations, getTaskRequiredSkillCategoryViolations } from '#modules/tasks/domain/task-requirements/task_required_skill_category_rules'
 
 export default class RemoveTaskRequirementCommand {
   constructor(

@@ -6,25 +6,28 @@ import type {
   TaskUserReader,
 } from '../../ports/outbound/task_external_dependencies.js'
 
+import {
+  buildTaskAuthoringSubject,
+  createTaskVersionIfNeeded,
+  ensureParentUpdateBoundary,
+  ensureUpdateVersionMatches,
+} from './update_task_persistence_boundaries.js'
+
 import { AuditAction, EntityType } from '#modules/audit/public_contracts/audit_constants'
 import { auditPublicApi, type AuditLogData } from '#modules/audit/public_contracts/audit_log_writer'
 import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
 import { PolicyResult as PR } from '#modules/authorization/public_contracts/policy_result'
-import ConflictException from '#modules/errors/public_contracts/conflict_exception'
 import DependencyUnavailableException from '#modules/errors/public_contracts/dependency_unavailable_exception'
 import InvariantViolationException from '#modules/errors/public_contracts/invariant_violation_exception'
 import { synchronizeTaskAssignment } from '#modules/tasks/actions/commands/internal/synchronize_task_assignment'
 import { synchronizeTaskAssignmentContractForTask } from '#modules/tasks/actions/commands/internal/synchronize_task_assignment_contract'
 import { safeTaskAuthoringAuditValues } from '#modules/tasks/actions/commands/task-authoring/internal/task_authoring_audit_values'
 import type UpdateTaskDTO from '#modules/tasks/actions/dtos/request/update_task_dto'
-import { hasTaskVersionRelevantChanges } from '#modules/tasks/actions/mappers/task_version_snapshot_mapper'
-import type { TaskAuthoringSubject } from '#modules/tasks/actions/ports/outbound/task-authoring/task_authoring_create_coordinator'
-import type { TaskLifecycleRepository } from '#modules/tasks/actions/ports/outbound/task_lifecycle_repository'
 import type { TaskTransaction } from '#modules/tasks/actions/ports/outbound/task_transaction'
 import type { TaskVersionWriter } from '#modules/tasks/actions/ports/outbound/task_version_writer'
 import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
 import { buildTaskPermissionContext } from '#modules/tasks/actions/task_permission_context'
-import { validateDirectTaskAssignee } from '#modules/tasks/domain/task-assignment/task_assignment_rules'
+import { validateAssignee } from '#modules/tasks/domain/task-assignment/task_assignment_rules'
 import { canUpdateTaskFields } from '#modules/tasks/domain/task-assignment/task_permission_policy'
 import { TaskVisibility } from '#modules/tasks/public_contracts/task_constants'
 import type { TaskAuthoringSummaryRecord, TaskRecord } from '#modules/tasks/types/task_records'
@@ -48,12 +51,6 @@ type ProjectReaderLike = Pick<TaskProjectReader, 'ensureProjectBelongsToOrganiza
 type OrganizationReaderLike = Pick<TaskOrgReader, 'isApprovedMember'>
 type UserReaderLike = Pick<TaskUserReader, 'isExternalContributor'>
 type ReviewReaderLike = Pick<TaskReviewReader, 'hasAnyReviewForTask' | 'hasTaskReviewWorkflow'>
-
-interface TaskParentRow {
-  id: string
-  organization_id: string
-  parent_task_id: string | null
-}
 
 export interface PersistedTaskUpdate {
   task: TaskRecord
@@ -90,126 +87,6 @@ const defaultDependencies: UpdateTaskPersistenceDependencies = {
   buildTaskPermissionContext,
 }
 
-async function createTaskVersionIfNeeded(
-  task: TaskRecord,
-  oldValues: Record<string, unknown>,
-  changedBy: string,
-  trx: TaskTransaction,
-  taskVersionRepository: TaskVersionRepositoryPort
-): Promise<void> {
-  const newValues = { ...task }
-  if (!hasTaskVersionRelevantChanges(oldValues, newValues)) return
-
-  await taskVersionRepository.createSnapshot(task.id, oldValues, changedBy, trx)
-}
-
-async function findActiveTaskParentRow(
-  tasks: TaskLifecycleRepository,
-  trx: TaskTransaction,
-  taskId: string
-): Promise<TaskParentRow | null> {
-  return tasks.findActiveParent(taskId, trx)
-}
-
-async function ensureParentUpdateBoundary(
-  input: UpdateTaskPersistenceInput,
-  existingTask: TaskRecord
-): Promise<void> {
-  if (input.dto.parent_task_id === undefined || input.dto.parent_task_id === null) {
-    return
-  }
-
-  const requestedParentId = input.dto.parent_task_id
-
-  if (requestedParentId === input.taskId) {
-    enforcePolicy(PR.deny('Task cha không được là chính task hiện tại', 'BUSINESS_RULE'))
-  }
-
-  const requestedParent = await findActiveTaskParentRow(
-    input.externalDependencies.lifecycle,
-    input.trx,
-    requestedParentId
-  )
-
-  if (!requestedParent) {
-    enforcePolicy(PR.deny('Task cha không tồn tại', 'BUSINESS_RULE'))
-    return
-  }
-
-  if (requestedParent.organization_id !== existingTask.organization_id) {
-    enforcePolicy(PR.deny('Task cha phải thuộc cùng tổ chức với task con', 'BUSINESS_RULE'))
-  }
-
-  const visitedTaskIds = new Set<string>([requestedParentId])
-  let ancestorId = requestedParent.parent_task_id
-
-  while (ancestorId) {
-    if (ancestorId === input.taskId) {
-      enforcePolicy(PR.deny('Không thể tạo vòng lặp phân cấp task', 'BUSINESS_RULE'))
-    }
-
-    if (visitedTaskIds.has(ancestorId)) {
-      enforcePolicy(PR.deny('Phân cấp task hiện tại đã có vòng lặp', 'BUSINESS_RULE'))
-    }
-
-    visitedTaskIds.add(ancestorId)
-    const ancestor = await findActiveTaskParentRow(
-      input.externalDependencies.lifecycle,
-      input.trx,
-      ancestorId
-    )
-
-    if (!ancestor) {
-      break
-    }
-
-    if (ancestor.organization_id !== existingTask.organization_id) {
-      enforcePolicy(PR.deny('Task cha phải thuộc cùng tổ chức với task con', 'BUSINESS_RULE'))
-    }
-
-    ancestorId = ancestor.parent_task_id
-  }
-}
-
-function ensureUpdateVersionMatches(dto: UpdateTaskDTO, existingTask: TaskRecord): void {
-  if (!dto.expected_updated_at) {
-    return
-  }
-
-  if (!existingTask.updated_at || existingTask.updated_at !== dto.expected_updated_at) {
-    throw new ConflictException(
-      'Task đã được cập nhật bởi người khác. Vui lòng tải lại trước khi sửa tiếp.'
-    )
-  }
-}
-
-function buildTaskAuthoringSubject(
-  dto: UpdateTaskDTO,
-  task: TaskRecord
-): TaskAuthoringSubject {
-  if (!dto.authoring) {
-    throw new InvariantViolationException('Task authoring update is missing authoring metadata')
-  }
-  const projectId = task.project_id
-  if (!projectId) {
-    throw new InvariantViolationException('Task authoring requires a project-scoped Task')
-  }
-  const subject = {
-    title: task.title,
-    description: task.description,
-    task_visibility: task.task_visibility ?? TaskVisibility.INTERNAL,
-    assigned_to: task.assigned_to,
-    organization_id: task.organization_id,
-    project_id: projectId,
-    authoring: dto.authoring,
-  }
-
-  return {
-    ...subject,
-    toObject: () => ({ ...subject }),
-  }
-}
-
 export async function persistTaskUpdateWithinTransaction(
   input: UpdateTaskPersistenceInput,
   dependencies: Partial<UpdateTaskPersistenceDependencies> = {}
@@ -219,6 +96,8 @@ export async function persistTaskUpdateWithinTransaction(
     ...dependencies,
   }
   const projectReader = deps.projectReader ?? input.externalDependencies.project
+  const orgReader = deps.orgReader ?? input.externalDependencies.org
+  const userReader = deps.userReader ?? input.externalDependencies.user
   const reviewReader = deps.reviewReader ?? input.externalDependencies.review
   const permissionReader = input.externalDependencies.permission
   const taskRepository = deps.taskRepository ?? input.externalDependencies.lifecycle
@@ -289,7 +168,16 @@ export async function persistTaskUpdateWithinTransaction(
     ? input.dto.assigned_to
     : existingTask.assigned_to
 
-  if (candidateAssignedTo !== null && candidateAssignedTo !== undefined) {
+  if (candidateAssignedTo !== null) {
+    const isApprovedMember = await orgReader.isApprovedMember(
+      candidateAssignedTo,
+      existingTask.organization_id,
+      input.trx
+    )
+    const isExternalContributor = await userReader.isExternalContributor(
+      candidateAssignedTo,
+      input.trx
+    )
     const isProjectMember = Boolean(
       existingTask.project_id &&
         (await permissionReader.getProjectRoleName(
@@ -298,32 +186,14 @@ export async function persistTaskUpdateWithinTransaction(
           input.trx
         ))
     )
-    const isActorProjectMember = Boolean(
-      existingTask.project_id &&
-        (await permissionReader.getProjectRoleName(input.userId, existingTask.project_id, input.trx))
-    )
-    const incomingReviewerIds = input.dto.authoring?.evidence_contract?.verifierPolicy?.reviewerIds
-    const reviewerIds = incomingReviewerIds ?? (existingTask.project_id
-      ? await input.externalDependencies.review.listTaskReviewerIds(existingTask.id, input.trx)
-      : [])
-    let isReviewerProjectMember: boolean | undefined
-    if (reviewerIds[0] && existingTask.project_id) {
-      isReviewerProjectMember = Boolean(
-        await permissionReader.getProjectRoleName(
-          reviewerIds[0],
-          existingTask.project_id,
-          input.trx
-        )
-      )
-    }
 
     enforcePolicy(
-      validateDirectTaskAssignee({
+      validateAssignee({
+        isOrgMember: isApprovedMember,
+        isExternalContributor,
+        isProjectMember,
         taskVisibility:
           input.dto.task_visibility ?? existingTask.task_visibility ?? TaskVisibility.INTERNAL,
-        isActorProjectMember,
-        isAssigneeProjectMember: isProjectMember,
-        ...(isReviewerProjectMember === undefined ? {} : { isReviewerProjectMember }),
       })
     )
   }

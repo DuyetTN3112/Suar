@@ -4,11 +4,12 @@ import ValidationException from '#modules/errors/public_contracts/validation_exc
 import { buildSprintBoardRequest } from '#modules/sprints/controllers/mappers/request/sprint-board/sprint_board_request_mapper'
 
 function fakeRequest(input: Record<string, unknown>) {
-  return {
+  const req = {
     input(key: string) {
       return input[key]
     },
-  } as never
+  }
+  return req as never
 }
 
 test.group('Unit | Sprint board request mapper', () => {

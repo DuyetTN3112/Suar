@@ -1,8 +1,8 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 import ProjectSkill from '#modules/skills/infra/models/project-skills/project_skill'
-import Skill from '#modules/skills/infra/models/skill-catalog/skill'
 import SkillRubricVersion from '#modules/skills/infra/models/rubric-and-proficiency/skill_rubric_version'
+import Skill from '#modules/skills/infra/models/skill-catalog/skill'
 
 export type { ProjectSkill }
 

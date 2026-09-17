@@ -1,14 +1,14 @@
 import type { ProjectSprintUpdateAttributes } from '#modules/sprints/domain/project-sprint/project_sprint_policy'
 import type {
-  ProjectSprintAssignmentHistoryRecord,
-  SprintAssignmentEntryReason,
-  SprintAssignmentExitReason,
-} from '#modules/sprints/public_contracts/task-sprint-assignment/project_sprint_assignment_history'
-import type {
   ProjectSprintCoreStatus,
   ProjectSprintRecord,
   SprintTaskAssignmentRecord,
 } from '#modules/sprints/public_contracts/sprint_public_api'
+import type {
+  ProjectSprintAssignmentHistoryRecord,
+  SprintAssignmentEntryReason,
+  SprintAssignmentExitReason,
+} from '#modules/sprints/public_contracts/task-sprint-assignment/project_sprint_assignment_history'
 
 export type SprintTransaction = object
 

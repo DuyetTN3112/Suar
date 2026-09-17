@@ -13,13 +13,13 @@ import {
 } from '#modules/sprints/actions/ports/outbound/sprint_repository'
 import type { ProjectSprintUpdateAttributes } from '#modules/sprints/domain/project-sprint/project_sprint_policy'
 import type {
-  ProjectSprintAssignmentHistoryRecord,
-  SprintAssignmentEntryReason,
-} from '#modules/sprints/public_contracts/task-sprint-assignment/project_sprint_assignment_history'
-import type {
   ProjectSprintRecord,
   SprintTaskAssignmentRecord,
 } from '#modules/sprints/public_contracts/sprint_public_api'
+import type {
+  ProjectSprintAssignmentHistoryRecord,
+  SprintAssignmentEntryReason,
+} from '#modules/sprints/public_contracts/task-sprint-assignment/project_sprint_assignment_history'
 
 function transactionClient(trx: SprintTransaction): TransactionClientContract {
   return trx as TransactionClientContract

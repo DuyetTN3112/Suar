@@ -1,6 +1,6 @@
 import ConflictException from '#modules/errors/public_contracts/conflict_exception'
 import NotFoundException from '#modules/errors/public_contracts/not_found_exception'
-import { getCanonicalProficiencyLevelValue } from '#modules/skills/public_contracts/proficiency_framework'
+import { getCanonicalProficiencyLevelValue } from '#modules/skills/public_contracts/rubric-and-proficiency/proficiency_framework'
 import type { TaskSkillReader } from '#modules/tasks/actions/ports/outbound/task_external_dependencies'
 import type { TaskRequirementReader, TaskRequirementWriter } from '#modules/tasks/actions/ports/outbound/task_requirement_repository'
 import type { TaskTransactionRunner } from '#modules/tasks/actions/ports/outbound/task_transaction'

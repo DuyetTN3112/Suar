@@ -8,17 +8,16 @@ import ListSkillRubricsController from '#modules/skills/controllers/rubric-and-p
 test('list skill rubrics unwraps query failures through executeAndWrap', async ({ assert }) => {
   const failure = new ForbiddenException('Skill rubric access denied')
   const query = {
-    executeAndWrap: async () => Result.fail(failure),
-    execute: async () => {
-      throw new Error('controller must use wrapped execution')
-    },
+    executeAndWrap: () => Promise.resolve(Result.fail(failure)),
+    execute: () => Promise.reject(new Error('controller must use wrapped execution')),
   }
 
   let thrown: unknown
   try {
-    await new ListSkillRubricsController(query as never).handle({
+    const ctx = {
       params: { skillId: 'skill-1' },
-    } as never)
+    }
+    await new ListSkillRubricsController(query as never).handle(ctx as never)
   } catch (error: unknown) {
     thrown = error
   }
@@ -27,10 +26,11 @@ test('list skill rubrics unwraps query failures through executeAndWrap', async (
 })
 
 test('list skill rubric query keeps execute compatibility while exposing a Result wrapper', async ({ assert }) => {
-  const versions = [{ id: 'version-1' }] as never
+  const versionsObj = [{ id: 'version-1' }]
+  const versions = versionsObj as never
   const repository = {
-    findSkill: async () => ({ is_active: true }),
-    findVersionsBySkillWithLevels: async () => versions,
+    findSkill: () => Promise.resolve({ is_active: true }),
+    findVersionsBySkillWithLevels: () => Promise.resolve(versions),
   }
   const query = new ListSkillRubricVersionsQuery(repository as never)
 
