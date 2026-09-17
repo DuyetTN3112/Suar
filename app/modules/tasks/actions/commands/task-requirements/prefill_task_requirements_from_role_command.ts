@@ -37,11 +37,13 @@ export default class PrefillTaskRequirementsFromRoleCommand {
     }
   }
 
-  async execute(
+  execute(
     _input: PrefillTaskRequirementsFromRoleInput
   ): Promise<PrefillTaskRequirementsFromRoleResult> {
-    throw new ValidationException(
-      'Vai trò chỉ dùng để lọc người phù hợp; không tự thêm kỹ năng hoặc mức yêu cầu vào Task'
+    return Promise.reject(
+      new ValidationException(
+        'Vai trò chỉ dùng để lọc người phù hợp; không tự thêm kỹ năng hoặc mức yêu cầu vào Task'
+      )
     )
   }
 }

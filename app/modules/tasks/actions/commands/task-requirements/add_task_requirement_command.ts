@@ -15,8 +15,7 @@ import type {
   TaskRequirementSource,
   TaskRequirementWriter,
 } from '#modules/tasks/actions/ports/outbound/task_requirement_repository'
-import type { TaskTransactionRunner } from '#modules/tasks/actions/ports/outbound/task_transaction'
-import type { TaskTransaction } from '#modules/tasks/actions/ports/outbound/task_transaction'
+import type { TaskTransactionRunner, TaskTransaction  } from '#modules/tasks/actions/ports/outbound/task_transaction'
 import {
   getTaskRequirementLevelConfigurationViolation,
   getTaskRequirementValueViolation,
@@ -42,19 +41,19 @@ function omitUndefined<T extends object>(value: T): OmittedUndefined<T> {
 export interface AddTaskRequirementInput {
   taskId: string
   skillId: string
-  projectSkillId?: string | null
-  sourceProjectProfessionalRoleId?: string | null
-  sourceRoleSkillId?: string | null
-  minimumLevelId?: string | null
-  targetLevelId?: string | null
-  assessmentCeilingLevelId?: string | null
-  rubricVersionId?: string | null
-  requiredPublicProficiencyCode?: string
-  isMandatory?: boolean
-  importance?: TaskRequirementImportance
-  weight?: number
-  requirementSource?: TaskRequirementSource
-  requirementNotes?: string | null
+  projectSkillId?: string | null | undefined
+  sourceProjectProfessionalRoleId?: string | null | undefined
+  sourceRoleSkillId?: string | null | undefined
+  minimumLevelId?: string | null | undefined
+  targetLevelId?: string | null | undefined
+  assessmentCeilingLevelId?: string | null | undefined
+  rubricVersionId?: string | null | undefined
+  requiredPublicProficiencyCode?: string | undefined
+  isMandatory?: boolean | undefined
+  importance?: TaskRequirementImportance | undefined
+  weight?: number | undefined
+  requirementSource?: TaskRequirementSource | undefined
+  requirementNotes?: string | null | undefined
 }
 
 export default class AddTaskRequirementCommand {
@@ -237,7 +236,8 @@ export default class AddTaskRequirementCommand {
     if (!projectId) {
       throw new ValidationException('Không xác định được Project của Task để kiểm tra kỹ năng')
     }
-    const projectSkill = (await this.skills.listProjectTaskSkills(projectId)).find(
+    const projectSkills = await this.skills.listProjectTaskSkills(projectId)
+    const projectSkill = projectSkills.find(
       (candidate) => candidate.projectSkillId === projectSkillId && candidate.id === skillId
     )
     if (!projectSkill || !projectSkill.isActive || !projectSkill.isSelectableForTasks) {

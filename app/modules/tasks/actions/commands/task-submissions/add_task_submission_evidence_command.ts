@@ -32,10 +32,10 @@ function assertHttpUrl(url: string): void {
   try {
     parsed = new URL(url)
   } catch {
-    throw new BusinessLogicException('Invalid URL')
+    throw ValidationException.field('url', 'Invalid URL')
   }
   if (!['http:', 'https:'].includes(parsed.protocol)) {
-    throw new BusinessLogicException('Invalid URL')
+    throw ValidationException.field('url', 'Invalid URL')
   }
 }
 

@@ -12,23 +12,22 @@ import type {
   UpdateTaskRequirementRecord,
 } from '#modules/tasks/actions/ports/outbound/task_requirement_repository'
 import type { TaskSearchProjectionInvalidationStager } from '#modules/tasks/actions/ports/outbound/task_search_projection_invalidation_stager'
-import type { TaskTransactionRunner } from '#modules/tasks/actions/ports/outbound/task_transaction'
-import type { TaskTransaction } from '#modules/tasks/actions/ports/outbound/task_transaction'
+import type { TaskTransactionRunner, TaskTransaction  } from '#modules/tasks/actions/ports/outbound/task_transaction'
 import {
   getTaskRequirementLevelConfigurationViolation,
   getTaskRequirementValueViolation,
-} from '#modules/tasks/domain/task_skill_requirement_rules'
+} from '#modules/tasks/domain/task-requirements/task_skill_requirement_rules'
 
 export interface UpdateTaskRequirementInput {
   requirementId: string
-  minimumLevelId?: string | null
-  targetLevelId?: string | null
-  assessmentCeilingLevelId?: string | null
-  rubricVersionId?: string | null
-  isMandatory?: boolean
-  importance?: TaskRequirementImportance
-  weight?: number
-  requirementNotes?: string | null
+  minimumLevelId?: string | null | undefined
+  targetLevelId?: string | null | undefined
+  assessmentCeilingLevelId?: string | null | undefined
+  rubricVersionId?: string | null | undefined
+  isMandatory?: boolean | undefined
+  importance?: TaskRequirementImportance | undefined
+  weight?: number | undefined
+  requirementNotes?: string | null | undefined
 }
 
 export default class UpdateTaskRequirementCommand {
@@ -176,7 +175,8 @@ export default class UpdateTaskRequirementCommand {
     if (!projectId) {
       throw new ValidationException('Không xác định được Project của Task để kiểm tra kỹ năng')
     }
-    const projectSkill = (await this.skills.listProjectTaskSkills(projectId)).find(
+    const projectSkills = await this.skills.listProjectTaskSkills(projectId)
+    const projectSkill = projectSkills.find(
       (candidate) => candidate.projectSkillId === projectSkillId && candidate.id === skillId
     )
     if (!projectSkill || !projectSkill.isActive || !projectSkill.isSelectableForTasks) {

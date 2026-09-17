@@ -1,18 +1,14 @@
 import type UpdateTaskStatusDTO from '../../dtos/request/update_task_status_dto.js'
 
+import { stageStatusChangeNotification } from './internal/task_status_notification_stager.js'
+import {
+  ensureStatusUpdatePermission,
+  resolveNewStatus,
+} from './internal/task_status_transition_validator.js'
+
 import { AuditAction, EntityType } from '#modules/audit/public_contracts/audit_constants'
 import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
-import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
-import BusinessLogicException from '#modules/errors/public_contracts/business_logic_exception'
-import InvariantViolationException from '#modules/errors/public_contracts/invariant_violation_exception'
-import NotFoundException from '#modules/errors/public_contracts/not_found_exception'
-import PersistedDataIntegrityException from '#modules/errors/public_contracts/persisted_data_integrity_exception'
 import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
-import {
-  BACKEND_NOTIFICATION_ENTITY_TYPES,
-  BACKEND_NOTIFICATION_TYPES,
-} from '#modules/notifications/public_contracts/notification_constants'
-import { buildNotificationEventId } from '#modules/notifications/public_contracts/notification_event_identity'
 import { BaseCommand } from '#modules/tasks/actions/base_command'
 import { settleTaskPostCommitEffects } from '#modules/tasks/actions/commands/internal/settle_task_post_commit_effects'
 import type CompleteTaskAssignmentsCommand from '#modules/tasks/actions/commands/task-assignment/complete_task_assignments_command'
@@ -22,18 +18,13 @@ import type { TaskExternalDependencies } from '#modules/tasks/actions/ports/outb
 import type { TaskNotificationStager } from '#modules/tasks/actions/ports/outbound/task_notification_stager'
 import type { TaskTransaction } from '#modules/tasks/actions/ports/outbound/task_transaction'
 import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
-import { buildTaskPermissionContext } from '#modules/tasks/actions/task_permission_context'
-import { canUpdateTaskStatus } from '#modules/tasks/domain/task-assignment/task_permission_policy'
 import { toLegacyTaskStatusMirror } from '#modules/tasks/domain/task-status/task_status_mirror'
-import {
-  validateDocumentationTaskStatusTransition,
-  validateWorkflowTransition,
-} from '#modules/tasks/domain/task-status/task_status_rules'
 import type {
-  TaskRecord,
   TaskDetailRecord,
+  TaskRecord,
   TaskStatusRecord,
 } from '#modules/tasks/types/task_records'
+
 
 type ResolvedTaskStatus = TaskStatusRecord
 
@@ -89,65 +80,6 @@ export default class UpdateTaskStatusCommand extends BaseCommand<
     return this.handle(dto)
   }
 
-  private async stageStatusChangeNotification(
-    task: TaskRecord,
-    updaterId: string,
-    dto: UpdateTaskStatusDTO,
-    oldTaskStatusId: string,
-    newStatus: ResolvedTaskStatus,
-    trx: TaskTransaction
-  ): Promise<void> {
-    const occurredAt = task.updated_at
-    if (!occurredAt) {
-      throw new InvariantViolationException(
-        'Persisted task status transition is missing its update timestamp'
-      )
-    }
-    const updater = await this.taskExternalDependencies.user.findUserIdentity(updaterId, trx)
-    const updaterName = updater?.username ?? updater?.email ?? 'Unknown'
-    const reviewerIds = await this.taskExternalDependencies.review.listTaskReviewerIds(task.id, trx)
-    const recipients = new Map<string, 'creator' | 'reviewer'>()
-    if (task.creator_id && task.creator_id !== updaterId) {
-      recipients.set(task.creator_id, 'creator')
-    }
-    for (const reviewerId of reviewerIds) {
-      if (reviewerId !== updaterId && !recipients.has(reviewerId)) {
-        recipients.set(reviewerId, 'reviewer')
-      }
-    }
-
-    for (const [recipientId, audience] of recipients) {
-      await this.notificationStager.stage(
-        {
-          eventId: buildNotificationEventId({
-            eventName: 'task.status_updated',
-            businessEventId: `${task.id}:${oldTaskStatusId}:${newStatus.id}:${occurredAt}`,
-            recipientId,
-          }),
-          schemaVersion: 1,
-          type: BACKEND_NOTIFICATION_TYPES.TASK_STATUS_UPDATED,
-          recipientId,
-          scope: { kind: 'organization', id: task.organization_id },
-          actor: { type: 'user', id: updaterId },
-          subject: {
-            type: BACKEND_NOTIFICATION_ENTITY_TYPES.TASK,
-            id: task.id,
-          },
-          parameters: {
-            taskTitle: task.title,
-            updaterName,
-            newStatusName: newStatus.name,
-            notificationAudience: audience,
-            ...(dto.reason === undefined ? {} : { reason: dto.reason }),
-          },
-          occurredAt,
-          correlationId: `${task.id}:${occurredAt}`,
-        },
-        { trx }
-      )
-    }
-  }
-
   private requireUserId(): string {
     const userId = this.execCtx.userId
     if (!userId) {
@@ -159,115 +91,6 @@ export default class UpdateTaskStatusCommand extends BaseCommand<
 
   private async loadTaskForStatusUpdate(taskId: string, trx: TaskTransaction): Promise<TaskRecord> {
     return this.taskExternalDependencies.lifecycle.lockActiveTask(taskId, trx)
-  }
-
-  private async resolveNewStatus(
-    task: TaskRecord,
-    dto: UpdateTaskStatusDTO,
-    trx: TaskTransaction
-  ): Promise<ResolvedTaskStatus> {
-    const newStatus = await this.taskExternalDependencies.lifecycle.findActiveStatus(
-      dto.task_status_id,
-      task.organization_id,
-      trx,
-      task.project_id ?? undefined
-    )
-
-    if (!newStatus) {
-      throw NotFoundException.resource('Task status', dto.task_status_id)
-    }
-
-    return newStatus
-  }
-
-  private async ensureStatusUpdatePermission(
-    task: TaskRecord,
-    dto: UpdateTaskStatusDTO,
-    userId: string,
-    trx: TaskTransaction,
-    newStatus: ResolvedTaskStatus
-  ): Promise<string> {
-    const currentStatusId = task.task_status_id
-    if (!currentStatusId) {
-      throw new PersistedDataIntegrityException(
-        'Persisted task is missing task_status_id required for a status transition',
-        {
-          taskId: task.id,
-          organizationId: task.organization_id,
-        }
-      )
-    }
-
-    if (currentStatusId !== newStatus.id && newStatus.category === 'done' && !task.assigned_to) {
-      throw new BusinessLogicException(
-        'Không thể chuyển Task sang Done khi chưa có người thực hiện'
-      )
-    }
-
-    const currentStatus = await this.taskExternalDependencies.lifecycle.findActiveStatus(
-      currentStatusId,
-      task.organization_id,
-      trx,
-      task.project_id ?? undefined
-    )
-    if (!currentStatus) {
-      throw new PersistedDataIntegrityException(
-        'Persisted task references an unavailable task status',
-        {
-          taskId: task.id,
-          taskStatusId: currentStatusId,
-        }
-      )
-    }
-
-    const permissionContext = await buildTaskPermissionContext(
-      userId,
-      { ...task, project_id: task.project_id ?? null },
-      trx,
-      this.taskExternalDependencies.permission,
-      this.taskExternalDependencies.activeAssignmentReader
-    )
-    enforcePolicy(canUpdateTaskStatus(permissionContext))
-    enforcePolicy(
-      validateDocumentationTaskStatusTransition({
-        currentStatus,
-        nextStatus: newStatus,
-        isAssigned: task.assigned_to !== null,
-      })
-    )
-
-    const transitions =
-      await this.taskExternalDependencies.lifecycle.findWorkflowTransitionsFromStatus(
-        task.organization_id,
-        currentStatusId,
-        trx,
-        task.project_id ?? undefined
-      )
-    const organizationTransitions =
-      transitions.length > 0
-        ? transitions
-        : await this.taskExternalDependencies.lifecycle.listWorkflowTransitions(
-            task.organization_id,
-            trx,
-            task.project_id ?? undefined
-          )
-    const workflowConfigured = transitions.length > 0 || organizationTransitions.length > 0
-    const matchingTransition = transitions.find(
-      (transition) => transition.to_status_id === dto.task_status_id
-    )
-
-    enforcePolicy(
-      validateWorkflowTransition({
-        currentStatusId,
-        newStatusId: dto.task_status_id,
-        allowedTargetIds: transitions.map((transition) => transition.to_status_id),
-        workflowConfigured,
-        conditions: matchingTransition?.conditions ?? {},
-        isAssigned: task.assigned_to !== null,
-      })
-    )
-
-    return currentStatusId
   }
 
   private async persistStatusChange(
@@ -316,12 +139,14 @@ export default class UpdateTaskStatusCommand extends BaseCommand<
       { trx, critical: true }
     )
 
-    await this.stageStatusChangeNotification(
+    await stageStatusChangeNotification(
       updatedTask,
       userId,
       dto,
       oldTaskStatusId,
       newStatus,
+      this.taskExternalDependencies,
+      this.notificationStager,
       trx
     )
 
@@ -339,13 +164,19 @@ export default class UpdateTaskStatusCommand extends BaseCommand<
   ): Promise<PersistedTaskStatusUpdate> {
     return this.taskExternalDependencies.transactions.run(async (trx) => {
       const task = await this.loadTaskForStatusUpdate(dto.task_id, trx)
-      const newStatus = await this.resolveNewStatus(task, dto, trx)
-      const oldTaskStatusId = await this.ensureStatusUpdatePermission(
+      const newStatus = await resolveNewStatus(
+        task,
+        dto,
+        this.taskExternalDependencies,
+        trx
+      )
+      const oldTaskStatusId = await ensureStatusUpdatePermission(
         task,
         dto,
         userId,
-        trx,
-        newStatus
+        newStatus,
+        this.taskExternalDependencies,
+        trx
       )
       const mutation = await this.persistStatusChange(
         task,

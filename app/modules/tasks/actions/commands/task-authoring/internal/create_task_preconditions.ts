@@ -10,7 +10,6 @@ import type { TaskTransaction } from '#modules/tasks/actions/ports/outbound/task
 import { buildTaskCreatePermissionContext } from '#modules/tasks/actions/task_permission_context'
 import {
   validateAssignee,
-  validateDirectTaskAssignee,
   validateTaskCreationFields,
 } from '#modules/tasks/domain/task-assignment/task_assignment_rules'
 import { canCreateTask } from '#modules/tasks/domain/task-assignment/task_permission_policy'
@@ -74,7 +73,6 @@ function ensureTaskCreationFieldRules(dto: CreateTaskDTO): void {
 }
 
 async function ensureAssigneeBoundary(
-  userId: string,
   dto: CreateTaskDTO,
   trx: TaskTransaction,
   externalDependencies: TaskExternalDependencies
@@ -83,27 +81,25 @@ async function ensureAssigneeBoundary(
     return
   }
 
+  const isOrgMember = await externalDependencies.org.isApprovedMember(
+    dto.assigned_to,
+    dto.organization_id,
+    trx
+  )
+  const isExternalContributor = await externalDependencies.user.isExternalContributor(
+    dto.assigned_to,
+    trx
+  )
   const isProjectMember = Boolean(
     await externalDependencies.permission.getProjectRoleName(dto.assigned_to, dto.project_id, trx)
   )
 
-  const isActorProjectMember = Boolean(
-    await externalDependencies.permission.getProjectRoleName(userId, dto.project_id, trx)
-  )
-  const reviewerIds = dto.authoring.evidence_contract?.verifierPolicy?.reviewerIds ?? []
-  let isReviewerProjectMember: boolean | undefined
-  if (reviewerIds[0]) {
-    isReviewerProjectMember = Boolean(
-      await externalDependencies.permission.getProjectRoleName(reviewerIds[0], dto.project_id, trx)
-    )
-  }
-
   enforcePolicy(
-    validateDirectTaskAssignee({
+    validateAssignee({
+      isOrgMember,
+      isExternalContributor,
+      isProjectMember,
       taskVisibility: dto.task_visibility,
-      isActorProjectMember,
-      isAssigneeProjectMember: isProjectMember,
-      ...(isReviewerProjectMember === undefined ? {} : { isReviewerProjectMember }),
     })
   )
 }
@@ -154,7 +150,7 @@ export async function ensureTaskCreationPreconditions(
   )
   await ensureParentTaskBoundary(dto, trx, dependencies.taskRepository)
   ensureTaskCreationFieldRules(dto)
-  await ensureAssigneeBoundary(userId, dto, trx, dependencies.externalDependencies)
+  await ensureAssigneeBoundary(dto, trx, dependencies.externalDependencies)
   await ensureReviewerBoundary(dto, trx, dependencies.externalDependencies)
 }
 

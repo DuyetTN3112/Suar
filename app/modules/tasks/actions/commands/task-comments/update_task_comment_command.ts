@@ -1,5 +1,5 @@
-import BusinessLogicException from '#modules/errors/public_contracts/business_logic_exception'
 import NotFoundException from '#modules/errors/public_contracts/not_found_exception'
+import ValidationException from '#modules/errors/public_contracts/validation_exception'
 import type { NotificationFanoutStagerContract } from '#modules/notifications/public_contracts/notification_fanout'
 import { BaseCommand } from '#modules/tasks/actions/base_command'
 import {
@@ -40,7 +40,7 @@ export default class UpdateTaskCommentCommand extends BaseCommand<
 
   async execute(dto: UpdateTaskCommentDTO): Promise<Record<string, unknown>> {
     if (dto.body !== undefined && dto.body.trim().length === 0) {
-      throw new BusinessLogicException('Task comment body is required')
+      throw ValidationException.field('body', 'Task comment body is required')
     }
 
     const comment = await this.dependencies.completion.findComment(dto.comment_id, dto.task_id)

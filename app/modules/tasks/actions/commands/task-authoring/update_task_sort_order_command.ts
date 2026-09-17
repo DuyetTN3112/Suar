@@ -18,6 +18,7 @@ import {
 import { canReorderTask, canUpdateTaskStatus } from '#modules/tasks/domain/task-assignment/task_permission_policy'
 import { toLegacyTaskStatusMirror } from '#modules/tasks/domain/task-status/task_status_mirror'
 import {
+  isDocumentationTaskStatus,
   validateDocumentationTaskStatusTransition,
   validateWorkflowTransition,
 } from '#modules/tasks/domain/task-status/task_status_rules'
@@ -142,7 +143,10 @@ export default class UpdateTaskSortOrderCommand extends BaseCommand<
           })
 
           if (shouldChangeStatus) {
-            if (newStatus.category === TaskStatusCategory.DONE && !task.assigned_to) {
+            if (
+              (newStatus.category as TaskStatusCategory) === TaskStatusCategory.DONE &&
+              !task.assigned_to
+            ) {
               throw new BusinessLogicException(
                 'Không thể chuyển Task sang Done khi chưa có người thực hiện'
               )
@@ -177,56 +181,61 @@ export default class UpdateTaskSortOrderCommand extends BaseCommand<
               })
             )
 
-            // Lock task movement once it is done and already has a review session.
-            if (currentStatusDef.category === TaskStatusCategory.DONE) {
-              if (await this.taskExternalDependencies.review.hasAnyReviewForTask(task.id, trx)) {
-                throw new BusinessLogicException(
-                  'Task đã hoàn thành và có review, không thể kéo sang trạng thái khác'
-                )
-              }
-            }
+            const isDocsMovement =
+              isDocumentationTaskStatus(currentStatusDef) && isDocumentationTaskStatus(newStatus)
 
-            const transitions =
-              await this.taskExternalDependencies.lifecycle.findWorkflowTransitionsFromStatus(
-                task.organization_id,
-                currentStatusId,
-                trx,
-                task.project_id ?? undefined
-              )
-            const organizationTransitions =
-              transitions.length > 0
-                ? transitions
-                : await this.taskExternalDependencies.lifecycle.listWorkflowTransitions(
-                    task.organization_id,
-                    trx,
-                    task.project_id ?? undefined
+            if (!isDocsMovement) {
+              // Lock task movement once it is done and already has a review session.
+              if ((currentStatusDef.category as TaskStatusCategory) === TaskStatusCategory.DONE) {
+                if (await this.taskExternalDependencies.review.hasAnyReviewForTask(task.id, trx)) {
+                  throw new BusinessLogicException(
+                    'Task đã hoàn thành và có review, không thể kéo sang trạng thái khác'
                   )
-            const workflowConfigured = transitions.length > 0 || organizationTransitions.length > 0
-            const matchingTransition = transitions.find(
-              (transition) => transition.to_status_id === resolvedNewTaskStatusId
-            )
+                }
+              }
 
-            loggerService.info('[UpdateTaskSortOrderCommand] workflow validation', {
-              taskId,
-              currentStatusId,
-              resolvedNewTaskStatusId,
-              directTransitionCount: transitions.length,
-              organizationTransitionCount: organizationTransitions.length,
-              workflowConfigured,
-              matchingTransitionId: matchingTransition?.id,
-              isAssigned: task.assigned_to !== null,
-            })
+              const transitions =
+                await this.taskExternalDependencies.lifecycle.findWorkflowTransitionsFromStatus(
+                  task.organization_id,
+                  currentStatusId,
+                  trx,
+                  task.project_id ?? undefined
+                )
+              const organizationTransitions =
+                transitions.length > 0
+                  ? transitions
+                  : await this.taskExternalDependencies.lifecycle.listWorkflowTransitions(
+                      task.organization_id,
+                      trx,
+                      task.project_id ?? undefined
+                    )
+              const workflowConfigured = transitions.length > 0 || organizationTransitions.length > 0
+              const matchingTransition = transitions.find(
+                (transition) => transition.to_status_id === resolvedNewTaskStatusId
+              )
 
-            enforcePolicy(
-              validateWorkflowTransition({
+              loggerService.info('[UpdateTaskSortOrderCommand] workflow validation', {
+                taskId,
                 currentStatusId,
-                newStatusId: resolvedNewTaskStatusId,
-                allowedTargetIds: transitions.map((transition) => transition.to_status_id),
+                resolvedNewTaskStatusId,
+                directTransitionCount: transitions.length,
+                organizationTransitionCount: organizationTransitions.length,
                 workflowConfigured,
-                conditions: matchingTransition?.conditions ?? {},
+                matchingTransitionId: matchingTransition?.id,
                 isAssigned: task.assigned_to !== null,
               })
-            )
+
+              enforcePolicy(
+                validateWorkflowTransition({
+                  currentStatusId,
+                  newStatusId: resolvedNewTaskStatusId,
+                  allowedTargetIds: transitions.map((transition) => transition.to_status_id),
+                  workflowConfigured,
+                  conditions: matchingTransition?.conditions ?? {},
+                  isAssigned: task.assigned_to !== null,
+                })
+              )
+            }
 
             const oldStatus = task.status
             updateData['task_status_id'] = resolvedNewTaskStatusId
