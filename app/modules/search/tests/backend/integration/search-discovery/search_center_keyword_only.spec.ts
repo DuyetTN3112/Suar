@@ -5,8 +5,10 @@ import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   cleanupTestData,
   OrganizationFactory,
+  OrganizationUserFactory,
   ProjectFactory,
   TaskFactory,
+  UserFactory,
 } from '#tests/helpers/factories'
 
 test.group('Integration | Search Center keyword-only route', (group) => {
@@ -36,6 +38,8 @@ test.group('Integration | Search Center keyword-only route', (group) => {
       owner_id: owner.id,
       manager_id: owner.id,
       name: 'Keyword-only Search Center project',
+      visibility: 'public',
+      allow_external_contributors: true,
     })
     const task = await TaskFactory.create({
       organization_id: org.id,
@@ -47,10 +51,18 @@ test.group('Integration | Search Center keyword-only route', (group) => {
     })
     const keyword = 'Keyword-only Search Center'
 
+    const user = await UserFactory.create()
+    await OrganizationUserFactory.create({
+      organization_id: org.id,
+      user_id: user.id,
+      org_role: 'org_member',
+      status: 'approved',
+    })
+
     const response = await client
       .get('/search')
       .qs({ q: keyword })
-      .loginAs(owner)
+      .loginAs(user)
       .header('X-Inertia', 'true')
       .header('X-Inertia-Version', '1')
 

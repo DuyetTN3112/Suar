@@ -66,6 +66,8 @@ test.group('Integration | Global Search API', (group) => {
       owner_id: owner.id,
       manager_id: owner.id,
       name: 'Discovery Hub',
+      visibility: 'public',
+      allow_external_contributors: true,
     })
 
     const task = await TaskFactory.create({
@@ -295,6 +297,8 @@ test.group('Integration | Global Search API', (group) => {
       owner_id: owner.id,
       manager_id: owner.id,
       name: 'Duyetacl private search project',
+      visibility: 'public',
+      allow_external_contributors: true,
     })
     const publicTask = await TaskFactory.create({
       organization_id: org.id,

@@ -107,6 +107,11 @@ test.group('Integration | Search Discovery HTTP API', (group) => {
 
   group.teardown(async () => {
     await client.indices.delete({ index: physicalIndexName }, { ignore: [404] })
+    await client.indices.create({
+      index: physicalIndexName,
+      mappings: TASK_SEARCH_INDEX_MAPPINGS,
+      aliases: { [aliasName]: { is_write_index: true } },
+    })
     await teardownApp()
   })
 
@@ -470,33 +475,8 @@ test.group('Integration | Search Discovery HTTP API', (group) => {
   }) => {
     await client.indices.delete({ index: physicalIndexName }, { ignore: [404] })
 
-    const response = await http.post('/api/v1/search/discovery').json({
-      criteria: {
-        context: 'tasks.discovery.public',
-        schemaVersion: 1,
-        text: { value: 'provider outage' },
-        page: { size: 10 },
-      },
-      search: { scope: 'task', retrievalMode: 'auto' },
-    })
-
-    response.assertStatus(503)
-    const body = response.body() as {
-      code?: string
-      detail?: string
-      retryable?: boolean
-    }
-
-    assert.equal(body.code, 'SEARCH_SOURCE_UNAVAILABLE')
-    assert.isFalse(body.retryable)
-    assert.equal(body.detail, 'Search is temporarily unavailable. Please retry.')
-    assert.notInclude(JSON.stringify(body), physicalIndexName)
-    assert.notInclude(JSON.stringify(body), 'elasticsearch')
-
-    const explicitlyRetryable = await http
-      .post('/api/v1/search/discovery')
-      .header('Idempotency-Key', 'search-discovery-outage-retry')
-      .json({
+    try {
+      const response = await http.post('/api/v1/search/discovery').json({
         criteria: {
           context: 'tasks.discovery.public',
           schemaVersion: 1,
@@ -506,12 +486,45 @@ test.group('Integration | Search Discovery HTTP API', (group) => {
         search: { scope: 'task', retrievalMode: 'auto' },
       })
 
-    explicitlyRetryable.assertStatus(503)
-    const explicitlyRetryableBody = explicitlyRetryable.body() as {
-      code?: string
-      retryable?: boolean
+      response.assertStatus(503)
+      const body = response.body() as {
+        code?: string
+        detail?: string
+        retryable?: boolean
+      }
+
+      assert.equal(body.code, 'SEARCH_SOURCE_UNAVAILABLE')
+      assert.isFalse(body.retryable)
+      assert.equal(body.detail, 'Search is temporarily unavailable. Please retry.')
+      assert.notInclude(JSON.stringify(body), physicalIndexName)
+      assert.notInclude(JSON.stringify(body), 'elasticsearch')
+
+      const explicitlyRetryable = await http
+        .post('/api/v1/search/discovery')
+        .header('Idempotency-Key', 'search-discovery-outage-retry')
+        .json({
+          criteria: {
+            context: 'tasks.discovery.public',
+            schemaVersion: 1,
+            text: { value: 'provider outage' },
+            page: { size: 10 },
+          },
+          search: { scope: 'task', retrievalMode: 'auto' },
+        })
+
+      explicitlyRetryable.assertStatus(503)
+      const explicitlyRetryableBody = explicitlyRetryable.body() as {
+        code?: string
+        retryable?: boolean
+      }
+      assert.equal(explicitlyRetryableBody.code, 'SEARCH_SOURCE_UNAVAILABLE')
+      assert.isTrue(explicitlyRetryableBody.retryable)
+    } finally {
+      await client.indices.create({
+        index: physicalIndexName,
+        mappings: TASK_SEARCH_INDEX_MAPPINGS,
+        aliases: { [aliasName]: { is_write_index: true } },
+      })
     }
-    assert.equal(explicitlyRetryableBody.code, 'SEARCH_SOURCE_UNAVAILABLE')
-    assert.isTrue(explicitlyRetryableBody.retryable)
   })
 })

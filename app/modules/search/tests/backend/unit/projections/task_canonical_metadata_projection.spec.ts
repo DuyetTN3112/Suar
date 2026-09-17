@@ -1,6 +1,6 @@
 import { test } from '@japa/runner'
 
-import { projectTaskCanonicalMetadata } from '#modules/search/infra/adapters/entity-search/tasks/task_canonical_metadata_projection'
+import { projectTaskCanonicalMetadata } from '#modules/search/public_contracts/task_canonical_metadata_projection'
 import type { MetadataAssignmentResult } from '#modules/taxonomy/public_contracts/taxonomy-governance/metadata_assignment_provider'
 
 function result(overrides: Partial<MetadataAssignmentResult> = {}): MetadataAssignmentResult {

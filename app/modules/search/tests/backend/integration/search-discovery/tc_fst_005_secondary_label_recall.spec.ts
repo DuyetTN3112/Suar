@@ -263,10 +263,10 @@ test.group('Integration | TC-FST-005 secondary label recall', (group) => {
     for (const current of SECONDARY_LABEL_CASES) {
       const filter = condition(current.field, current.label)
       const savedView = savedViewFor(filter, `view-${current.label}`)
-      const serializedState = serializeSavedFilterSemanticState(savedView.semanticState) as unknown as string
+      const serializedState = serializeSavedFilterSemanticState(savedView.semanticState)
       const persistedSemanticState = parseSavedFilterSemanticState(
         serializedState
-      ) as unknown as SavedSemanticState
+      )
       const savedFilter = persistedSemanticState.filter
       if (savedFilter === null) throw new Error('Expected a saved secondary-label filter')
 

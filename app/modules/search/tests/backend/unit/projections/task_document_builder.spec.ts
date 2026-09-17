@@ -1,6 +1,6 @@
 import { test } from '@japa/runner'
 
-import { buildTaskBenchmarkCorpus } from '../../../../../../scripts/search/search_benchmark_corpus.js'
+import { buildTaskBenchmarkCorpus } from '../../../../../../../scripts/search/search_benchmark_corpus.js'
 
 import type {
   TaskSearchDocumentReader,
