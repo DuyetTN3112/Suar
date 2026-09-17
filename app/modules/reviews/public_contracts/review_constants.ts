@@ -33,49 +33,12 @@ export enum ReviewSessionStatus {
 // Flagged Review Status
 // ============================================================================
 
-/**
- * Trạng thái của đánh giá bị gắn cờ bất thường
- * v3.0 CHECK: 'pending', 'reviewed', 'dismissed', 'confirmed'
- */
-export enum FlaggedReviewStatus {
-  PENDING = 'pending',
-  REVIEWED = 'reviewed',
-  DISMISSED = 'dismissed',
-  CONFIRMED = 'confirmed',
-}
+export {
+  FlaggedReviewStatus,
+  AnomalyFlagType,
+  AnomalySeverity,
+} from '#modules/moderation/domain/moderation_constants'
 
-// ============================================================================
-// Anomaly Flag Type (v3.0: was anomaly_flags table)
-// ============================================================================
-
-/**
- * Anomaly flag types — v3.0 inline CHECK trên flagged_reviews.flag_type
- * CHECK ('sudden_spike','mutual_high','bulk_same_level',
- *        'frequency_anomaly','new_account_high','ip_collusion')
- */
-export enum AnomalyFlagType {
-  SUDDEN_SPIKE = 'sudden_spike',
-  MUTUAL_HIGH = 'mutual_high',
-  BULK_SAME_LEVEL = 'bulk_same_level',
-  FREQUENCY_ANOMALY = 'frequency_anomaly',
-  NEW_ACCOUNT_HIGH = 'new_account_high',
-  IP_COLLUSION = 'ip_collusion',
-}
-
-// ============================================================================
-// Anomaly Severity (v3.0: was in anomaly_flags table)
-// ============================================================================
-
-/**
- * Anomaly severity — v3.0 inline CHECK trên flagged_reviews.severity
- * CHECK ('low','medium','high','critical')
- */
-export enum AnomalySeverity {
-  LOW = 'low',
-  MEDIUM = 'medium',
-  HIGH = 'high',
-  CRITICAL = 'critical',
-}
 
 // ============================================================================
 // Reviewer Type
@@ -121,15 +84,9 @@ export enum ReviewConfirmationAction {
 
 export const REVIEW_CONFIRMATION_ACTION_VALUES = Object.values(ReviewConfirmationAction)
 
-export enum ReviewDisputeStatus {
-  PENDING = 'pending',
-  COLLECTING_EVIDENCE = 'collecting_evidence',
-  ADMIN_REVIEWING = 'admin_reviewing',
-  AI_REVIEWING = 'ai_reviewing',
-  RESOLVED = 'resolved',
-  REJECTED = 'rejected',
-  CANCELLED = 'cancelled',
-}
+export {
+  ReviewDisputeStatus,
+} from '#modules/disputes/domain/dispute_constants'
 
 // ============================================================================
 // Review Defaults
@@ -194,15 +151,8 @@ export const VALID_PROFILE_UPDATE_ACTIONS = new Set<string>(Object.values(PROFIL
  */
 export const VALID_REVIEWER_CREDIBILITY_ACTIONS = new Set<string>(Object.values(REVIEWER_CREDIBILITY_ACTION))
 
-export const ACTIVE_REVIEW_DISPUTE_STATUSES = [
-  ReviewDisputeStatus.PENDING,
-  ReviewDisputeStatus.COLLECTING_EVIDENCE,
-  ReviewDisputeStatus.ADMIN_REVIEWING,
-  ReviewDisputeStatus.AI_REVIEWING,
-] as const
+export {
+  ACTIVE_REVIEW_DISPUTE_STATUSES,
+  TERMINAL_REVIEW_DISPUTE_STATUSES,
+} from '#modules/disputes/domain/dispute_constants'
 
-export const TERMINAL_REVIEW_DISPUTE_STATUSES = [
-  ReviewDisputeStatus.RESOLVED,
-  ReviewDisputeStatus.REJECTED,
-  ReviewDisputeStatus.CANCELLED,
-] as const
