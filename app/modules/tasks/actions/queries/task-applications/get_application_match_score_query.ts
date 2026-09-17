@@ -4,11 +4,11 @@ import NotFoundException from '#modules/errors/public_contracts/not_found_except
 import { BaseQuery } from '#modules/tasks/actions/base_query'
 import type { TaskApplicantMatchReader } from '#modules/tasks/actions/ports/outbound/task_applicant_match_reader'
 import type { TaskPermissionReader } from '#modules/tasks/actions/ports/outbound/task_external_dependencies'
+import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
 import {
   hasOrganizationApplicationReviewRole,
   hasProjectApplicationReviewRole,
 } from '#modules/tasks/actions/task_application_review_access'
-import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
 import { canProcessApplication } from '#modules/tasks/domain/task-assignment/task_assignment_rules'
 import { calculateApplicantMatch, type MatchScoreResult } from '#modules/tasks/public_contracts/applicant_match'
 

@@ -313,12 +313,12 @@ export abstract class TaskSkillReader {
    * Production wiring overrides this using verified profile skills. The default
    * keeps narrowly-scoped test doubles independent from profile persistence.
    */
-  async getTaskSkillEligibility(
+  getTaskSkillEligibility(
     _taskId: string,
     _userId: string,
     _trx?: TaskTransaction
   ): Promise<TaskSkillEligibility> {
-    return { isEligible: true, unmetRequirements: [] }
+    return Promise.resolve({ isEligible: true, unmetRequirements: [] })
   }
 }
 

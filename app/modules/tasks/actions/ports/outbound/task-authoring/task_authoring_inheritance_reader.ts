@@ -1,6 +1,6 @@
-import type { TaskReadinessFindingV1 } from '#modules/tasks/public_contracts/task-authoring/task_contracts'
 import type { TaskTransaction } from '#modules/tasks/actions/ports/outbound/task_transaction'
 import type { TaskWorkContractLayer } from '#modules/tasks/domain/task-authoring/task_contract_resolution'
+import type { TaskReadinessFindingV1 } from '#modules/tasks/public_contracts/task-authoring/task_contracts'
 
 export interface TaskAuthoringInheritanceReadInput {
   readonly organizationId: string

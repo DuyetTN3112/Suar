@@ -1,5 +1,6 @@
-import CheckTaskCreatePermissionQuery from './check_task_create_permission_query.js'
 import GetTaskMetadataQuery from '../task-reading/get_task_metadata_query.js'
+
+import CheckTaskCreatePermissionQuery from './check_task_create_permission_query.js'
 
 import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
 import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'

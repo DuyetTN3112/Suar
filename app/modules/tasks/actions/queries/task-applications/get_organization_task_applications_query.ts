@@ -13,8 +13,8 @@ import type {
   TaskUserReader,
 } from '#modules/tasks/actions/ports/outbound/task_external_dependencies'
 import type { TaskLifecycleRepository } from '#modules/tasks/actions/ports/outbound/task_lifecycle_repository'
-import { hasOrganizationApplicationReviewRole } from '#modules/tasks/actions/task_application_review_access'
 import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
+import { hasOrganizationApplicationReviewRole } from '#modules/tasks/actions/task_application_review_access'
 import type { PaginatedTaskApplicationRecords } from '#modules/tasks/types/task_records'
 
 interface GetOrganizationTaskApplicationsQueryDeps {

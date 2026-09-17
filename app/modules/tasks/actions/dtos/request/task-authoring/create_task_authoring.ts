@@ -1,3 +1,4 @@
+import ValidationException from '#modules/errors/public_contracts/validation_exception'
 import {
   TVA_PRIVACY_CLASSIFICATIONS,
   TVA_REFERENCE_ACCESS_STATES,
@@ -16,7 +17,6 @@ import type {
   TaskWorkContractV1,
 } from '#modules/tasks/public_contracts/task-authoring/task_contracts'
 import { isTvaJsonValue } from '#modules/tasks/public_contracts/task-authoring/validators'
-import ValidationException from '#modules/errors/public_contracts/validation_exception'
 
 const UUID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
@@ -79,17 +79,17 @@ export interface CreateTaskSupportingReferenceInput {
 export interface CreateTaskAuthoringInput {
   readonly mode: CreateTaskAuthoringMode
   readonly intent: CreateTaskAuthoringIntent
-  readonly idempotency_key?: string
-  readonly expected_head_revision?: number
-  readonly project_context_version_id?: string | null
-  readonly work_package_version_id?: string | null
-  readonly creator_confirmed?: boolean
-  readonly constraints_addressed?: boolean
-  readonly dependencies_addressed?: boolean
-  readonly specification?: CreateTaskSpecificationAuthoringInput
-  readonly work_contract?: Partial<TaskWorkContractV1>
-  readonly evidence_contract?: Partial<TaskEvidenceContractV1>
-  readonly supporting_references?: readonly CreateTaskSupportingReferenceInput[]
+  readonly idempotency_key?: string | undefined
+  readonly expected_head_revision?: number | undefined
+  readonly project_context_version_id?: string | null | undefined
+  readonly work_package_version_id?: string | null | undefined
+  readonly creator_confirmed?: boolean | undefined
+  readonly constraints_addressed?: boolean | undefined
+  readonly dependencies_addressed?: boolean | undefined
+  readonly specification?: CreateTaskSpecificationAuthoringInput | undefined
+  readonly work_contract?: Partial<TaskWorkContractV1> | undefined
+  readonly evidence_contract?: Partial<TaskEvidenceContractV1> | undefined
+  readonly supporting_references?: readonly CreateTaskSupportingReferenceInput[] | undefined
 }
 
 export interface CreateTaskAuthoringState {

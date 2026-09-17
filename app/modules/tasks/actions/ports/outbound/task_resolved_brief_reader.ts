@@ -1,11 +1,11 @@
+import type { TaskTransaction } from '#modules/tasks/actions/ports/outbound/task_transaction'
+import type { TaskWorkContractResolutionResult } from '#modules/tasks/domain/task-authoring/task_contract_resolution'
 import type {
   TaskContractVersionV1,
   TaskReadinessResultV1,
   TaskSpecificationVersionV1,
   TaskSupportingReferenceV1,
 } from '#modules/tasks/public_contracts/task-authoring/task_contracts'
-import type { TaskTransaction } from '#modules/tasks/actions/ports/outbound/task_transaction'
-import type { TaskWorkContractResolutionResult } from '#modules/tasks/domain/task-authoring/task_contract_resolution'
 
 export interface CurrentTaskAuthoringBundle {
   readonly headRevision: number
