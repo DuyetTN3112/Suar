@@ -68,11 +68,11 @@ test.group('Integration | Task review workflow assignment pin schema', (group) =
       ]
     )
     // Cross-entity consistency is application-owned; the database stores the pin.
-    const foreignKey = await db
+    const foreignKey = (await db
       .from('pg_constraint')
       .where('conname', 'fk_task_review_workflows_assignment_task')
       .select('conname')
-      .first()
+      .first()) as { conname: string } | null
     assert.isNull(foreignKey)
   })
 
