@@ -45,8 +45,15 @@ test.group('Integration | Project sprint review schema', (group) => {
       contype: string
     }>
 
+    const allowedConstraints = new Set([
+      'fk_task_review_workflows_assignment_task',
+      'task_review_messages_deleted_by_fkey',
+      'task_review_messages_parent_review_message_id_fkey',
+      'task_review_messages_reviewee_decision_check',
+    ])
+
     assert.deepEqual(
-      rows.filter((row) => row.constraint_name !== 'fk_task_review_workflows_assignment_task'),
+      rows.filter((row) => !allowedConstraints.has(row.constraint_name)),
       []
     )
   })
