@@ -5,12 +5,12 @@ import type {
   OrganizationSearchDocument,
   OrganizationSearchHit,
 } from '#modules/search/domain/entity-search/organization_search_document'
-import { bulkIndexSearchDocuments } from '#modules/search/infra/adapters/projection-generation/search_bulk_indexer'
 import {
   buildOrganizationSearchIndexName,
   buildOrganizationSearchPhysicalIndexName,
 } from '#modules/search/infra/adapters/index-administration/search_index_names'
 import { VersionedSearchIndexLifecycle } from '#modules/search/infra/adapters/index-administration/versioned_search_index_lifecycle'
+import { bulkIndexSearchDocuments } from '#modules/search/infra/adapters/projection-generation/search_bulk_indexer'
 import { searchClient } from '#platform/search/elasticsearch_client'
 
 interface OrganizationSearchSource {

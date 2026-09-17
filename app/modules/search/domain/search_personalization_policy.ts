@@ -142,6 +142,7 @@ function isValidSignal(signal: unknown): signal is SearchPersonalizationSignal {
     (candidate.source === 'user_preference' || candidate.source === 'organization_policy') &&
     candidate.evidence === 'provider' &&
     isBoundedIdentifier(candidate.feature) &&
+    typeof candidate.weight === 'number' &&
     Number.isFinite(candidate.weight) &&
     Math.abs(candidate.weight) <= MAX_ABSOLUTE_WEIGHT &&
     (candidate.source !== 'organization_policy' || isBoundedIdentifier(candidate.organizationId))
