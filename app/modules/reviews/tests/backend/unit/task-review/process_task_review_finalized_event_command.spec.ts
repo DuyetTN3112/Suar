@@ -51,8 +51,9 @@ test.group('Unit | Process task review finalized event', () => {
     }
 
     const cache: ReviewUserWorkHistoryCacheInvalidator = {
-      invalidateUserWorkHistory: async (userId) => {
+      invalidateUserWorkHistory: (userId) => {
         invalidatedUserIds.push(userId)
+        return Promise.resolve()
       },
     }
 
@@ -88,8 +89,9 @@ test.group('Unit | Process task review finalized event', () => {
     }
     let cacheInvalidated = false
     const cache: ReviewUserWorkHistoryCacheInvalidator = {
-      invalidateUserWorkHistory: async () => {
+      invalidateUserWorkHistory: () => {
         cacheInvalidated = true
+        return Promise.resolve()
       },
     }
 

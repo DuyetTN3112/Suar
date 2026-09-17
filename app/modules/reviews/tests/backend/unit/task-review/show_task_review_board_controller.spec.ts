@@ -4,7 +4,7 @@ import { Result } from '#modules/errors/public_contracts/result'
 import type { ProjectWorkspaceAccessReader } from '#modules/projects/actions/ports/outbound/project_workspace_access_reader'
 import type { ReviewActionFactory } from '#modules/reviews/actions/ports/inbound/review_action_factory'
 import ShowTaskReviewBoardController from '#modules/reviews/controllers/task-review/show_task_review_board_controller'
-import { emptyTaskReviewBoardColumns } from '#modules/reviews/domain/task_review_workflow'
+import { emptyTaskReviewBoardColumns } from '#modules/reviews/domain/task-review/task_review_workflow'
 
 test.group('Unit | Show task review board controller', () => {
   test('delegates the endpoint to one page query and maps its transition', async ({ assert }) => {

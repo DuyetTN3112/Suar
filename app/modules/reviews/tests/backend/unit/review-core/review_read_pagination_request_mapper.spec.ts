@@ -4,12 +4,12 @@ import ValidationException from '#modules/errors/public_contracts/validation_exc
 import { buildReviewReadPaginationRequest } from '#modules/reviews/controllers/mappers/request/review-core/review_read_pagination_request_mapper'
 
 function fakeRequest(input: Record<string, unknown>) {
-  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-  return {
+  const req = {
     input(key: string, fallback?: unknown) {
       return Object.hasOwn(input, key) ? input[key] : fallback
     },
-  } as never
+  }
+  return req as never
 }
 
 

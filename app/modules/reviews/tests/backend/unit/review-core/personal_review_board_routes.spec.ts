@@ -10,7 +10,10 @@ import { getApp, setupApp, teardownApp } from '#tests/helpers/bootstrap'
 
 test.group('Unit | Personal review board routes', (group) => {
   group.setup(async () => {
-    await setupApp()
+    const app = await setupApp()
+    await import('../../../../../../../start/routes.js')
+    const router = await app.container.make('router')
+    router.commit()
   })
 
   group.teardown(() => teardownApp())
@@ -86,7 +89,10 @@ test.group('Unit | Personal review board routes', (group) => {
       },
     }
 
-    await new ShowTaskReviewBoardController(actions, workspaceAccess()).handle(ctx as never)
+    await new ShowTaskReviewBoardController(
+      actions as unknown as ReviewActionFactory,
+      workspaceAccess()
+    ).handle(ctx as never)
 
     assert.deepInclude(renderedProps, {
       projectId: null,
@@ -119,7 +125,10 @@ test.group('Unit | Personal review board routes', (group) => {
         },
       }
 
-      await new ShowSprintReverseReviewBoardController(actions, workspaceAccess()).handle(ctx as never)
+      await new ShowSprintReverseReviewBoardController(
+        actions as unknown as ReviewActionFactory,
+        workspaceAccess()
+      ).handle(ctx as never)
 
       assert.deepInclude(renderedProps, {
         sprintId: null,

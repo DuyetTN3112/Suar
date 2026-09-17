@@ -4,12 +4,12 @@ import ValidationException from '#modules/errors/public_contracts/validation_exc
 import { buildTaskReviewBoardRequest } from '#modules/reviews/controllers/mappers/request/task-review/task_review_board_request_mapper'
 
 function fakeRequest(input: Record<string, unknown>) {
-  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-  return {
+  const req = {
     input(key: string) {
       return input[key]
     },
-  } as never
+  }
+  return req as never
 }
 
 

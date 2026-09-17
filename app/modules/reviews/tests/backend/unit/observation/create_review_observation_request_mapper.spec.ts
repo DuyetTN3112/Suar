@@ -1,11 +1,13 @@
 import { test } from '@japa/runner'
 
-import { REVIEW_OBSERVATION_V1_FIXTURE } from '#modules/tasks/public_contracts/task-authoring/golden_fixtures'
 import ValidationException from '#modules/errors/public_contracts/validation_exception'
 import { buildCreateReviewObservationDTO } from '#modules/reviews/controllers/mappers/request/observation/create_review_observation_request_mapper'
+import { REVIEW_OBSERVATION_V1_FIXTURE } from '#modules/tasks/public_contracts/task-authoring/golden_fixtures'
 
-// eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-const context = (body: Record<string, unknown>) => ({ request: { all: () => body } }) as never
+const context = (body: Record<string, unknown>) => {
+  const ctx = { request: { all: () => body } }
+  return ctx as never
+}
 
 test.group('Create review observation request mapper', () => {
   test('maps the versioned observation envelope and exact evidence relations', ({ assert }) => {

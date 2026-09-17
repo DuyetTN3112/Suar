@@ -4,6 +4,7 @@ import {
   REVIEW_FINALIZATION_READINESS_CODES,
   evaluateReviewFinalizationReadiness,
   type ReviewFinalizationReadinessInput,
+  type ReviewFinalizationReadinessObservation,
 } from '#modules/reviews/domain/observation/review_finalization_readiness'
 import type { ReviewObservationV1 } from '#modules/reviews/public_contracts/observation/completion_review_contracts'
 
@@ -50,6 +51,22 @@ function observation(overrides: Partial<ReviewObservationV1> = {}): ReviewObserv
   }
 }
 
+function defaultObservation(
+  overrides: Partial<ReviewFinalizationReadinessObservation> = {}
+): ReviewFinalizationReadinessObservation {
+  return {
+    observation: observation(),
+    current: true,
+    revisionHash: HASH,
+    completionReportId: REPORT_ID,
+    completionReportHash: HASH,
+    completionClaimId: CLAIM_ID,
+    evidenceSufficiency: 'adequate',
+    evidence: [{ evidenceId: EVIDENCE_ID, reviewerAccessState: 'available' }],
+    ...overrides,
+  }
+}
+
 function input(
   overrides: Partial<ReviewFinalizationReadinessInput> = {}
 ): ReviewFinalizationReadinessInput {
@@ -64,18 +81,7 @@ function input(
       completionReportHash: HASH,
       completionClaimId: CLAIM_ID,
     },
-    observations: [
-      {
-        observation: observation(),
-        current: true,
-        revisionHash: HASH,
-        completionReportId: REPORT_ID,
-        completionReportHash: HASH,
-        completionClaimId: CLAIM_ID,
-        evidenceSufficiency: 'adequate',
-        evidence: [{ evidenceId: EVIDENCE_ID, reviewerAccessState: 'available' }],
-      },
-    ],
+    observations: [defaultObservation()],
     ...overrides,
   }
 }
@@ -104,12 +110,11 @@ test.group('Review finalization readiness', () => {
     const result = evaluateReviewFinalizationReadiness(
       input({
         observations: [
-          {
-            ...input().observations[0],
+          defaultObservation({
             observation: observation({ id: '10000000-0000-4000-8000-000000000011' }),
             current: false,
-          },
-          input().observations[0],
+          }),
+          defaultObservation(),
         ],
       })
     )
@@ -126,15 +131,14 @@ test.group('Review finalization readiness', () => {
     const result = evaluateReviewFinalizationReadiness(
       input({
         observations: [
-          {
-            ...input().observations[0],
+          defaultObservation({
             observation: observation({
               assignmentSnapshotId: '10000000-0000-4000-8000-000000000012',
             }),
             completionReportId: '10000000-0000-4000-8000-000000000013',
             completionReportHash: `sha256:${'b'.repeat(64)}`,
             evidence: [{ evidenceId: EVIDENCE_ID, reviewerAccessState: 'restricted' }],
-          },
+          }),
         ],
       })
     )
@@ -149,10 +153,9 @@ test.group('Review finalization readiness', () => {
     const result = evaluateReviewFinalizationReadiness(
       input({
         observations: [
-          {
-            ...input().observations[0],
+          defaultObservation({
             evidenceSufficiency: 'pending',
-          },
+          }),
         ],
       })
     )
@@ -164,8 +167,7 @@ test.group('Review finalization readiness', () => {
     const result = evaluateReviewFinalizationReadiness(
       input({
         observations: [
-          {
-            ...input().observations[0],
+          defaultObservation({
             observation: observation({
               observationType: 'capability',
               capabilityTaxonomyVersion: 'taxonomy-2026.08',
@@ -174,7 +176,7 @@ test.group('Review finalization readiness', () => {
               confidence: null,
             }),
             evidence: [],
-          },
+          }),
         ],
       })
     )
@@ -190,13 +192,12 @@ test.group('Review finalization readiness', () => {
       const result = evaluateReviewFinalizationReadiness(
         input({
           observations: [
-            {
-              ...input().observations[0],
+            defaultObservation({
               observation: observation({
                 governanceState,
                 finalizedAt: governanceState === 'draft' ? null : '2026-08-01T09:05:00.000Z',
               }),
-            },
+            }),
           ],
         })
       )
@@ -209,14 +210,13 @@ test.group('Review finalization readiness', () => {
     const result = evaluateReviewFinalizationReadiness(
       input({
         observations: [
-          input().observations[0],
-          {
-            ...input().observations[0],
+          defaultObservation(),
+          defaultObservation({
             observation: observation({
               id: '10000000-0000-4000-8000-000000000014',
               disposition: 'narrow',
             }),
-          },
+          }),
         ],
       })
     )

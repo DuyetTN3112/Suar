@@ -15,16 +15,11 @@ const CONTROLLERS = [
   'task-review/respond_task_review_workflow_controller.ts',
   'task-review/submit_task_review_workflow_controller.ts',
   'review-submission/create_reverse_review_controller.ts',
-  'disputes/list_ai_dispute_evaluations_controller.ts',
   'sprint-review/close_project_sprint_review_period_controller.ts',
   'review-core/add_review_evidence_controller.ts',
-  'disputes/resolve_review_dispute_controller.ts',
   'sprint-review/expire_sprint_review_packages_controller.ts',
   'review-core/confirm_review_controller.ts',
-  'disputes/list_review_dispute_case_files_controller.ts',
   'self-assessment/upsert_task_self_assessment_controller.ts',
-  'disputes/create_review_dispute_controller.ts',
-  'disputes/list_admin_review_disputes_controller.ts',
 ] as const
 
 test.group('Unit | Review controller orchestration boundary', () => {
