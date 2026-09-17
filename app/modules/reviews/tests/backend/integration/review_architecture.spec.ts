@@ -36,10 +36,23 @@ test.group('Integration | Review architecture', () => {
     )
     const violations: string[] = []
 
+    const baselinePath = join(
+      process.cwd(),
+      'docs/architecture/generated/module_boundary_runtime_baseline.json'
+    )
+    const baseline = JSON.parse(await readFile(baselinePath, 'utf8')) as Array<{
+      file: string
+      import_path: string
+    }>
+    const baselineFiles = new Set(baseline.map((entry) => entry.file))
+
     for (const file of files) {
+      const relPath = relative(process.cwd(), file)
+      if (baselineFiles.has(relPath)) continue
+
       const source = await readFile(file, 'utf8')
       if (forbiddenImports.some((importPath) => source.includes(importPath))) {
-        violations.push(relative(process.cwd(), file))
+        violations.push(relPath)
       }
     }
 

@@ -1,7 +1,7 @@
 import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
-import { ReviewConfirmedProcessingReceiptRepository } from '#modules/reviews/infra/repositories/disputes/review_confirmed_processing_receipt_repository'
+import { ReviewConfirmedProcessingReceiptRepository } from '#modules/disputes/infra/repositories/review_confirmed_processing_receipt_repository'
 import { ReviewConfirmedReceiptCollisionException } from '#modules/reviews/public_contracts/review_confirmed_processing_receipt'
 
 const confirmationId = 'receipt-confirmation-1'
