@@ -3,16 +3,16 @@ import { randomUUID } from 'node:crypto'
 import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
+import ConflictException from '#modules/errors/public_contracts/conflict_exception'
+import type { PersistInitialTaskSpecificationInput } from '#modules/tasks/actions/ports/outbound/task-authoring/task_authoring_create_persistence'
+import { TaskAuthoringIdempotentReplay } from '#modules/tasks/domain/task-authoring/task_authoring_idempotency'
+import { LucidTaskAuthoringCreatePersistence } from '#modules/tasks/infra/adapters/task-authoring/lucid_task_authoring_create_persistence'
 import { TASK_SPECIFICATION_VERSION_V1_FIXTURE } from '#modules/tasks/public_contracts/task-authoring/golden_fixtures'
 import type { TvaSha256 } from '#modules/tasks/public_contracts/task-authoring/primitives'
 import type {
   TaskReadinessResultV1,
   TaskSpecificationVersionV1,
 } from '#modules/tasks/public_contracts/task-authoring/task_contracts'
-import ConflictException from '#modules/errors/public_contracts/conflict_exception'
-import type { PersistInitialTaskSpecificationInput } from '#modules/tasks/actions/ports/outbound/task-authoring/task_authoring_create_persistence'
-import { TaskAuthoringIdempotentReplay } from '#modules/tasks/domain/task-authoring/task_authoring_idempotency'
-import { LucidTaskAuthoringCreatePersistence } from '#modules/tasks/infra/adapters/task-authoring/lucid_task_authoring_create_persistence'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 
 const AT = '2026-08-01T10:00:00.000Z'
