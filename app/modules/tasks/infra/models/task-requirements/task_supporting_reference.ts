@@ -1,9 +1,9 @@
 import { BaseModel, beforeUpdate, column } from '@adonisjs/lucid/orm'
 import { DateTime } from 'luxon'
 
+import InvariantViolationException from '#modules/errors/public_contracts/invariant_violation_exception'
 import type { TvaSha256 } from '#modules/tasks/public_contracts/task-authoring/primitives'
 import type { TaskSupportingReferenceV1 } from '#modules/tasks/public_contracts/task-authoring/task_contracts'
-import InvariantViolationException from '#modules/errors/public_contracts/invariant_violation_exception'
 
 export default class TaskSupportingReference extends BaseModel {
   static override table = 'task_supporting_references'

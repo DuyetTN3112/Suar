@@ -1,7 +1,5 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import type { TvaJsonObject } from '#modules/tasks/public_contracts/task-authoring/primitives'
-import { isTvaJsonValue } from '#modules/tasks/public_contracts/task-authoring/validators'
 import ConflictException from '#modules/errors/public_contracts/conflict_exception'
 import InvariantViolationException from '#modules/errors/public_contracts/invariant_violation_exception'
 import ValidationException from '#modules/errors/public_contracts/validation_exception'
@@ -16,6 +14,8 @@ import type { TaskTransaction } from '#modules/tasks/actions/ports/outbound/task
 import { TaskAuthoringIdempotentReplay } from '#modules/tasks/domain/task-authoring/task_authoring_idempotency'
 import TaskReadinessAssessment from '#modules/tasks/infra/models/task-authoring/task_readiness_assessment'
 import TaskSpecificationContractRepository from '#modules/tasks/infra/repositories/task-authoring/task_specification_contract_repository'
+import type { TvaJsonObject } from '#modules/tasks/public_contracts/task-authoring/primitives'
+import { isTvaJsonValue } from '#modules/tasks/public_contracts/task-authoring/validators'
 
 interface IdempotencyRow {
   readonly request_hash: string

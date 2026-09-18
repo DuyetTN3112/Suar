@@ -7,7 +7,6 @@ import type {
 } from '#modules/tasks/actions/ports/outbound/task_resolved_brief_reader'
 import type { TaskTransaction } from '#modules/tasks/actions/ports/outbound/task_transaction'
 import { deriveResolvedReadinessFindingCodes } from '#modules/tasks/domain/task-authoring/task_readiness_resolution_history'
-import { NodeTaskContractContentHasher } from '#modules/tasks/infra/adapters/task-submissions/node_task_contract_content_hasher'
 import { assertTaskSpecificationContractIntegrity } from '#modules/tasks/infra/adapters/task-authoring/task_contract_integrity'
 import {
   mapTaskContractVersionModel,
@@ -15,6 +14,7 @@ import {
   mapTaskSpecificationVersionModel,
   mapTaskSupportingReferenceModel,
 } from '#modules/tasks/infra/adapters/task-authoring/task_contract_model_mapper'
+import { NodeTaskContractContentHasher } from '#modules/tasks/infra/adapters/task-submissions/node_task_contract_content_hasher'
 import TaskReadinessAssessment from '#modules/tasks/infra/models/task-authoring/task_readiness_assessment'
 import TaskSpecificationContractRepository from '#modules/tasks/infra/repositories/task-authoring/task_specification_contract_repository'
 

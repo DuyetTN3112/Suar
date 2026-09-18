@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto'
 
-import type { TvaSha256 } from '#modules/tasks/public_contracts/task-authoring/primitives'
 import type { TaskContractContentHasher } from '#modules/tasks/actions/ports/outbound/task_contract_content_hasher'
+import type { TvaSha256 } from '#modules/tasks/public_contracts/task-authoring/primitives'
 
 function canonicalize(value: unknown): unknown {
   if (value === null || typeof value !== 'object') return value

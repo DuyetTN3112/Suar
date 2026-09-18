@@ -13,10 +13,10 @@ import type {
   UpdateTaskRequirementRecord,
 } from '#modules/tasks/actions/ports/outbound/task_requirement_repository'
 import type { TaskTransaction } from '#modules/tasks/actions/ports/outbound/task_transaction'
+import Task from '#modules/tasks/infra/models/task-authoring/task'
 import type TaskRequiredSkill from '#modules/tasks/infra/models/task-requirements/task_required_skill'
 import type TaskRequirementVersion from '#modules/tasks/infra/models/task-requirements/task_requirement_version'
 import type TaskRequirementVersionItem from '#modules/tasks/infra/models/task-requirements/task_requirement_version_item'
-import Task from '#modules/tasks/infra/models/task-authoring/task'
 import { TaskRequirementRepository } from '#modules/tasks/infra/repositories/task-requirements/task_requirement_repository'
 
 function lucidTransaction(transaction?: TaskTransaction): TransactionClientContract | undefined {

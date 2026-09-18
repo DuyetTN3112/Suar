@@ -1,13 +1,13 @@
 import { BaseModel, beforeUpdate, column } from '@adonisjs/lucid/orm'
 import { DateTime } from 'luxon'
 
-import type { TaskContractVersionV1 } from '#modules/tasks/public_contracts/task-authoring/task_contracts'
 import InvariantViolationException from '#modules/errors/public_contracts/invariant_violation_exception'
 import type { TaskWorkContractResolutionResult } from '#modules/tasks/domain/task-authoring/task_contract_resolution'
 import {
   consumeTaskContractJson,
   prepareTaskContractJson,
 } from '#modules/tasks/infra/models/task-authoring/task_contract_json_column'
+import type { TaskContractVersionV1 } from '#modules/tasks/public_contracts/task-authoring/task_contracts'
 
 export default class TaskContractVersion extends BaseModel {
   static override table = 'task_contract_versions'

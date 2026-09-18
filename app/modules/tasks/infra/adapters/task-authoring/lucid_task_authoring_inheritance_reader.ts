@@ -1,12 +1,7 @@
-import type { TvaJsonObject } from '#modules/tasks/public_contracts/task-authoring/primitives'
 import type {
   ProjectContextVersionV1,
   WorkPackageVersionV1,
 } from '#modules/projects/public_contracts/project-context/task_to_accomplishment_project_contracts'
-import type {
-  TaskReadinessFindingV1,
-  TaskWorkContractV1,
-} from '#modules/tasks/public_contracts/task-authoring/task_contracts'
 import type { TaskAuthoringInheritanceFactReaderV1 } from '#modules/projects/public_contracts/task_authoring_inheritance_facts_v1'
 import type {
   TaskAuthoringInheritanceReadInput,
@@ -15,6 +10,11 @@ import type {
 } from '#modules/tasks/actions/ports/outbound/task-authoring/task_authoring_inheritance_reader'
 import type { TaskTransaction } from '#modules/tasks/actions/ports/outbound/task_transaction'
 import type { TaskWorkContractLayer } from '#modules/tasks/domain/task-authoring/task_contract_resolution'
+import type { TvaJsonObject } from '#modules/tasks/public_contracts/task-authoring/primitives'
+import type {
+  TaskReadinessFindingV1,
+  TaskWorkContractV1,
+} from '#modules/tasks/public_contracts/task-authoring/task_contracts'
 
 const WORK_CONTRACT_FIELDS = [
   'action',

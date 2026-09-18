@@ -1,11 +1,11 @@
+import InvariantViolationException from '#modules/errors/public_contracts/invariant_violation_exception'
+import type { TaskContractContentHasher } from '#modules/tasks/actions/ports/outbound/task_contract_content_hasher'
 import type {
   TaskContractVersionV1,
   TaskReadinessResultV1,
   TaskSpecificationVersionV1,
   TaskSupportingReferenceV1,
 } from '#modules/tasks/public_contracts/task-authoring/task_contracts'
-import InvariantViolationException from '#modules/errors/public_contracts/invariant_violation_exception'
-import type { TaskContractContentHasher } from '#modules/tasks/actions/ports/outbound/task_contract_content_hasher'
 
 function canonicalize(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(canonicalize)

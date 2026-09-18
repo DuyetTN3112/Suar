@@ -2,8 +2,8 @@ import { BaseModel, beforeUpdate, column, belongsTo } from '@adonisjs/lucid/orm'
 import type { BelongsTo } from '@adonisjs/lucid/types/relations'
 import { DateTime } from 'luxon'
 
-import Task from '../task-authoring/task.js'
 import TaskAssignment from '../task-assignment/task_assignment.js'
+import Task from '../task-authoring/task.js'
 
 import InvariantViolationException from '#modules/errors/public_contracts/invariant_violation_exception'
 import type { CanonicalTaskAssignmentContractSnapshotV1 } from '#modules/tasks/domain/task-assignment/task_assignment_contract_snapshot'

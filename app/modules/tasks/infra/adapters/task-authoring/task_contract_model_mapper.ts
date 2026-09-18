@@ -1,3 +1,8 @@
+import InvariantViolationException from '#modules/errors/public_contracts/invariant_violation_exception'
+import type TaskContractVersion from '#modules/tasks/infra/models/task-authoring/task_contract_version'
+import type TaskReadinessAssessment from '#modules/tasks/infra/models/task-authoring/task_readiness_assessment'
+import type TaskSpecificationVersion from '#modules/tasks/infra/models/task-authoring/task_specification_version'
+import type TaskSupportingReference from '#modules/tasks/infra/models/task-requirements/task_supporting_reference'
 import type {
   TaskContractVersionV1,
   TaskReadinessResultV1,
@@ -8,11 +13,6 @@ import {
   isTaskContractVersionV1,
   isTaskSpecificationVersionV1,
 } from '#modules/tasks/public_contracts/task-authoring/validators'
-import InvariantViolationException from '#modules/errors/public_contracts/invariant_violation_exception'
-import type TaskContractVersion from '#modules/tasks/infra/models/task-authoring/task_contract_version'
-import type TaskReadinessAssessment from '#modules/tasks/infra/models/task-authoring/task_readiness_assessment'
-import type TaskSpecificationVersion from '#modules/tasks/infra/models/task-authoring/task_specification_version'
-import type TaskSupportingReference from '#modules/tasks/infra/models/task-requirements/task_supporting_reference'
 
 function requiredIsoTimestamp(value: { toUTC(): { toISO(): string | null } }, field: string): string {
   const timestamp = value.toUTC().toISO()

@@ -6,6 +6,7 @@ import TaskApplication from '../task-applications/task_application.js'
 import TaskAssignment from '../task-assignment/task_assignment.js'
 import TaskRequiredSkill from '../task-requirements/task_required_skill.js'
 import TaskStatusModel from '../task-status/task_status.js'
+
 import TaskVersion from './task_version.js'
 
 

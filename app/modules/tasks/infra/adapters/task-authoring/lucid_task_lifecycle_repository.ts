@@ -3,12 +3,12 @@ import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 import { TaskLifecycleRepository } from '#modules/tasks/actions/ports/outbound/task_lifecycle_repository'
 import type { TaskTransaction } from '#modules/tasks/actions/ports/outbound/task_transaction'
+import TaskApplicationRepository from '#modules/tasks/infra/repositories/task-applications/task_application_repository'
+import * as taskMutations from '#modules/tasks/infra/repositories/task-authoring/write/task_mutations'
 import * as aggregateQueries from '#modules/tasks/infra/repositories/task-reading/read/aggregate_queries'
 import * as detailQueries from '#modules/tasks/infra/repositories/task-reading/read/detail_queries'
-import TaskApplicationRepository from '#modules/tasks/infra/repositories/task-applications/task_application_repository'
 import TaskStatusRepository from '#modules/tasks/infra/repositories/task-status/task_status_repository'
 import TaskWorkflowTransitionRepository from '#modules/tasks/infra/repositories/task-workflow/task_workflow_transition_repository'
-import * as taskMutations from '#modules/tasks/infra/repositories/task-authoring/write/task_mutations'
 
 function lucidTransaction(
   transaction?: TaskTransaction

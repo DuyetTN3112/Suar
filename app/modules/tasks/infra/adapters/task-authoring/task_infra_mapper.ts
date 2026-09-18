@@ -11,9 +11,9 @@
 import InvariantViolationException from '#modules/errors/public_contracts/invariant_violation_exception'
 import type { TaskEntityProps } from '#modules/tasks/domain/task-authoring/task_entity'
 import { TaskEntity } from '#modules/tasks/domain/task-authoring/task_entity'
-import type Task from '#modules/tasks/infra/models/task-authoring/task'
 import type TaskApplication from '#modules/tasks/infra/models/task-applications/task_application'
 import type TaskAssignment from '#modules/tasks/infra/models/task-assignment/task_assignment'
+import type Task from '#modules/tasks/infra/models/task-authoring/task'
 import type {
   TaskApplicationRecord,
   TaskAssignmentWithTaskRecord,
@@ -209,7 +209,9 @@ export class TaskInfraMapper {
       autonomyLevel: model.autonomy_level,
       problemCategory: model.problem_category,
       businessDomain: model.business_domain,
-      projectBusinessDomains: model.project_business_domains,
+      ...((model as unknown as Record<string, unknown>)['project_business_domains'] !== undefined
+        ? { projectBusinessDomains: model.project_business_domains }
+        : {}),
       estimatedUsersAffected: model.estimated_users_affected,
       externalApplicationsCount: model.external_applications_count,
       sortOrder: model.sort_order,
