@@ -4,6 +4,7 @@ import { DateTime } from 'luxon'
 
 import { getCanonicalProficiencyLevelValue } from '#modules/skills/public_contracts/rubric-and-proficiency/proficiency_level_catalog'
 import UserWorkHistory from '#modules/users/infra/models/profile/user_work_history'
+import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   cleanupTestData,
   OrganizationFactory,
@@ -13,7 +14,6 @@ import {
   UserFactory,
   UserSkillFactory,
 } from '#tests/helpers/factories'
-import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import { testId } from '#tests/helpers/test_utils'
 
 interface RankedApplicationContract {
