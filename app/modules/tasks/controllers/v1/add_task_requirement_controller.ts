@@ -30,9 +30,11 @@ function omitUndefined<T extends object>(value: T): OmittedUndefined<T> {
 
 const addRequirementSchema = vine.create({
   skillId: vine.string().uuid(),
-  projectSkillId: vine.string().uuid(),
+  projectSkillId: vine.string().uuid().optional().nullable(),
   sourceProjectProfessionalRoleId: vine.string().uuid().optional().nullable(),
   minimumLevelId: vine.string().uuid(),
+  targetLevelId: vine.string().uuid().optional().nullable(),
+  assessmentCeilingLevelId: vine.string().uuid().optional().nullable(),
   rubricVersionId: vine.string().uuid().optional().nullable(),
   isMandatory: vine.boolean().optional(),
   importance: vine.enum(['low', 'medium', 'high', 'critical']).optional(),
@@ -60,6 +62,12 @@ export default class AddTaskRequirementController {
           'source_project_professional_role_id'
         ),
         minimumLevelId: readAliasedInput(request, 'minimumLevelId', 'minimum_level_id'),
+        targetLevelId: readAliasedInput(request, 'targetLevelId', 'target_level_id'),
+        assessmentCeilingLevelId: readAliasedInput(
+          request,
+          'assessmentCeilingLevelId',
+          'assessment_ceiling_level_id'
+        ),
         rubricVersionId: readAliasedInput(request, 'rubricVersionId', 'rubric_version_id'),
         isMandatory: readAliasedInput(request, 'isMandatory', 'is_mandatory'),
         importance: readAliasedInput(request, 'importance', 'importance'),
@@ -79,6 +87,8 @@ export default class AddTaskRequirementController {
             projectSkillId: payload.projectSkillId,
             sourceProjectProfessionalRoleId: payload.sourceProjectProfessionalRoleId,
             minimumLevelId: payload.minimumLevelId,
+            targetLevelId: payload.targetLevelId,
+            assessmentCeilingLevelId: payload.assessmentCeilingLevelId,
             rubricVersionId: payload.rubricVersionId,
             isMandatory: payload.isMandatory,
             importance: payload.importance,

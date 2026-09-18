@@ -12,5 +12,7 @@ export function toLegacyTaskStatusMirror(status: TaskStatusMirrorSource): string
   // `tasks.status` predates the Docs role and remains constrained to work
   // lifecycle values. `task_status_id` is authoritative for Docs; mirroring it
   // as TODO protects legacy readers without allowing the item into work flow.
-  return status.category === TaskStatusCategory.DOCS ? TaskStatus.TODO : status.category
+  return (status.category as TaskStatusCategory) === TaskStatusCategory.DOCS
+    ? TaskStatus.TODO
+    : status.category
 }
