@@ -1,7 +1,7 @@
 import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 
-import { buildDeleteTaskStatusDTO } from '../mappers/request/task_status_request_mapper.js'
+import { buildDeleteTaskStatusDTO } from '../mappers/request/task-status/task_status_request_mapper.js'
 
 import {
   actionContextFromHttp,

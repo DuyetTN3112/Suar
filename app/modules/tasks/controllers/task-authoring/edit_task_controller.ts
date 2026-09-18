@@ -27,12 +27,20 @@ export default class EditTaskController {
   async showForm(ctx: HttpContext) {
     const organizationId = requireCurrentOrganizationId(ctx)
 
-    const page = await this.detailQueries
+    const result = await this.detailQueries
       .makeEditPage(actionContextFromHttp(ctx))
       .executeAndWrap(ctx.params['taskId'] as string, organizationId)
       .then((outcome) => outcome.getValue())
+    const task = result.task
+    const projectId = task['project_id']
 
-    return await ctx.inertia.render('tasks/edit', page)
+    if (typeof projectId !== 'string' || projectId.length === 0) {
+      return ctx.response.redirect('/projects')
+    }
+
+    return ctx.response.redirect(
+      `/projects/${encodeURIComponent(projectId)}/tasks?task_id=${encodeURIComponent(task.id)}`
+    )
   }
 
   async handle(ctx: HttpContext) {

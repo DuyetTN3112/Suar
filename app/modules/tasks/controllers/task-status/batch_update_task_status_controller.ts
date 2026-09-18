@@ -1,8 +1,8 @@
 import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 
-import BusinessLogicException from '#modules/errors/public_contracts/business_logic_exception'
 import { ErrorMessages } from '#modules/errors/public_contracts/error_constants'
+import ValidationException from '#modules/errors/public_contracts/validation_exception'
 import { wrapApiV1Data } from '#modules/http/boundary/api_v1_response'
 import {
   actionContextFromHttp,
@@ -33,11 +33,11 @@ export default class BatchUpdateTaskStatusController {
     const taskStatusIdRaw = payload.taskStatusId ?? payload.task_status_id
 
     if (!Array.isArray(taskIdsRaw) || !taskIdsRaw.every((id) => typeof id === 'string')) {
-      throw new BusinessLogicException(ErrorMessages.INVALID_INPUT)
+      throw ValidationException.field('taskIds', ErrorMessages.INVALID_INPUT)
     }
 
     if (typeof taskStatusIdRaw !== 'string' || taskStatusIdRaw.trim().length === 0) {
-      throw new BusinessLogicException(ErrorMessages.INVALID_INPUT)
+      throw ValidationException.field('taskStatusId', ErrorMessages.INVALID_INPUT)
     }
 
     const execCtx = actionContextFromHttp(ctx)

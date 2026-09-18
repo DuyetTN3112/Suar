@@ -1,6 +1,6 @@
 import GetTasksListDTO from '../../dtos/request/get_tasks_list_dto.js'
-
 import CheckTaskCreatePermissionQuery from '../task-authoring/check_task_create_permission_query.js'
+
 import GetTaskProjectsQuery from './get_task_projects_query.js'
 import GetTasksPageQuery from './get_tasks_page_query.js'
 

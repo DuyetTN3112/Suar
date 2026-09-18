@@ -5,8 +5,8 @@ import GetTaskDetailQuery from './get_task_detail_query.js'
 import GetTaskMetadataQuery from './get_task_metadata_query.js'
 
 import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
-import AppException from '#modules/errors/public_contracts/application_exception'
-import { Result } from '#modules/errors/public_contracts/result'
+import type AppException from '#modules/errors/public_contracts/application_exception'
+import { type Result } from '#modules/errors/public_contracts/result'
 import { BaseQuery } from '#modules/tasks/actions/base_query'
 import type { TaskExternalDependencies } from '#modules/tasks/actions/ports/outbound/task_external_dependencies'
 import type { TaskReadRepository } from '#modules/tasks/actions/ports/outbound/task_read_repository'
@@ -71,7 +71,7 @@ export default class GetTaskEditPageQuery extends BaseQuery<TaskEditPageInput, T
   ): Promise<Result<TaskEditPageResult, AppException>> {
     const input: TaskEditPageInput =
       typeof inputOrTaskId === 'string'
-        ? { taskId: inputOrTaskId, organizationId: organizationId! }
+        ? { taskId: inputOrTaskId, organizationId: organizationId ?? '' }
         : inputOrTaskId
     return super.executeAndWrap(input)
   }
