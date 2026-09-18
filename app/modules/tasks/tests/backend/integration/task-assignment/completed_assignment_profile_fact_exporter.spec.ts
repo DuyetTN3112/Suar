@@ -45,7 +45,7 @@ test.group('Integration | Completed Assignment Profile Fact Exporter', (group) =
   async function insertTaskReviewWorkflow(input: {
     taskId: string
     assignmentId: string
-    projectId: string
+    projectId: string | null
     organizationId: string
     revieweeId: string
     status?: 'awaiting_review' | 'done'

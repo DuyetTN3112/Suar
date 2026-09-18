@@ -6,14 +6,16 @@ import AssignTaskDTO from '#modules/tasks/actions/dtos/request/assign_task_dto'
 import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
 import { InProcessTaskEventPublisher } from '#modules/tasks/infra/adapters/task-authoring/in_process_task_event_publisher'
 import { TaskCacheInvalidator } from '#modules/tasks/infra/adapters/task-authoring/task_cache_invalidator'
-import Task from '#modules/tasks/infra/models/task-authoring/task'
 import TaskAssignment from '#modules/tasks/infra/models/task-assignment/task_assignment'
+import Task from '#modules/tasks/infra/models/task-authoring/task'
 import { AssignmentStatus } from '#modules/tasks/public_contracts/task_constants'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   cleanupTestData,
   OrganizationFactory,
   OrganizationUserFactory,
+  ProjectFactory,
+  ProjectMemberFactory,
   TaskFactory,
   UserFactory,
 } from '#tests/helpers/factories'
@@ -47,9 +49,26 @@ test.group('Integration | Assignment Drift Regression', (group) => {
       org_role: 'org_member',
       status: 'approved',
     })
+    const project = await ProjectFactory.create({
+      organization_id: org.id,
+      owner_id: owner.id,
+      creator_id: owner.id,
+    })
+    await ProjectMemberFactory.create({
+      project_id: project.id,
+      user_id: owner.id,
+      project_role: 'project_manager',
+    })
+    await ProjectMemberFactory.create({
+      project_id: project.id,
+      user_id: member.id,
+      project_role: 'project_member',
+    })
     const task = await TaskFactory.create({
       organization_id: org.id,
+      project_id: project.id,
       creator_id: owner.id,
+      task_visibility: 'project',
     })
 
     const dto = new AssignTaskDTO({
@@ -99,9 +118,31 @@ test.group('Integration | Assignment Drift Regression', (group) => {
       org_role: 'org_member',
       status: 'approved',
     })
+    const project = await ProjectFactory.create({
+      organization_id: org.id,
+      owner_id: owner.id,
+      creator_id: owner.id,
+    })
+    await ProjectMemberFactory.create({
+      project_id: project.id,
+      user_id: owner.id,
+      project_role: 'project_manager',
+    })
+    await ProjectMemberFactory.create({
+      project_id: project.id,
+      user_id: memberA.id,
+      project_role: 'project_member',
+    })
+    await ProjectMemberFactory.create({
+      project_id: project.id,
+      user_id: memberB.id,
+      project_role: 'project_member',
+    })
     const task = await TaskFactory.create({
       organization_id: org.id,
+      project_id: project.id,
       creator_id: owner.id,
+      task_visibility: 'project',
     })
 
     const makeCmd = () =>
@@ -149,9 +190,26 @@ test.group('Integration | Assignment Drift Regression', (group) => {
       org_role: 'org_member',
       status: 'approved',
     })
+    const project = await ProjectFactory.create({
+      organization_id: org.id,
+      owner_id: owner.id,
+      creator_id: owner.id,
+    })
+    await ProjectMemberFactory.create({
+      project_id: project.id,
+      user_id: owner.id,
+      project_role: 'project_manager',
+    })
+    await ProjectMemberFactory.create({
+      project_id: project.id,
+      user_id: member.id,
+      project_role: 'project_member',
+    })
     const task = await TaskFactory.create({
       organization_id: org.id,
+      project_id: project.id,
       creator_id: owner.id,
+      task_visibility: 'project',
     })
 
     const makeCmd = () =>
@@ -190,9 +248,26 @@ test.group('Integration | Assignment Drift Regression', (group) => {
       org_role: 'org_member',
       status: 'approved',
     })
+    const project = await ProjectFactory.create({
+      organization_id: org.id,
+      owner_id: owner.id,
+      creator_id: owner.id,
+    })
+    await ProjectMemberFactory.create({
+      project_id: project.id,
+      user_id: owner.id,
+      project_role: 'project_manager',
+    })
+    await ProjectMemberFactory.create({
+      project_id: project.id,
+      user_id: member.id,
+      project_role: 'project_member',
+    })
     const task = await TaskFactory.create({
       organization_id: org.id,
+      project_id: project.id,
       creator_id: owner.id,
+      task_visibility: 'project',
     })
 
     const makeCmd = () =>

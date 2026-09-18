@@ -27,6 +27,8 @@ import {
   cleanupTestData,
   OrganizationFactory,
   OrganizationUserFactory,
+  ProjectFactory,
+  ProjectMemberFactory,
   TaskFactory,
   UserFactory,
 } from '#tests/helpers/factories'
@@ -104,8 +106,25 @@ test.group('Integration | Assign Task', (group) => {
       org_role: 'org_member',
       status: 'approved',
     })
+    const project = await ProjectFactory.create({
+      organization_id: org.id,
+      owner_id: owner.id,
+      creator_id: owner.id,
+    })
+    await ProjectMemberFactory.create({
+      project_id: project.id,
+      user_id: owner.id,
+      project_role: 'project_manager',
+    })
+    await ProjectMemberFactory.create({
+      project_id: project.id,
+      user_id: assignee.id,
+      project_role: 'project_member',
+    })
     const task = await TaskFactory.create({
       organization_id: org.id,
+      project_id: project.id,
+      task_visibility: 'project',
       creator_id: owner.id,
       assigned_to: null,
     })
@@ -271,8 +290,31 @@ test.group('Integration | Assign Task', (group) => {
       status: 'approved',
     })
 
+    const project = await ProjectFactory.create({
+      organization_id: org.id,
+      owner_id: owner.id,
+      creator_id: owner.id,
+    })
+    await ProjectMemberFactory.create({
+      project_id: project.id,
+      user_id: owner.id,
+      project_role: 'project_manager',
+    })
+    await ProjectMemberFactory.create({
+      project_id: project.id,
+      user_id: currentAssignee.id,
+      project_role: 'project_member',
+    })
+    await ProjectMemberFactory.create({
+      project_id: project.id,
+      user_id: newAssignee.id,
+      project_role: 'project_member',
+    })
+
     const task = await TaskFactory.create({
       organization_id: org.id,
+      project_id: project.id,
+      task_visibility: 'project',
       creator_id: owner.id,
       assigned_to: currentAssignee.id,
     })
@@ -289,7 +331,7 @@ test.group('Integration | Assign Task', (group) => {
       assigned_to: newAssignee.id,
     })
 
-    await command.execute(dto)
+    const updatedTask = await command.execute(dto)
 
     const persistedTask = await Task.findOrFail(task.id)
 
@@ -309,7 +351,7 @@ test.group('Integration | Assign Task', (group) => {
     }[]
     assert.lengthOf(notifications, 2)
 
-    const occurredAt = persistedTask.updated_at.toUTC().toISO()
+    const occurredAt = updatedTask.updated_at ?? persistedTask.updated_at.toUTC().toISO()
     assert.isNotNull(occurredAt)
     if (!occurredAt) return
     const expected = [
@@ -468,8 +510,27 @@ test.group('Integration | Assign Task', (group) => {
         status: 'approved',
       })
     }
+    const project = await ProjectFactory.create({
+      organization_id: org.id,
+      owner_id: owner.id,
+      creator_id: owner.id,
+    })
+    await ProjectMemberFactory.create({
+      project_id: project.id,
+      user_id: owner.id,
+      project_role: 'project_manager',
+    })
+    for (const member of [currentAssignee, newAssignee]) {
+      await ProjectMemberFactory.create({
+        project_id: project.id,
+        user_id: member.id,
+        project_role: 'project_member',
+      })
+    }
     const task = await TaskFactory.create({
       organization_id: org.id,
+      project_id: project.id,
+      task_visibility: 'project',
       creator_id: owner.id,
       assigned_to: currentAssignee.id,
     })
