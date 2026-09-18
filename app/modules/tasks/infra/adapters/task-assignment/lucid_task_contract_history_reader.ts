@@ -2,12 +2,12 @@ import type {
   HistoricalTaskContractBundle,
   TaskContractHistoryReader,
 } from '#modules/tasks/actions/ports/outbound/task_contract_history_reader'
-import { NodeTaskContractContentHasher } from '#modules/tasks/infra/adapters/task-submissions/node_task_contract_content_hasher'
 import { assertTaskSpecificationContractIntegrity } from '#modules/tasks/infra/adapters/task-authoring/task_contract_integrity'
 import {
   mapTaskContractVersionModel,
   mapTaskSpecificationVersionModel,
 } from '#modules/tasks/infra/adapters/task-authoring/task_contract_model_mapper'
+import { NodeTaskContractContentHasher } from '#modules/tasks/infra/adapters/task-submissions/node_task_contract_content_hasher'
 import TaskContractVersion from '#modules/tasks/infra/models/task-authoring/task_contract_version'
 import TaskSpecificationVersion from '#modules/tasks/infra/models/task-authoring/task_specification_version'
 
