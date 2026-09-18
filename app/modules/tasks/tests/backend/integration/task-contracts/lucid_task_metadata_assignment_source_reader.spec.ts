@@ -121,18 +121,22 @@ test.group('Integration | Lucid task metadata assignment source reader', (group)
       [privateTask.id, publicTask.id].sort()
     )
     const publicSource = publicOnly[0]
-    assert.deepEqual(
+    const skillAssignments = (
       publicSource?.namespaces
         .find(({ namespace }) => namespace === 'skills')
         ?.assignments.map(({ termId, provenance, reviewState }) => ({
           termId,
           provenance,
           reviewState,
-        })),
+        })) ?? []
+    ).sort((a, b) => a.termId.localeCompare(b.termId))
+
+    assert.deepEqual(
+      skillAssignments,
       [
         { termId: typescript.id, provenance: 'explicit', reviewState: 'reviewed' },
         { termId: postgresql.id, provenance: 'imported', reviewState: 'reviewed' },
-      ]
+      ].sort((a, b) => a.termId.localeCompare(b.termId))
     )
     assert.deepEqual(
       publicSource?.namespaces

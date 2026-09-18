@@ -3,6 +3,11 @@ import { randomUUID } from 'node:crypto'
 import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
+import InvariantViolationException from '#modules/errors/public_contracts/invariant_violation_exception'
+import { LucidTaskContractHistoryReader } from '#modules/tasks/infra/adapters/task-assignment/lucid_task_contract_history_reader'
+import { LucidTaskResolvedBriefReader } from '#modules/tasks/infra/adapters/task-reading/lucid_task_resolved_brief_reader'
+import { NodeTaskContractContentHasher } from '#modules/tasks/infra/adapters/task-submissions/node_task_contract_content_hasher'
+import TaskSpecificationContractRepository from '#modules/tasks/infra/repositories/task-authoring/task_specification_contract_repository'
 import {
   RESOLVED_TASK_CONTRACT_V1_FIXTURE,
   TASK_CONTRACT_VERSION_V1_FIXTURE,
@@ -14,11 +19,6 @@ import type {
   TaskReadinessResultV1,
   TaskSpecificationVersionV1,
 } from '#modules/tasks/public_contracts/task-authoring/task_contracts'
-import InvariantViolationException from '#modules/errors/public_contracts/invariant_violation_exception'
-import { LucidTaskContractHistoryReader } from '#modules/tasks/infra/adapters/task-assignment/lucid_task_contract_history_reader'
-import { LucidTaskResolvedBriefReader } from '#modules/tasks/infra/adapters/task-reading/lucid_task_resolved_brief_reader'
-import { NodeTaskContractContentHasher } from '#modules/tasks/infra/adapters/task-submissions/node_task_contract_content_hasher'
-import TaskSpecificationContractRepository from '#modules/tasks/infra/repositories/task-authoring/task_specification_contract_repository'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 
 const hash = (character: string): TvaSha256 => `sha256:${character.repeat(64)}`

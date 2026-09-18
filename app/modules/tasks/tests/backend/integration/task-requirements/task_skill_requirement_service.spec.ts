@@ -98,7 +98,7 @@ test.group('Integration | Task Skill Requirement Service', (group) => {
       taskId: task.id,
       skillId: skill.id,
       projectSkillId,
-      minimumLevelId: levelIds.l4,
+      minimumLevelId: levelIds['l4'],
       isMandatory: true,
       importance: 'high',
       weight: 2.5,
@@ -112,7 +112,7 @@ test.group('Integration | Task Skill Requirement Service', (group) => {
     assert.equal(persisted?.task_id, task.id)
     assert.equal(persisted?.skill_id, skill.id)
     assert.equal(persisted?.project_skill_id, projectSkillId)
-    assert.equal(persisted?.minimum_level_id, levelIds.l4)
+    assert.equal(persisted?.minimum_level_id, levelIds['l4'])
     assert.equal(persisted?.required_public_proficiency_code, 'l4')
     assert.isNull(persisted?.target_level_id)
     assert.isNull(persisted?.assessment_ceiling_level_id)
@@ -133,7 +133,7 @@ test.group('Integration | Task Skill Requirement Service', (group) => {
     const { task, skill, projectSkillId, levelIds } = await createTaskSkillScenario()
 
     await assert.rejects(
-      () => addTaskRequirementCommand.execute({ taskId: task.id, skillId: skill.id, minimumLevelId: levelIds.l4 }),
+      () => addTaskRequirementCommand.execute({ taskId: task.id, skillId: skill.id, minimumLevelId: levelIds['l4'] }),
       /danh mục kỹ năng của Project/
     )
     await assert.rejects(
@@ -146,8 +146,8 @@ test.group('Integration | Task Skill Requirement Service', (group) => {
           taskId: task.id,
           skillId: skill.id,
           projectSkillId,
-          minimumLevelId: levelIds.l4,
-          targetLevelId: levelIds.l10,
+          minimumLevelId: levelIds['l4'],
+          targetLevelId: levelIds['l10'],
         }),
       /không được đặt mục tiêu hoặc trần đánh giá/
     )
@@ -163,7 +163,7 @@ test.group('Integration | Task Skill Requirement Service', (group) => {
           taskId: task.id,
           skillId: skill.id,
           projectSkillId,
-          minimumLevelId: levels.l2,
+          minimumLevelId: levels['l2'],
         }),
       /phải nằm trong khoảng level của Project/
     )
@@ -173,7 +173,7 @@ test.group('Integration | Task Skill Requirement Service', (group) => {
           taskId: task.id,
           skillId: skill.id,
           projectSkillId,
-          minimumLevelId: levels.l11,
+          minimumLevelId: levels['l11'],
         }),
       /phải nằm trong khoảng level của Project/
     )
@@ -194,8 +194,8 @@ test.group('Integration | Task Skill Requirement Service', (group) => {
       display_name_override: null,
       description_override: null,
       rubric_version_id: null,
-      minimum_task_requirement_level_id: levelIds.l4,
-      maximum_task_requirement_level_id: levelIds.l10,
+      minimum_task_requirement_level_id: levelIds['l4'],
+      maximum_task_requirement_level_id: levelIds['l10'],
       is_active: true,
       is_selectable_for_tasks: true,
       is_visible_in_project: true,
@@ -205,7 +205,7 @@ test.group('Integration | Task Skill Requirement Service', (group) => {
     await db.transaction(async (trx) => {
       await persistTaskRequiredSkills(
         task.id,
-        task.project_id,
+        task.project_id ?? '',
         [{ id: skill.id, project_skill_id: projectSkillId, level: 'l6' }],
         trx,
         taskExternalDeps.skill,
@@ -219,7 +219,7 @@ test.group('Integration | Task Skill Requirement Service', (group) => {
       .where('skill_id', skill.id)
       .first()) as TaskRequiredSkillRow | null
 
-    assert.equal(persisted?.minimum_level_id, levelIds.l6)
+    assert.equal(persisted?.minimum_level_id, levelIds['l6'])
     assert.equal(persisted?.required_public_proficiency_code, 'l6')
     assert.isNull(persisted?.target_level_id)
     assert.isNull(persisted?.assessment_ceiling_level_id)
@@ -233,7 +233,7 @@ test.group('Integration | Task Skill Requirement Service', (group) => {
         db.transaction((trx) =>
           persistTaskRequiredSkills(
             task.id,
-            task.project_id,
+            task.project_id ?? '',
             [{ id: skill.id, level: 'l4' }],
             trx,
             taskExternalDeps.skill,
@@ -248,7 +248,7 @@ test.group('Integration | Task Skill Requirement Service', (group) => {
         db.transaction((trx) =>
           persistTaskRequiredSkills(
             task.id,
-            task.project_id,
+            task.project_id ?? '',
             [
               {
                 id: 'custom:technology:graphql-federation',
@@ -274,7 +274,7 @@ test.group('Integration | Task Skill Requirement Service', (group) => {
   }) => {
     const { task, skill, projectSkillId, levelIds } = await createTaskSkillScenario()
     const levelIdsForUpdate = await canonicalLevelIds('l6')
-    const l6 = levelIdsForUpdate.l6
+    const l6 = levelIdsForUpdate['l6']
     const requirementId = testId()
     await db.table('task_required_skills').insert({
       id: requirementId,
@@ -282,9 +282,9 @@ test.group('Integration | Task Skill Requirement Service', (group) => {
       skill_id: skill.id,
       project_skill_id: projectSkillId,
       required_public_proficiency_code: 'l4',
-      minimum_level_id: levelIds.l4,
+      minimum_level_id: levelIds['l4'],
       target_level_id: l6,
-      assessment_ceiling_level_id: levelIds.l10,
+      assessment_ceiling_level_id: levelIds['l10'],
       is_mandatory: true,
       importance: 'medium',
       weight: 1,

@@ -5,8 +5,8 @@ import { cacheStore } from '#modules/cache/public_contracts/cache_store'
 import GetTasksListDTO from '#modules/tasks/actions/dtos/request/get_tasks_list_dto'
 import GetTasksListQuery from '#modules/tasks/actions/queries/task-reading/get_tasks_list_query'
 import { makeSystemTaskActionContext } from '#modules/tasks/actions/task_action_context'
-import { LucidTaskReadRepository } from '#modules/tasks/infra/adapters/task-reading/lucid_task_read_repository'
 import { TaskCacheInvalidator } from '#modules/tasks/infra/adapters/task-authoring/task_cache_invalidator'
+import { LucidTaskReadRepository } from '#modules/tasks/infra/adapters/task-reading/lucid_task_read_repository'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   cleanupTestData,

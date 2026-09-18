@@ -3,6 +3,14 @@ import { randomUUID } from 'node:crypto'
 import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
+import InvariantViolationException from '#modules/errors/public_contracts/invariant_violation_exception'
+import ValidationException from '#modules/errors/public_contracts/validation_exception'
+import TaskContractVersion from '#modules/tasks/infra/models/task-authoring/task_contract_version'
+import TaskSpecificationVersion from '#modules/tasks/infra/models/task-authoring/task_specification_version'
+import TaskSpecificationContractRepository, {
+  type PersistTaskSpecificationContractBundleInput,
+  type PersistTaskSpecificationDraftInput,
+} from '#modules/tasks/infra/repositories/task-authoring/task_specification_contract_repository'
 import {
   RESOLVED_TASK_CONTRACT_V1_FIXTURE,
   TASK_CONTRACT_VERSION_V1_FIXTURE,
@@ -23,14 +31,6 @@ import type {
   TaskSupportingReferenceV1,
   TaskWorkContractV1,
 } from '#modules/tasks/public_contracts/task-authoring/task_contracts'
-import InvariantViolationException from '#modules/errors/public_contracts/invariant_violation_exception'
-import ValidationException from '#modules/errors/public_contracts/validation_exception'
-import TaskContractVersion from '#modules/tasks/infra/models/task-authoring/task_contract_version'
-import TaskSpecificationVersion from '#modules/tasks/infra/models/task-authoring/task_specification_version'
-import TaskSpecificationContractRepository, {
-  type PersistTaskSpecificationContractBundleInput,
-  type PersistTaskSpecificationDraftInput,
-} from '#modules/tasks/infra/repositories/task-authoring/task_specification_contract_repository'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 
 const AT = '2026-08-01T08:00:00.000Z'

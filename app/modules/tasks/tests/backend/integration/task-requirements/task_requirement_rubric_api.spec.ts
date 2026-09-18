@@ -1,10 +1,12 @@
 import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
+import { skillTestingApi } from '#composition/skills/skill-testing/skill_testing_composition'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   cleanupTestData,
   OrganizationFactory,
+  ProjectFactory,
   SkillFactory,
   TaskFactory,
 } from '#tests/helpers/factories'
@@ -36,7 +38,7 @@ async function createLevelSet() {
       id: minimumLevelId,
       scale_id: scaleId,
       ordinal: 4,
-      code: `l4-${minimumLevelId.slice(0, 8)}`,
+      code: 'L4',
       display_name: 'Minimum',
       short_name: 'Min',
       normalized_value: 0.25,
@@ -46,7 +48,7 @@ async function createLevelSet() {
       id: targetLevelId,
       scale_id: scaleId,
       ordinal: 8,
-      code: `l8-${targetLevelId.slice(0, 8)}`,
+      code: 'L8',
       display_name: 'Target',
       short_name: 'Target',
       normalized_value: 0.55,
@@ -56,7 +58,7 @@ async function createLevelSet() {
       id: ceilingLevelId,
       scale_id: scaleId,
       ordinal: 11,
-      code: `l11-${ceilingLevelId.slice(0, 8)}`,
+      code: 'L11',
       display_name: 'Ceiling',
       short_name: 'Ceiling',
       normalized_value: 0.75,
@@ -79,12 +81,25 @@ test.group('Integration | Task requirement rubric API', (group) => {
     client,
   }) => {
     const { org, owner } = await OrganizationFactory.createWithOwner()
+    const project = await ProjectFactory.create({
+      organization_id: org.id,
+      creator_id: owner.id,
+      owner_id: owner.id,
+    })
     const task = await TaskFactory.create({
       organization_id: org.id,
+      project_id: project.id,
       creator_id: owner.id,
     })
     const skill = await SkillFactory.create()
-    const { minimumLevelId, targetLevelId, ceilingLevelId } = await createLevelSet()
+    const { minimumLevelId, ceilingLevelId } = await createLevelSet()
+    const projectSkill = await skillTestingApi.addSkillToProject({
+      projectId: project.id,
+      skillId: skill.id,
+      addedBy: owner.id,
+      minimumTaskRequirementLevelId: minimumLevelId,
+      maximumTaskRequirementLevelId: ceilingLevelId,
+    })
     const firstRubricVersionId = testId()
     const secondRubricVersionId = testId()
 
@@ -113,9 +128,8 @@ test.group('Integration | Task requirement rubric API', (group) => {
       .header('accept', 'application/json')
       .json({
         skillId: skill.id,
+        projectSkillId: projectSkill.id,
         minimumLevelId,
-        targetLevelId,
-        assessmentCeilingLevelId: ceilingLevelId,
         rubricVersionId: firstRubricVersionId,
         isMandatory: true,
       })
