@@ -85,6 +85,42 @@ export default class TaskStatusScenario {
         taskExternalDeps.lifecycle,
         project.id
       )
+      const projectStatuses = await TaskStatusModel.query({ client: projectWorkflowTrx })
+        .where('organization_id', org.id)
+        .where('project_id', project.id)
+        .whereNull('deleted_at')
+      const bySlug = new Map(projectStatuses.map((s) => [s.slug, s.id]))
+      const transitionsToSeed = [
+        { from: 'todo', to: 'in_progress' },
+        { from: 'todo', to: 'cancelled' },
+        { from: 'in_progress', to: 'todo' },
+        { from: 'in_progress', to: 'in_review' },
+        { from: 'in_progress', to: 'in_testing' },
+        { from: 'in_progress', to: 'done_dev' },
+        { from: 'in_progress', to: 'done' },
+        { from: 'in_progress', to: 'cancelled' },
+        { from: 'in_review', to: 'in_progress' },
+        { from: 'in_review', to: 'done' },
+        { from: 'in_review', to: 'cancelled' },
+        { from: 'in_testing', to: 'done' },
+        { from: 'in_testing', to: 'in_progress' },
+        { from: 'in_testing', to: 'cancelled' },
+        { from: 'done_dev', to: 'in_testing' },
+        { from: 'done_dev', to: 'in_progress' },
+        { from: 'cancelled', to: 'todo' },
+      ]
+      const transitionRows = transitionsToSeed
+        .filter((t) => bySlug.has(t.from) && bySlug.has(t.to))
+        .map((t) => ({
+          organization_id: org.id,
+          project_id: project.id,
+          from_status_id: bySlug.get(t.from) ?? '',
+          to_status_id: bySlug.get(t.to) ?? '',
+          conditions: JSON.stringify({}),
+        }))
+      if (transitionRows.length > 0) {
+        await projectWorkflowTrx.table('task_workflow_transitions').insert(transitionRows)
+      }
       await projectWorkflowTrx.commit()
     } catch (error) {
       await projectWorkflowTrx.rollback()

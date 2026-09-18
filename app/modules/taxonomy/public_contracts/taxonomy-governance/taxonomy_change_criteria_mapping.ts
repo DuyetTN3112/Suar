@@ -26,4 +26,5 @@ export interface TaxonomyConsumerImpact {
   readonly alerts: number
   readonly projections: number
   readonly indices: number
+  readonly searchExports?: number
 }

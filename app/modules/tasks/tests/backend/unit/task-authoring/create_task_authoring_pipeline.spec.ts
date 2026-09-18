@@ -356,15 +356,23 @@ test.group('Create Task authoring pipeline', () => {
       throw new Error('Expected complete Evidence Contract capabilities')
     }
     const contractDto = new CreateTaskDTO({
-      ...dto.toObject(),
-      label: undefined,
-      priority: undefined,
-      assigned_to: undefined,
-      due_date: undefined,
-      parent_task_id: undefined,
-      project_sprint_id: undefined,
+      title: 'Design pre-order API',
+      description: 'Design an idempotent pre-order API and prove the contract works.',
+      task_status_id: STATUS_ID,
+      project_id: PROJECT_ID,
+      organization_id: ORG_ID,
+      acceptance_criteria: 'All contract tests pass.',
+      required_skills: [{ id: CAPABILITY_ID, level: 'l5' }],
       authoring: {
-        ...dto.authoring,
+        mode: 'evidence_enabled',
+        intent: 'publish',
+        idempotency_key: 'publish:pre-order-api:1',
+        expected_head_revision: 0,
+        creator_confirmed: true,
+        constraints_addressed: true,
+        dependencies_addressed: true,
+        specification: dto.authoring.specification ?? undefined,
+        work_contract: dto.authoring.work_contract ?? undefined,
         evidence_contract: {
           ...authoring,
           capabilities: authoring.capabilities.map((capability) => ({

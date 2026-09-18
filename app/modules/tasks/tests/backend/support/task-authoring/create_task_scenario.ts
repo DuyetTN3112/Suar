@@ -182,18 +182,19 @@ export default class CreateTaskScenario {
       organization_id: overrides.organization_id ?? this.organizationId,
       project_id: overrides.project_id ?? this.project.id,
       project_sprint_id: overrides.project_sprint_id,
-      acceptance_criteria: overrides.acceptance_criteria ?? 'Task is accepted when all checks pass',
-      required_skills: requiredSkillIds.map((skillId) => ({
-          id: skillId,
-          level: 'l7',
-          project_skill_id: this.projectSkillIdBySkillId[skillId],
-        })),
+      required_skills: requiredSkillIds.map((skillId) => {
+        const projectSkillId = this.projectSkillIdBySkillId[skillId]
+        return projectSkillId
+          ? { id: skillId, level: 'l7', project_skill_id: projectSkillId }
+          : { id: skillId, level: 'l7' }
+      }),
       assigned_to: overrides.assigned_to,
       due_date: overrides.due_date,
       parent_task_id: overrides.parent_task_id,
       task_type: overrides.task_type ?? 'feature_development',
       task_visibility: overrides.task_visibility,
       verification_method: overrides.verification_method ?? 'manual_qa',
+      acceptance_criteria: overrides.acceptance_criteria ?? 'Standard acceptance criteria',
       label: overrides.label,
       priority: overrides.priority,
       authoring: overrides.authoring,
@@ -218,7 +219,9 @@ export default class CreateTaskScenario {
     overrides: CreateTaskScenarioInput
   ): Promise<void> {
     if (!assigneeId) return
-    const assignee = await db.from('users').where('id', assigneeId).select('id').first()
+    const assignee = (await db.from('users').where('id', assigneeId).select('id').first()) as {
+      id: string
+    } | null
     if (!assignee) return
 
     const requiredSkillIds =
@@ -229,11 +232,11 @@ export default class CreateTaskScenario {
       // reviewed level. Unknown/explicitly invalid skills must still reach the
       // production validation path the individual test is exercising.
       if (!this.projectSkillIdBySkillId[skillId]) continue
-      const existing = await db
+      const existing = (await db
         .from('user_skills')
         .where('user_id', assigneeId)
         .where('skill_id', skillId)
-        .first()
+        .first()) as Record<string, unknown> | null
       if (existing) continue
       await UserSkillFactory.create({
         user_id: assigneeId,

@@ -102,10 +102,17 @@ function makeExternalDependencies(): TaskExternalDependencies {
     recordInitialAssignment: () => Promise.resolve(),
     recordAssignmentTransition: () => Promise.resolve(),
   }
+  const project: TaskExternalDependencies['project'] = {
+    ensureProjectBelongsToOrganization: () => Promise.resolve(),
+    listProjectsByOrganization: () => Promise.resolve([]),
+    findProjectSummaries: () => Promise.resolve([]),
+    findProjectBusinessDomains: () => Promise.resolve([]),
+  }
 
   return {
     ...taskExternalDeps,
     sprint,
+    project,
   }
 }
 
@@ -166,7 +173,7 @@ test.group('Task create persistence support', () => {
             }
           },
         },
-        persistTaskRequiredSkills: async (taskId, requiredSkills) => {
+        persistTaskRequiredSkills: async (taskId, _projectId, requiredSkills) => {
           calls.push('skills')
           requiredSkillCalls.push({ taskId, requiredSkills })
           await Promise.resolve()
