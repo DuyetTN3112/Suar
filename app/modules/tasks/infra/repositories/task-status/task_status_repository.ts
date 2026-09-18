@@ -163,7 +163,9 @@ export default class TaskStatusRepository {
       .where('organization_id', organizationId)
       .whereNull('deleted_at')
     if (projectId) {
-      void query.where('project_id', projectId)
+      void query.where((subQuery) => {
+        void subQuery.where('project_id', projectId).orWhereNull('project_id')
+      })
     }
     const model = await query.forUpdate().first()
     return model ? toTaskStatusRecord(model) : null
@@ -185,7 +187,9 @@ export default class TaskStatusRepository {
       .where('organization_id', organizationId)
       .whereNull('deleted_at')
     if (projectId) {
-      void scopedQuery.where('project_id', projectId)
+      void scopedQuery.where((subQuery) => {
+        void subQuery.where('project_id', projectId).orWhereNull('project_id')
+      })
     }
     const status = await scopedQuery.first()
 
