@@ -35,8 +35,8 @@ interface DoneTaskReviewSeedRow {
 }
 
 export function getOrdinaryTaskReviewSeedState(): {
-  status: 'awaiting_review'
-  completedReviewCount: 0
+  status: 'awaiting_review' | 'in_review' | 'awaiting_response' | 'done'
+  completedReviewCount: number
 } {
   return {
     status: 'awaiting_review',
