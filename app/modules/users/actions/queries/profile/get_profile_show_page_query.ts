@@ -1,14 +1,16 @@
-import GetCurrentProfileSnapshotQuery, {
-  GetCurrentProfileSnapshotDTO,
-} from './get_current_profile_snapshot_query.js'
-import GetFeaturedReviewsQuery, { GetFeaturedReviewsDTO } from './get_featured_reviews_query.js'
+import GetUserSkillsQuery, { GetUserSkillsDTO } from '../profile-skills/get_user_skills_query.js'
 import GetSpiderChartDataQuery, { GetSpiderChartDataDTO } from '../talent/get_spider_chart_data_query.js'
 import GetUserDeliveryMetricsQuery, {
   GetUserDeliveryMetricsDTO,
 } from '../talent/get_user_delivery_metrics_query.js'
-import GetUserProfileQuery, { GetUserProfileDTO } from './get_user_profile_query.js'
 import GetUserWorkHistoryQuery, { GetUserWorkHistoryDTO } from '../talent/get_user_work_history_query.js'
-import GetUserSkillsQuery, { GetUserSkillsDTO } from '../profile-skills/get_user_skills_query.js'
+
+import GetCurrentProfileSnapshotQuery, {
+  GetCurrentProfileSnapshotDTO,
+} from './get_current_profile_snapshot_query.js'
+import GetFeaturedReviewsQuery, { GetFeaturedReviewsDTO } from './get_featured_reviews_query.js'
+import GetUserProfileQuery, { GetUserProfileDTO } from './get_user_profile_query.js'
+
 
 import type { UserReviewHistoryResult } from '#modules/reviews/public_contracts/user_review_history'
 import { BaseQuery } from '#modules/users/actions/base_query'

@@ -10,7 +10,6 @@
 
 import type { RegisterUserDTO } from '../../dtos/request/register_user_dto.js'
 import type { UpdateUserDetailsDTO } from '../../dtos/request/update_user_details_dto.js'
-import type { UpdateUserProfileDTO } from '../../dtos/request/update_user_profile_dto.js'
 import {
   UserDetailResponseDTO,
   UserListItemResponseDTO,
@@ -19,6 +18,7 @@ import {
 } from '../../dtos/response/user_response_dtos.js'
 
 import { type UserEntity } from '#modules/users/domain/entities/user_entity'
+import type { UpdateUserProfileDTO } from '#modules/users/public_contracts/update_user_profile_dto'
 
 export class UserApplicationMapper {
   private readonly __instanceMarker = true

@@ -9,18 +9,18 @@ import {
 } from '#modules/pagination/public_contracts/pagination_public_api'
 import { BaseQuery } from '#modules/users/actions/base_query'
 import { USER_PAGINATION } from '#modules/users/actions/dtos/common/user_pagination'
-import type { RecruiterBookmarkRepository } from '#modules/users/actions/ports/outbound/recruiter_bookmark_repository'
-import type { UserTalentRepository } from '#modules/users/actions/ports/outbound/user_talent_repository'
-import type { UserRecruitingAccessReader } from '#modules/users/actions/ports/outbound/user_recruiting_access_reader'
 import { assertRecruitingDirectoryAccess } from '#modules/users/actions/policies/recruiting_directory_access_policy'
+import type { RecruiterBookmarkRepository } from '#modules/users/actions/ports/outbound/recruiter_bookmark_repository'
+import type { UserRecruitingAccessReader } from '#modules/users/actions/ports/outbound/user_recruiting_access_reader'
+import type { UserTalentRepository } from '#modules/users/actions/ports/outbound/user_talent_repository'
 import type { UserActionContext } from '#modules/users/actions/user_action_context'
 
 export interface ListRecruiterBookmarksWorkspaceDTO {
-  q?: string
-  folder?: string
-  page?: number
-  per_page?: number
-  perPage?: number
+  q?: string | undefined
+  folder?: string | undefined
+  page?: number | undefined
+  per_page?: number | undefined
+  perPage?: number | undefined
 }
 
 export interface RecruiterBookmarkWorkspaceItem {

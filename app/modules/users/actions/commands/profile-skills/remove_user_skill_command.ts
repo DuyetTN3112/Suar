@@ -2,9 +2,9 @@ import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer
 import NotFoundException from '#modules/errors/public_contracts/not_found_exception'
 import { BaseCommand } from '#modules/users/actions/base_command'
 import type { RemoveUserSkillDTO } from '#modules/users/actions/dtos/request/profile-skills/user_skill_dtos'
+import type { UserSkillCatalog } from '#modules/users/actions/ports/outbound/profile-skills/user_skill_catalog'
 import type { UserApplicationEventPublisher } from '#modules/users/actions/ports/outbound/user_application_event_publisher'
 import type { UserProfileRepository } from '#modules/users/actions/ports/outbound/user_profile_repository'
-import type { UserSkillCatalog } from '#modules/users/actions/ports/outbound/profile-skills/user_skill_catalog'
 import type { UserTransactionRunner } from '#modules/users/actions/ports/outbound/user_transaction'
 import type { UserActionContext } from '#modules/users/actions/user_action_context'
 

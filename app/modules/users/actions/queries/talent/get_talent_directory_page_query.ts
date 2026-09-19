@@ -17,9 +17,9 @@ import type {
   TalentDirectoryPageReader,
   TalentDirectoryUserRow,
 } from '#modules/users/actions/ports/outbound/talent_directory_page_reader'
+import type { TalentPublicAccomplishmentReader } from '#modules/users/actions/ports/outbound/talent_public_accomplishment_reader'
 import type { TalentSkillCategoryReader } from '#modules/users/actions/ports/outbound/talent_skill_category_reader'
 import type { UserActionContext } from '#modules/users/actions/user_action_context'
-import type { TalentPublicAccomplishmentReader } from '#modules/users/actions/ports/outbound/talent_public_accomplishment_reader'
 import type { TalentPublicAccomplishmentSummary } from '#modules/users/public_contracts/talent_search'
 
 type OptionalPayloadKeys<T extends object> = {
@@ -309,8 +309,9 @@ export default class GetTalentDirectoryPageQuery extends BaseQuery<
       readonly TalentPublicAccomplishmentSummary[]
     >()
     if (this.deps.publicAccomplishments) {
+      const publicAccomplishments = this.deps.publicAccomplishments
       const accomplishmentResults = await Promise.all(
-        rows.map(async (row) => [row.id, await this.deps.publicAccomplishments!.listForUser(row.id)] as const)
+        rows.map(async (row) => [row.id, await publicAccomplishments.listForUser(row.id)] as const)
       )
       for (const [userId, accomplishments] of accomplishmentResults) {
         publicAccomplishmentsByUserId.set(

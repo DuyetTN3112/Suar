@@ -31,14 +31,14 @@ function withoutPublicSnapshotIdentifiers(
     user_id: _ownerId,
     shareable_token: _shareableToken,
     summary,
-    work_highlights,
+    work_highlights: workHighlights,
     ...publicSnapshot
   } = snapshot
 
   const publicSummary = summary
     ? Object.fromEntries(Object.entries(summary).filter(([key]) => key !== 'user_id'))
     : summary
-  const publicHighlights = work_highlights?.map((highlight) => {
+  const publicHighlights = workHighlights?.map((highlight) => {
     if (!highlight || typeof highlight !== 'object' || Array.isArray(highlight)) return highlight
     return Object.fromEntries(
       Object.entries(highlight).filter(

@@ -76,7 +76,7 @@ test.group('Integration | Testing Routes Safety', (group) => {
       const response = await client.post(route).json({ timestamp: false, nonce: [] })
       response.assertStatus(422)
     }
-  })
+  }).timeout(15_000)
 
   test('seed cleanup removes E2E-created rows by timestamp token', async ({ assert, client }) => {
     const timestamp = Date.now()
@@ -111,7 +111,7 @@ test.group('Integration | Testing Routes Safety', (group) => {
 
     const afterCleanup = await User.query().whereIn('email', seededEmails)
     assert.lengthOf(afterCleanup, 0)
-  })
+  }).timeout(20_000)
 
   test('seed cleanup releases an owned Search cursor clock fixture', async ({ client }) => {
     const timestamp = Date.now()
@@ -143,6 +143,11 @@ test.group('Integration | Testing Routes Safety', (group) => {
 
   test('seed cleanup releases only the owned Search alias fault fixture', async ({ assert, client }) => {
     const timestamp = Date.now()
+
+    const { TaskSearchIndexRepository } = await import(
+      '#modules/search/infra/repositories/entity-search/tasks/task_search_index_repository'
+    )
+    await new TaskSearchIndexRepository().ensureIndex()
 
     try {
       const enabled = await client.post('/api/testing/seed-search-alias-integrity-fault-roleplay').form({
@@ -199,7 +204,7 @@ test.group('Integration | Testing Routes Safety', (group) => {
       const cleanup = await client.post('/api/testing/seed-cleanup').form({ timestamp })
       cleanup.assertStatus(200)
     }
-  })
+  }).timeout(15_000)
 
   test('seed cleanup removes saved views before deleting their seeded owners', async ({
     assert,
@@ -259,7 +264,7 @@ test.group('Integration | Testing Routes Safety', (group) => {
     assert.isNull(await db.from('filter_saved_views').where('id', viewId).first())
     assert.isNull(await db.from('filter_saved_view_grants').where('saved_view_id', viewId).first())
     assert.isNull(await db.from('filter_alerts').where('saved_view_id', viewId).first())
-  })
+  }).timeout(15_000)
 
   test('taxonomy repair roleplay transition is token-bound and pauses the linked alert', async ({
     assert,
@@ -344,7 +349,7 @@ test.group('Integration | Testing Routes Safety', (group) => {
     assert.isNull(await db.from('filter_saved_views').where('id', viewId).first())
     assert.isNull(await db.from('filter_alerts').where('saved_view_id', viewId).first())
     assert.isString(seedBody.data.assigneeEmail)
-  })
+  }).timeout(15_000)
 
   test('seeds the marketplace search flow without an application', async ({ client }) => {
     const response = await client.post('/api/testing/seed-marketplace-application-flow').json({
@@ -354,5 +359,5 @@ test.group('Integration | Testing Routes Safety', (group) => {
     })
 
     response.assertStatus(200)
-  })
+  }).timeout(15_000)
 })

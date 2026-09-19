@@ -3,7 +3,8 @@ import type { HttpContext } from '@adonisjs/core/http'
 
 import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
 import { actionContextFromHttp } from '#modules/http/boundary/http_execution_context'
-import GetMyInvitationsPageQuery from '#modules/users/actions/queries/get_my_invitations_page_query'
+import GetMyInvitationsPageQuery from '#modules/users/actions/queries/invitations/get_my_invitations_page_query'
+import { buildMyInvitationsPageRequest } from '#modules/users/controllers/mappers/request/invitations/my_invitations_page_request_mapper'
 
 @inject()
 export default class MyInvitationsPageController {
@@ -18,14 +19,9 @@ export default class MyInvitationsPageController {
       throw new UnauthorizedException()
     }
 
+    const pagination = buildMyInvitationsPageRequest(ctx.request)
     const page = await this.invitationsPage
-      .executeAndWrap(userId, {
-        page: ctx.request.input('page'),
-        perPage:
-          (ctx.request.input('perPage') as unknown) ??
-          (ctx.request.input('per_page') as unknown) ??
-          (ctx.request.input('limit') as unknown),
-      })
+      .executeAndWrap(userId, pagination)
       .then((outcome) => outcome.getValue())
 
     return inertia.render('profile/invitations', page)

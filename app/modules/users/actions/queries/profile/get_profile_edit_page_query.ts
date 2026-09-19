@@ -1,5 +1,6 @@
-import GetUserProfileQuery, { GetUserProfileDTO } from './get_user_profile_query.js'
 import GetUserSkillsQuery, { GetUserSkillsDTO } from '../profile-skills/get_user_skills_query.js'
+
+import GetUserProfileQuery, { GetUserProfileDTO } from './get_user_profile_query.js'
 
 import { CANONICAL_PROFICIENCY_LEVEL_OPTIONS } from '#modules/skills/public_contracts/rubric-and-proficiency/proficiency_level_constants'
 import { BaseQuery } from '#modules/users/actions/base_query'

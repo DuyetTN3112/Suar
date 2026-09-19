@@ -18,20 +18,20 @@ import {
   GetUsersListDTO,
   UserFiltersDTO,
 } from '#modules/users/actions/dtos/request/get_users_list_dto'
-import { UpdateUserDetailsDTO } from '#modules/users/actions/dtos/request/update_user_details_dto'
 import {
   AddUserSkillDTO,
   RemoveUserSkillDTO,
   UpdateUserSkillDTO,
 } from '#modules/users/actions/dtos/request/profile-skills/user_skill_dtos'
+import { UpdateUserDetailsDTO } from '#modules/users/actions/dtos/request/update_user_details_dto'
 import { GetCurrentProfileSnapshotDTO } from '#modules/users/actions/queries/profile/get_current_profile_snapshot_query'
 import { GetFeaturedReviewsDTO } from '#modules/users/actions/queries/profile/get_featured_reviews_query'
 import { GetProfileSnapshotHistoryDTO } from '#modules/users/actions/queries/profile/get_profile_snapshot_history_query'
 import { GetPublicProfileSnapshotDTO } from '#modules/users/actions/queries/profile/get_public_profile_snapshot_query'
-import { GetSpiderChartDataDTO } from '#modules/users/actions/queries/talent/get_spider_chart_data_query'
-import { GetUserDeliveryMetricsDTO } from '#modules/users/actions/queries/talent/get_user_delivery_metrics_query'
 import { GetUserProfileDTO } from '#modules/users/actions/queries/profile/get_user_profile_query'
 import { GetUserSkillsDTO } from '#modules/users/actions/queries/profile-skills/get_user_skills_query'
+import { GetSpiderChartDataDTO } from '#modules/users/actions/queries/talent/get_spider_chart_data_query'
+import { GetUserDeliveryMetricsDTO } from '#modules/users/actions/queries/talent/get_user_delivery_metrics_query'
 
 type OptionalPayloadKeys<T extends object> = {
   [Key in keyof T]-?: undefined extends T[Key] ? Key : never

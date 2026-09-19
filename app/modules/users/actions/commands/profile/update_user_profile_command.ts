@@ -1,5 +1,5 @@
 import { BaseCommand } from '../../base_command.js'
-import type { UpdateUserProfileDTO } from '../../dtos/request/update_user_profile_dto.js'
+
 
 import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
 import ForbiddenException from '#modules/errors/public_contracts/forbidden_exception'
@@ -9,6 +9,7 @@ import type { UserLifecycleEventStager } from '#modules/users/actions/ports/outb
 import type { UserRuntime } from '#modules/users/actions/ports/outbound/user_runtime'
 import type { UserTransactionRunner } from '#modules/users/actions/ports/outbound/user_transaction'
 import type { UserActionContext } from '#modules/users/actions/user_action_context'
+import type { UpdateUserProfileDTO } from '#modules/users/public_contracts/update_user_profile_dto'
 import { SystemRoleName } from '#modules/users/public_contracts/user_constants'
 import type { UserRecord } from '#modules/users/types/user_records'
 
