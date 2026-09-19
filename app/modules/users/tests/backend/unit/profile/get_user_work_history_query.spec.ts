@@ -459,8 +459,10 @@ test.group('Get user work history query', () => {
       hasMore: false,
     })
     assert.notProperty(firstPage.demonstratedWorkPagination, 'total')
-    assert.notProperty(firstPage.demonstratedWork[0]!, 'taskAssignmentId')
-    assert.notProperty(firstPage.demonstratedWork[0]!, 'taskId')
+    const firstDemonstratedWork = firstPage.demonstratedWork[0]
+    assert.exists(firstDemonstratedWork)
+    assert.notProperty(firstDemonstratedWork, 'taskAssignmentId')
+    assert.notProperty(firstDemonstratedWork, 'taskId')
     assert.notInclude(JSON.stringify([firstPage, secondPage]), 'private-assignment')
     assert.notInclude(JSON.stringify([firstPage, secondPage]), 'Private incident response')
   })

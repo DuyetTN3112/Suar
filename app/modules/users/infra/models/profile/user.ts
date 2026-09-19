@@ -4,7 +4,6 @@ import type { HasMany } from '@adonisjs/lucid/types/relations'
 import { DateTime } from 'luxon'
 
 import type { StoredUserSettingData } from '../../../types/stored_user_setting_data.js'
-
 import UserSkill from '../profile-skills/user_skill.js'
 
 import { SystemRoleName } from '#modules/users/public_contracts/user_constants'

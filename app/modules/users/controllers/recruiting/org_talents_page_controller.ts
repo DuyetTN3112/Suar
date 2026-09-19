@@ -67,7 +67,7 @@ export default class OrgTalentsPageController {
 
       return ctx.inertia.render(
         'talents/index',
-        await this.talentQueries.makeRecruitingDirectoryWorkspace(actionContext).handle(request)
+        await this.talentQueries['makeRecruitingDirectoryWorkspace'](actionContext).handle(request)
       )
     }
 

@@ -10,8 +10,8 @@ test.group('Unit | Talent public accomplishment reader adapter', () => {
   }) => {
     const projection = validAccomplishmentPublicProjectionV1()
     const reader: AccomplishmentPublicProjectionReader = {
-      findActiveById: async () => projection,
-      listActiveForUser: async () => ({ items: [projection], nextCursor: null }),
+      findActiveById: () => Promise.resolve(projection),
+      listActiveForUser: () => Promise.resolve({ items: [projection], nextCursor: null }),
     }
 
     const result = await new TalentPublicAccomplishmentReaderAdapter(reader).listForUser(

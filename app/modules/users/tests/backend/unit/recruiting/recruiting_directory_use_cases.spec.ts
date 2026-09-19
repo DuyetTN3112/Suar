@@ -1,9 +1,9 @@
 import { test } from '@japa/runner'
 
+import type { UserRecruitingAccessReader } from '#modules/users/actions/ports/outbound/user_recruiting_access_reader'
 import GetRecruitingTalentDirectoryWorkspaceQuery from '#modules/users/actions/queries/recruiting/get_recruiting_talent_directory_workspace_query'
 import GetRecruitingTalentProfileQuery from '#modules/users/actions/queries/recruiting/get_recruiting_talent_profile_query'
 import SearchRecruitingTalentsQuery from '#modules/users/actions/queries/search/search_recruiting_talents_query'
-import type { UserRecruitingAccessReader } from '#modules/users/actions/ports/outbound/user_recruiting_access_reader'
 import type { UserActionContext } from '#modules/users/actions/user_action_context'
 
 const context: UserActionContext = {
@@ -62,7 +62,8 @@ test.group('Unit | Recruiting directory use cases', () => {
       {
         handle: () => {
           calls.push('directory')
-          return Promise.resolve({ talents: [] } as never)
+          const emptyDirectory = { talents: [] }
+          return Promise.resolve(emptyDirectory as never)
         },
       },
       {
@@ -89,7 +90,8 @@ test.group('Unit | Recruiting directory use cases', () => {
       {
         execute: () => {
           profileCalls += 1
-          return Promise.resolve({} as never)
+          const emptyProfile = {}
+          return Promise.resolve(emptyProfile as never)
         },
       }
     )

@@ -3,12 +3,12 @@ import { test } from '@japa/runner'
 import { readTalentDirectoryRequest } from '#modules/users/controllers/mappers/request/talent/talent_directory_request_mapper'
 
 function fakeRequest(input: Record<string, unknown>) {
-  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-  return {
+  const req = {
     input(key: string) {
       return input[key]
     },
-  } as never
+  }
+  return req as never
 }
 
 

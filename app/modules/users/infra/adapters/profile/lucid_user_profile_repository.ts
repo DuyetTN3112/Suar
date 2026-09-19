@@ -1,4 +1,7 @@
-import type { DateTime } from 'luxon'
+import {
+  LucidUserProfileSnapshotAdapter,
+  toProfileSnapshotRecord,
+} from './lucid_user_profile_snapshot_adapter.js'
 
 import type {
   PersistedUserDomainExpertise,
@@ -13,25 +16,24 @@ import type {
 } from '#modules/users/actions/ports/outbound/user_profile_repository'
 import type { UserTransaction } from '#modules/users/actions/ports/outbound/user_transaction'
 import { toLucidUserTransaction } from '#modules/users/infra/adapters/profile/lucid_user_transaction_runner'
+import UserWorkHistory from '#modules/users/infra/models/profile/user_work_history'
 import UserDomainExpertise from '#modules/users/infra/models/profile-skills/user_domain_expertise'
 import UserPerformanceStat from '#modules/users/infra/models/profile-skills/user_performance_stat'
-import UserProfileSnapshot from '#modules/users/infra/models/profile/user_profile_snapshot'
 import UserSkill from '#modules/users/infra/models/profile-skills/user_skill'
-import UserWorkHistory from '#modules/users/infra/models/profile/user_work_history'
+import UserAnalyticsRepository from '#modules/users/infra/repositories/profile-skills/user_analytics_repository'
 import * as analyticsQueries from '#modules/users/infra/repositories/read/analytics_queries'
+import * as userSkillQueries from '#modules/users/infra/repositories/read/profile-skills/user_skill_queries'
 import * as domainExpertiseQueries from '#modules/users/infra/repositories/read/user_domain_expertise_queries'
 import * as performanceStatQueries from '#modules/users/infra/repositories/read/user_performance_stat_queries'
-import * as profileSnapshotQueries from '#modules/users/infra/repositories/read/user_profile_snapshot_queries'
-import * as userSkillQueries from '#modules/users/infra/repositories/read/profile-skills/user_skill_queries'
 import * as workHistoryQueries from '#modules/users/infra/repositories/read/user_work_history_queries'
-import UserAnalyticsRepository from '#modules/users/infra/repositories/profile-skills/user_analytics_repository'
+import * as userSkillMutations from '#modules/users/infra/repositories/write/profile-skills/user_skill_mutations'
 import * as domainExpertiseMutations from '#modules/users/infra/repositories/write/user_domain_expertise_mutations'
 import * as performanceStatMutations from '#modules/users/infra/repositories/write/user_performance_stat_mutations'
 import { lockUserProfileAggregateRefresh } from '#modules/users/infra/repositories/write/user_profile_aggregate_lock'
-import * as profileSnapshotMutations from '#modules/users/infra/repositories/write/user_profile_snapshot_mutations'
-import * as userSkillMutations from '#modules/users/infra/repositories/write/profile-skills/user_skill_mutations'
 import * as workHistoryMutations from '#modules/users/infra/repositories/write/user_work_history_mutations'
 import type { DateTimeLike } from '#modules/users/types/user_records'
+
+export { toProfileSnapshotRecord }
 
 function toSkillRecord(userSkill: UserSkill): PersistedUserSkill {
   return {
@@ -40,30 +42,9 @@ function toSkillRecord(userSkill: UserSkill): PersistedUserSkill {
   }
 }
 
-function toProfileSnapshotRecord(
-  snapshot: UserProfileSnapshot
-): PersistedUserProfileSnapshot {
-  return {
-    id: snapshot.id,
-    user_id: snapshot.user_id,
-    version: snapshot.version,
-    snapshot_name: snapshot.snapshot_name,
-    is_current: snapshot.is_current,
-    is_public: snapshot.is_public,
-    shareable_slug: snapshot.shareable_slug,
-    shareable_token: snapshot.shareable_token,
-    summary: snapshot.summary,
-    skills_verified: snapshot.skills_verified,
-    work_highlights: snapshot.work_highlights,
-    performance_metrics: snapshot.performance_metrics,
-    trust_metrics: snapshot.trust_metrics,
-    scoring_version: snapshot.scoring_version,
-    created_at: snapshot.created_at,
-    updated_at: snapshot.updated_at,
-  }
-}
-
 export class LucidUserProfileRepository implements UserProfileRepository {
+  private readonly snapshotAdapter = new LucidUserProfileSnapshotAdapter()
+
   async findUserSkill(
     userId: string,
     skillId: string,
@@ -319,65 +300,42 @@ export class LucidUserProfileRepository implements UserProfileRepository {
     return domainExpertiseMutations.save(model, lucidTransaction)
   }
 
-  async findCurrentSnapshot(
+  findCurrentSnapshot(
     userId: string,
     transaction?: UserTransaction
   ): Promise<PersistedUserProfileSnapshot | null> {
-    const snapshot = await profileSnapshotQueries.findCurrentByUser(
-      userId,
-      toLucidUserTransaction(transaction)
-    )
-    return snapshot ? toProfileSnapshotRecord(snapshot) : null
+    return this.snapshotAdapter.findCurrentSnapshot(userId, transaction)
   }
 
-  async listSnapshots(
+  listSnapshots(
     userId: string,
     limit: number,
     transaction?: UserTransaction
   ): Promise<PersistedUserProfileSnapshot[]> {
-    const snapshots = await profileSnapshotQueries.listByUser(
-      userId,
-      limit,
-      toLucidUserTransaction(transaction)
-    )
-    return snapshots.map((snapshot) => toProfileSnapshotRecord(snapshot))
+    return this.snapshotAdapter.listSnapshots(userId, limit, transaction)
   }
 
-  async findPublicSnapshot(
+  findPublicSnapshot(
     slug: string,
     token: string | null,
     transaction?: UserTransaction
   ): Promise<PersistedUserProfileSnapshot | null> {
-    const snapshot = await profileSnapshotQueries.findPublicBySlugOrToken(
-      slug,
-      token,
-      toLucidUserTransaction(transaction)
-    )
-    return snapshot ? toProfileSnapshotRecord(snapshot) : null
+    return this.snapshotAdapter.findPublicSnapshot(slug, token, transaction)
   }
 
-  async findOwnedSnapshot(
+  findOwnedSnapshot(
     snapshotId: string,
     userId: string,
     transaction?: UserTransaction
   ): Promise<PersistedUserProfileSnapshot | null> {
-    const snapshot = await profileSnapshotQueries.findOwnedById(
-      snapshotId,
-      userId,
-      toLucidUserTransaction(transaction)
-    )
-    return snapshot ? toProfileSnapshotRecord(snapshot) : null
+    return this.snapshotAdapter.findOwnedSnapshot(snapshotId, userId, transaction)
   }
 
-  async findLatestSnapshot(
+  findLatestSnapshot(
     userId: string,
     transaction?: UserTransaction
   ): Promise<PersistedUserProfileSnapshot | null> {
-    const snapshot = await profileSnapshotQueries.findLatestByUser(
-      userId,
-      toLucidUserTransaction(transaction)
-    )
-    return snapshot ? toProfileSnapshotRecord(snapshot) : null
+    return this.snapshotAdapter.findLatestSnapshot(userId, transaction)
   }
 
   countSnapshotsSince(
@@ -385,11 +343,7 @@ export class LucidUserProfileRepository implements UserProfileRepository {
     since: DateTimeLike,
     transaction?: UserTransaction
   ): Promise<number> {
-    return profileSnapshotQueries.countByUserSince(
-      userId,
-      since as DateTime,
-      toLucidUserTransaction(transaction)
-    )
+    return this.snapshotAdapter.countSnapshotsSince(userId, since, transaction)
   }
 
   snapshotSlugExists(
@@ -397,48 +351,29 @@ export class LucidUserProfileRepository implements UserProfileRepository {
     excludeSnapshotId?: string,
     transaction?: UserTransaction
   ): Promise<boolean> {
-    return profileSnapshotQueries.slugExists(
-      slug,
-      excludeSnapshotId,
-      toLucidUserTransaction(transaction)
-    )
+    return this.snapshotAdapter.snapshotSlugExists(slug, excludeSnapshotId, transaction)
   }
 
-  async unsetCurrentSnapshot(
+  unsetCurrentSnapshot(
     userId: string,
     transaction?: UserTransaction
   ): Promise<void> {
-    await profileSnapshotMutations.unsetCurrentByUser(
-      userId,
-      toLucidUserTransaction(transaction)
-    )
+    return this.snapshotAdapter.unsetCurrentSnapshot(userId, transaction)
   }
 
-  async createSnapshot(
+  createSnapshot(
     data: Record<string, unknown>,
     transaction?: UserTransaction
   ): Promise<PersistedUserProfileSnapshot> {
-    const snapshot = await profileSnapshotMutations.create(
-      data,
-      toLucidUserTransaction(transaction)
-    )
-    return toProfileSnapshotRecord(snapshot)
+    return this.snapshotAdapter.createSnapshot(data, transaction)
   }
 
-  async updateSnapshot(
+  updateSnapshot(
     snapshotId: string,
     data: Record<string, unknown>,
     transaction?: UserTransaction
   ): Promise<PersistedUserProfileSnapshot> {
-    const lucidTransaction = toLucidUserTransaction(transaction)
-    const model = await UserProfileSnapshot.query(
-      lucidTransaction ? { client: lucidTransaction } : undefined
-    )
-      .where('id', snapshotId)
-      .firstOrFail()
-    model.merge(data)
-    const snapshot = await profileSnapshotMutations.save(model, lucidTransaction)
-    return toProfileSnapshotRecord(snapshot)
+    return this.snapshotAdapter.updateSnapshot(snapshotId, data, transaction)
   }
 
   findUserSkillsForAggregation(userId: string): Promise<UserSkillAggregationRow[]> {

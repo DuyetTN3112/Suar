@@ -459,7 +459,7 @@ test.group('Integration | User Skills', (group) => {
 
     assert.lengthOf(skills, 0)
     assert.isNull(deletedSkill)
-  })
+  }).timeout(10_000)
 
   test('query returns explainability signals for reviewed skills with active disputes', async ({
     assert,

@@ -268,6 +268,20 @@ export default class WorkHistoryScenario {
       updated_at: DateTime.now().toSQL(),
     })
 
+    await db.table('task_review_workflows').insert({
+      id: randomUUID(),
+      task_id: task.id,
+      task_assignment_id: assignment.id,
+      project_id: task.project_id,
+      organization_id: org.id,
+      reviewee_id: reviewee.id,
+      status: 'done',
+      required_review_count: 1,
+      completed_review_count: 1,
+      created_at: DateTime.now().toSQL(),
+      updated_at: DateTime.now().toSQL(),
+    })
+
     return new WorkHistoryScenario({
       reviewee: {
         id: reviewee.id,

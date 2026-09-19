@@ -11,8 +11,8 @@ import {
 import { selfAssessmentAccuracyFactReader } from '#composition/users/user-profile/user_profile_aggregate_composition'
 import UpsertUserPerformanceStatsCommand from '#modules/users/actions/commands/talent/upsert_user_performance_stats_command'
 import { makeSystemUserActionContext } from '#modules/users/actions/user_action_context'
-import UserPerformanceStat from '#modules/users/infra/models/profile-skills/user_performance_stat'
 import UserWorkHistory from '#modules/users/infra/models/profile/user_work_history'
+import UserPerformanceStat from '#modules/users/infra/models/profile-skills/user_performance_stat'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import { cleanupTestData, UserFactory } from '#tests/helpers/factories'
 

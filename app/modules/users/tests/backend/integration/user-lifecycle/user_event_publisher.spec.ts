@@ -1,14 +1,14 @@
 import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
+import { userExternalDependencies } from '#composition/users/user-external-dependencies/user_external_dependencies_composition'
 import {
   makeDeactivateUserCommand,
   userAccountActionFactory,
 } from '#composition/users/user-factories/user_action_factory'
-import { userExternalDependencies } from '#composition/users/user-external-dependencies/user_external_dependencies_composition'
 import { userTransactionRunner } from '#composition/users/user-persistence/user_persistence_composition'
-import { OrganizationRole, OrganizationUserStatus } from '#modules/organizations/public_contracts/access/organization_constants'
 import * as membershipMutations from '#modules/organizations/infra/repositories/members/organization_user_repository/write/mutation_queries'
+import { OrganizationRole, OrganizationUserStatus } from '#modules/organizations/public_contracts/access/organization_constants'
 import ApproveUserCommand from '#modules/users/actions/commands/user-lifecycle/approve_user_command'
 import { ApproveUserDTO } from '#modules/users/actions/dtos/request/approve_user_dto'
 import { RegisterUserDTO } from '#modules/users/actions/dtos/request/register_user_dto'

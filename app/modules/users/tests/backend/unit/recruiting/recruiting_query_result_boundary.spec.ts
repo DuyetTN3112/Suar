@@ -21,7 +21,13 @@ const context = () => ({
     status: () => ({ json: () => undefined }),
     redirect: (_path?: string) => undefined,
   },
-  session: { flash: () => undefined, get: () => undefined },
+  session: {
+    flash: (_key?: string, _value?: unknown): void => undefined,
+    get: (_key?: string): unknown => undefined,
+    put: (_key: string, _value: unknown): void => undefined,
+    forget: (_key: string): void => undefined,
+    commit: (): Promise<void> => Promise.resolve(),
+  },
   inertia: { render: () => undefined },
 })
 
@@ -104,8 +110,12 @@ test.group('Recruiting query Result boundaries', () => {
     ctx.session = {
       flash: () => undefined,
       get: () => undefined,
-      put: (key: string, value: string) => sessionWrites.push([key, value]),
-      forget: (key: string) => sessionForgets.push(key),
+      put: (key: string, value: unknown) => {
+        sessionWrites.push([key, String(value)])
+      },
+      forget: (key: string) => {
+        sessionForgets.push(key)
+      },
       commit: () => Promise.resolve(),
     }
     ctx.response.redirect = (path?: string) => {

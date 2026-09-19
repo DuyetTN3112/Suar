@@ -1,7 +1,7 @@
 import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 
-import { mapProfileShowPageProps } from '../mappers/response/user_response_mapper.js'
+import { mapProfileShowPageProps } from '../mappers/response/profile/user_response_mapper.js'
 
 import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
 import { actionContextFromHttp } from '#modules/http/boundary/http_execution_context'

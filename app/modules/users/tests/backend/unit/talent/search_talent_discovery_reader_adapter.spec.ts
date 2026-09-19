@@ -86,7 +86,7 @@ test.group('Search Talent discovery reader adapter', () => {
             filter: {
               kind: 'condition',
               field: 'talent.skills',
-              operator: 'contains_any',
+              operator: 'contains_all',
               effect: 'require',
               unknown: 'exclude',
               value: { kind: 'set', values: ['skill-search'] },
@@ -98,6 +98,7 @@ test.group('Search Talent discovery reader adapter', () => {
               { field: 'talent.taskTypes', countMode: 'self_excluding' },
               { field: 'talent.problemCategories', countMode: 'self_excluding' },
               { field: 'talent.technologies', countMode: 'self_excluding' },
+              { field: 'talent.availableFrom', countMode: 'self_excluding' },
             ],
             page: { size: 5 },
           },

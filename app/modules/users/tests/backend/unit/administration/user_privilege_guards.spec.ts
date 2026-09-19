@@ -1,8 +1,8 @@
 import { test } from '@japa/runner'
 
 import ForbiddenException from '#modules/errors/public_contracts/forbidden_exception'
-import { assertCanGrantSystemRole } from '#modules/users/actions/commands/user-lifecycle/register_user_command'
 import { assertProfileMutationAllowed } from '#modules/users/actions/commands/profile/update_user_profile_command'
+import { assertCanGrantSystemRole } from '#modules/users/actions/commands/user-lifecycle/register_user_command'
 import { SystemRoleName } from '#modules/users/public_contracts/user_constants'
 
 test.group('User privilege guards', () => {
