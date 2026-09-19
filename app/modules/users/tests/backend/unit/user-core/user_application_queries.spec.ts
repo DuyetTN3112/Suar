@@ -1,8 +1,8 @@
 import { test } from '@japa/runner'
 
+import { assertRecruitingTalentAccess } from '#modules/users/actions/policies/recruiting_directory_access_policy'
 import GetMyInvitationsPageQuery from '#modules/users/actions/queries/invitations/get_my_invitations_page_query'
 import GetTalentDirectoryOptionsQuery from '#modules/users/actions/queries/talent/get_talent_directory_options_query'
-import { assertRecruitingTalentAccess } from '#modules/users/actions/policies/recruiting_directory_access_policy'
 
 test.group('User application queries', () => {
   test('recruiting access fails closed before checking talent membership', async ({ assert }) => {
