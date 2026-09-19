@@ -7,13 +7,13 @@
 
 | Suite | Files |
 |---|---|
-| Component (Vitest runnable) | 193 |
+| Component (Vitest runnable) | 208 |
 | Wrapper fixtures (non-runnable) | 0 |
-| E2E (Playwright specs) | 54 |
-| Unit (Japa specs) | 551 |
-| Integration (Japa specs) | 276 |
-| Contract | 28 |
-| **Total test files** | **1102** |
+| E2E (Playwright specs) | 66 |
+| Unit (Japa specs) | 663 |
+| Integration (Japa specs) | 351 |
+| Contract | 38 |
+| **Total test files** | **1326** |
 
 ## Component runnable files
 
@@ -76,8 +76,10 @@
 - inertia/apps/org/tests/modules/projects/projects_index_page.test.ts
 - inertia/apps/org/tests/modules/search/skill_search_combobox.test.ts
 - inertia/apps/org/tests/modules/sprints/index.test.ts
-- inertia/apps/org/tests/modules/talents/index.test.ts
 - inertia/apps/org/tests/modules/talents/show.test.ts
+- inertia/apps/org/tests/modules/talents/talents_directory_filters.test.ts
+- inertia/apps/org/tests/modules/talents/talents_directory_presentation.test.ts
+- inertia/apps/org/tests/modules/talents/tc_fst_013_talent_surface.test.ts
 - inertia/apps/org/tests/modules/tasks/components/modals/create_task_form.test.ts
 - inertia/apps/org/tests/modules/tasks/components/modals/create_task_modal.test.ts
 - inertia/apps/org/tests/modules/tasks/components/task_assignee_scope.test.ts
@@ -89,7 +91,8 @@
 - inertia/apps/org/tests/modules/tasks/components/task_execution_brief.test.ts
 - inertia/apps/org/tests/modules/tasks/components/task_files_tab.test.ts
 - inertia/apps/org/tests/modules/tasks/components/task_history_tab.test.ts
-- inertia/apps/org/tests/modules/tasks/components/task_review_workflow_panel.test.ts
+- inertia/apps/org/tests/modules/tasks/components/task_review_workflow_panel_observations.test.ts
+- inertia/apps/org/tests/modules/tasks/components/task_review_workflow_panel_reviews.test.ts
 - inertia/apps/org/tests/modules/tasks/components/task_review_zone_card.test.ts
 - inertia/apps/org/tests/modules/tasks/components/task_role_prefill_panel.test.ts
 - inertia/apps/org/tests/modules/tasks/components/task_skills_field.test.ts
@@ -126,10 +129,13 @@
 - inertia/apps/user/tests/modules/audit_logs/user_audit_query.test.ts
 - inertia/apps/user/tests/modules/marketplace/apply_task_modal.test.ts
 - inertia/apps/user/tests/modules/marketplace/marketplace_filters.test.ts
+- inertia/apps/user/tests/modules/marketplace/marketplace_task_card_layout.test.ts
+- inertia/apps/user/tests/modules/marketplace/tc_fst_013_marketplace_surface.test.ts
 - inertia/apps/user/tests/modules/naming_conventions.test.ts
 - inertia/apps/user/tests/modules/notifications/notification_center_store.test.ts
 - inertia/apps/user/tests/modules/notifications/notification_deep_links.test.ts
 - inertia/apps/user/tests/modules/notifications/notifications_page.test.ts
+- inertia/apps/user/tests/modules/profile/components/profile_featured_reviews_section.test.ts
 - inertia/apps/user/tests/modules/profile/components/profile_overview_section.test.ts
 - inertia/apps/user/tests/modules/profile/components/profile_skill_category_labels.test.ts
 - inertia/apps/user/tests/modules/profile/components/profile_skills_and_charts_section.test.ts
@@ -148,7 +154,8 @@
 - inertia/apps/user/tests/modules/reviews/simple_pagination.test.ts
 - inertia/apps/user/tests/modules/reviews/sprint_reverse_review_board.test.ts
 - inertia/apps/user/tests/modules/reviews/task_board.test.ts
-- inertia/apps/user/tests/modules/search/index.test.ts
+- inertia/apps/user/tests/modules/search/search_navigation_and_filters.test.ts
+- inertia/apps/user/tests/modules/search/search_results_presentation.test.ts
 - inertia/apps/user/tests/modules/search/search_shell_affinity.test.ts
 - inertia/apps/user/tests/modules/search/skill_search_combobox.test.ts
 - inertia/apps/user/tests/modules/settings/account.test.ts
@@ -163,7 +170,8 @@
 - inertia/apps/user/tests/modules/tasks/components/task_execution_brief.test.ts
 - inertia/apps/user/tests/modules/tasks/components/task_files_tab.test.ts
 - inertia/apps/user/tests/modules/tasks/components/task_history_tab.test.ts
-- inertia/apps/user/tests/modules/tasks/components/task_review_workflow_panel.test.ts
+- inertia/apps/user/tests/modules/tasks/components/task_review_workflow_panel_disputes.test.ts
+- inertia/apps/user/tests/modules/tasks/components/task_review_workflow_panel_reviews.test.ts
 - inertia/apps/user/tests/modules/tasks/components/task_review_zone_card.test.ts
 - inertia/apps/user/tests/modules/tasks/components/task_role_prefill_panel.test.ts
 - inertia/apps/user/tests/modules/tasks/components/task_skills_field.test.ts
@@ -186,18 +194,25 @@
 - inertia/apps/user/tests/shared/i18n/locales_source.test.ts
 - inertia/apps/user/tests/shared/i18n/organization_i18n_source.test.ts
 - inertia/apps/user/tests/shared/i18n/profile_i18n_source.test.ts
-- inertia/apps/user/tests/shared/i18n/project_i18n_source.test.ts
+- inertia/apps/user/tests/shared/i18n/project_authoring_i18n_source.test.ts
+- inertia/apps/user/tests/shared/i18n/project_staffing_i18n_source.test.ts
+- inertia/apps/user/tests/shared/i18n/project_workspace_i18n_source.test.ts
 - inertia/apps/user/tests/shared/i18n/search_i18n_source.test.ts
 - inertia/apps/user/tests/shared/i18n/settings_resource_keys.test.ts
 - inertia/apps/user/tests/shared/i18n/shell_i18n_source.test.ts
-- inertia/apps/user/tests/shared/i18n/task_i18n_source.test.ts
+- inertia/apps/user/tests/shared/i18n/task_authoring_i18n_source.test.ts
+- inertia/apps/user/tests/shared/i18n/task_marketplace_i18n_source.test.ts
+- inertia/apps/user/tests/shared/i18n/task_review_submission_i18n_source.test.ts
+- inertia/apps/user/tests/shared/i18n/task_workspace_i18n_source.test.ts
 - inertia/apps/user/tests/shared/i18n/translation_hook.test.ts
 - inertia/apps/user/tests/shared/i18n/translation_integrity.test.ts
 - inertia/apps/user/tests/shared/i18n/translation_store.test.ts
 - inertia/apps/user/tests/shared/layout/nav_bar.test.ts
 - inertia/apps/user/tests/shared/layout/project_workspace_access_source.test.ts
+- inertia/apps/user/tests/shared/navigation_helpers.test.ts
 - inertia/apps/user/tests/shared/navigation_profile_settings.test.ts
 - inertia/apps/user/tests/shared/settings_audit_logs_layout_source.test.ts
+- inertia/apps/user/tests/shared/task_mutation_errors.test.ts
 - inertia/apps/user/tests/shared/theme/dark_theme_source.test.ts
 - inertia/apps/user/tests/shared/ui/button.test.ts
 - inertia/apps/user/tests/shared/ui/checkbox.test.ts
@@ -216,7 +231,11 @@
 - inertia/apps/admin/tests/e2e/admin/admin_audit_logs_console.spec.ts
 - inertia/apps/admin/tests/e2e/admin/admin_proficiency_rubric_read.spec.ts
 - inertia/apps/admin/tests/e2e/admin/admin_search_projections_roleplay.spec.ts
+- inertia/apps/admin/tests/e2e/filter_search_taxonomy/rp_fst_04_admin_audit_roleplay.spec.ts
+- inertia/apps/admin/tests/e2e/filter_search_taxonomy/taxonomy_split_repair_roleplay.spec.ts
 - inertia/apps/org/tests/e2e/demo/project_operating_model_demo_visual.spec.ts
+- inertia/apps/org/tests/e2e/filter_search_taxonomy/talent_discovery_roleplay.spec.ts
+- inertia/apps/org/tests/e2e/filter_search_taxonomy/tc_fst_012_talent_multiskill_public_evidence_roleplay.spec.ts
 - inertia/apps/org/tests/e2e/meta/cross_surface_smoke.spec.ts
 - inertia/apps/org/tests/e2e/meta/pagination_surface_screenshot_audit.spec.ts
 - inertia/apps/org/tests/e2e/org/cross_surface_mobile_sidebar.spec.ts
@@ -245,8 +264,15 @@
 - inertia/apps/user/tests/e2e/dashboard/user_dashboard.spec.ts
 - inertia/apps/user/tests/e2e/demo/marketplace_profile_visual.spec.ts
 - inertia/apps/user/tests/e2e/filter_search_taxonomy/marketplace_filter_only_roleplay.spec.ts
+- inertia/apps/user/tests/e2e/filter_search_taxonomy/mobile_filter_state_roleplay.spec.ts
+- inertia/apps/user/tests/e2e/filter_search_taxonomy/runtime_accessibility_roleplay.spec.ts
+- inertia/apps/user/tests/e2e/filter_search_taxonomy/saved_view_roleplay.spec.ts
 - inertia/apps/user/tests/e2e/filter_search_taxonomy/search_center_keyword_only_roleplay.spec.ts
+- inertia/apps/user/tests/e2e/filter_search_taxonomy/search_degraded_recovery_roleplay.spec.ts
 - inertia/apps/user/tests/e2e/filter_search_taxonomy/search_discovery_combined_cursor_recovery_roleplay.spec.ts
+- inertia/apps/user/tests/e2e/filter_search_taxonomy/search_q_only_roleplay.spec.ts
+- inertia/apps/user/tests/e2e/filter_search_taxonomy/search_task_cursor_navigation_roleplay.spec.ts
+- inertia/apps/user/tests/e2e/filter_search_taxonomy/tc_fst_005_secondary_label_recall_roleplay.spec.ts
 - inertia/apps/user/tests/e2e/marketplace/apply_withdraw_my_applications.spec.ts
 - inertia/apps/user/tests/e2e/marketplace/talent_directory_bookmarks.spec.ts
 - inertia/apps/user/tests/e2e/meta/auth_helper_fail_fast.spec.ts
@@ -264,8 +290,12 @@
 - inertia/apps/user/tests/e2e/tasks/match_score_explainability.spec.ts
 - inertia/apps/user/tests/e2e/tasks/task_application_access.spec.ts
 - inertia/apps/user/tests/e2e/tasks/task_application_triage.spec.ts
+- inertia/apps/user/tests/e2e/tasks/task_completion_report_native.spec.ts
 - inertia/apps/user/tests/e2e/tasks/task_create_authoring_draft_roleplay.spec.ts
 - inertia/apps/user/tests/e2e/tasks/task_create_role_prefill.spec.ts
 - inertia/apps/user/tests/e2e/tasks/task_submission_package.spec.ts
 
 ## Wrapper fixtures (non-runnable)
+
+
+
