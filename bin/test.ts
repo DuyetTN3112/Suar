@@ -215,11 +215,12 @@ try {
     runtimeStarted = true
   }
 
-  const server = await app.container.make('server')
-  await server.boot()
   let nodeServer: ReturnType<typeof createServer> | null = null
 
   if (shouldStartRuntimeProviders) {
+    const server = await app.container.make('server')
+    await server.boot()
+
     nodeServer = createServer((req, res) => {
       void server.handle(req, res)
     })
@@ -246,16 +247,18 @@ try {
     })
   }
 
-  const routerService = await app.container.make('router')
-  routerService.commit()
-  const routerJson = routerService.toJSON()
-  const rootRoutesCount = routerJson['root'] ? routerJson['root'].length : 0
-  console.warn(
-    'bin/test.ts router routes compiled: domains =',
-    Object.keys(routerJson).length,
-    'root routes =',
-    rootRoutesCount
-  )
+  if (shouldStartRuntimeProviders) {
+    const routerService = await app.container.make('router')
+    routerService.commit()
+    const routerJson = routerService.toJSON()
+    const rootRoutesCount = routerJson['root'] ? routerJson['root'].length : 0
+    console.warn(
+      'bin/test.ts router routes compiled: domains =',
+      Object.keys(routerJson).length,
+      'root routes =',
+      rootRoutesCount
+    )
+  }
 
   try {
     /**

@@ -1,1 +1,122 @@
-[]
+[
+  {
+    "file": "app/modules/filtering/actions/ports/outbound/filter_taxonomy_migration_run_port.ts",
+    "import_path": "#modules/taxonomy/domain/taxonomy-governance/taxonomy_migration_plan",
+    "reason": "cross-module import targets internal layer domain"
+  },
+  {
+    "file": "app/modules/filtering/infra/repositories/filter_taxonomy_migration_run_repository.ts",
+    "import_path": "#modules/taxonomy/domain/taxonomy-governance/taxonomy_migration_plan",
+    "reason": "cross-module import targets internal layer domain"
+  },
+  {
+    "file": "app/modules/filtering/infra/repositories/saved-filter-views/taxonomy_reference_projecting_filter_saved_view_repository.ts",
+    "import_path": "#modules/taxonomy/actions/ports/outbound/taxonomy-governance/taxonomy_version_reader",
+    "reason": "cross-module import targets internal layer actions"
+  },
+  {
+    "file": "app/modules/marketplace/controllers/marketplace-tasks/show_marketplace_task_controller.ts",
+    "import_path": "#modules/tasks/actions/ports/inbound/task_detail_query_factory",
+    "reason": "cross-module import targets internal layer actions"
+  },
+  {
+    "file": "app/modules/marketplace/controllers/marketplace-tasks/show_marketplace_task_controller.ts",
+    "import_path": "#modules/tasks/controllers/mappers/request/task-reading/task_request_mapper",
+    "reason": "cross-module import targets internal layer controllers"
+  },
+  {
+    "file": "app/modules/marketplace/controllers/marketplace-tasks/show_marketplace_task_controller.ts",
+    "import_path": "#modules/tasks/controllers/mappers/response/task-reading/task_response_mapper",
+    "reason": "cross-module import targets internal layer controllers"
+  },
+  {
+    "file": "app/modules/reviews/controllers/sprint-review/show_sprint_reverse_review_board_controller.ts",
+    "import_path": "#modules/projects/actions/ports/outbound/project_workspace_access_reader",
+    "reason": "cross-module import targets internal layer actions"
+  },
+  {
+    "file": "app/modules/reviews/controllers/task-review/show_task_review_board_controller.ts",
+    "import_path": "#modules/projects/actions/ports/outbound/project_workspace_access_reader",
+    "reason": "cross-module import targets internal layer actions"
+  },
+  {
+    "file": "app/modules/reviews/infra/repositories/read/task_review_detail_queries.ts",
+    "import_path": "#modules/tasks/actions/queries/task-reading/internal/task_resolved_brief_projection",
+    "reason": "cross-module import targets internal layer actions"
+  },
+  {
+    "file": "app/modules/reviews/infra/repositories/read/task_review_detail_queries.ts",
+    "import_path": "#modules/tasks/infra/adapters/task-reading/lucid_task_resolved_brief_reader",
+    "reason": "cross-module import targets internal layer infra"
+  },
+  {
+    "file": "app/modules/testing/controllers/testing-maintenance/testing_maintenance_controller.ts",
+    "import_path": "#composition/command_support/domain_event_outbox_testing",
+    "reason": "feature module imports outer composition; dependency injection must point inward"
+  },
+  {
+    "file": "app/modules/testing/controllers/testing-search/testing_search_roleplay_controller.ts",
+    "import_path": "#modules/search/infra/adapters/search-discovery/search_alias_integrity_fault_controller",
+    "reason": "cross-module import targets internal layer infra"
+  },
+  {
+    "file": "app/modules/testing/controllers/testing-seeds/testing_org_project_seed_controller.ts",
+    "import_path": "#composition/search/public-api/search_public_api_composition",
+    "reason": "feature module imports outer composition; dependency injection must point inward"
+  },
+  {
+    "file": "app/modules/testing/controllers/testing-seeds/testing_org_project_seed_controller.ts",
+    "import_path": "#composition/skills/skill-testing/skill_testing_composition",
+    "reason": "feature module imports outer composition; dependency injection must point inward"
+  },
+  {
+    "file": "app/modules/testing/controllers/testing-seeds/testing_review_seed_controller.ts",
+    "import_path": "#composition/reviews/testing/review_testing_composition",
+    "reason": "feature module imports outer composition; dependency injection must point inward"
+  },
+  {
+    "file": "app/modules/testing/controllers/testing-seeds/testing_task_seed_controller.ts",
+    "import_path": "#composition/search/public-api/search_public_api_composition",
+    "reason": "feature module imports outer composition; dependency injection must point inward"
+  },
+  {
+    "file": "app/modules/testing/controllers/testing-seeds/testing_task_seed_controller.ts",
+    "import_path": "#composition/tasks/task-seed/task_seed_composition",
+    "reason": "feature module imports outer composition; dependency injection must point inward"
+  },
+  {
+    "file": "app/modules/testing/infra/testing_search_roleplay_service.ts",
+    "import_path": "#composition/search/public-api/search_public_api_composition",
+    "reason": "feature module imports outer composition; dependency injection must point inward"
+  },
+  {
+    "file": "app/modules/testing/infra/testing_search_roleplay_service.ts",
+    "import_path": "#modules/search/infra/adapters/index-administration/search_index_names",
+    "reason": "cross-module import targets internal layer infra"
+  },
+  {
+    "file": "app/modules/testing/infra/testing_search_roleplay_service.ts",
+    "import_path": "#modules/search/infra/adapters/search-discovery/search_alias_integrity_fault_controller",
+    "reason": "cross-module import targets internal layer infra"
+  },
+  {
+    "file": "app/modules/testing/infra/testing_search_roleplay_service.ts",
+    "import_path": "#modules/search/infra/adapters/search-discovery/search_discovery_clock",
+    "reason": "cross-module import targets internal layer infra"
+  },
+  {
+    "file": "app/modules/testing/infra/testing_search_roleplay_service.ts",
+    "import_path": "#modules/search/infra/repositories/entity-search/tasks/task_search_index_repository",
+    "reason": "cross-module import targets internal layer infra"
+  },
+  {
+    "file": "app/modules/testing/infra/testing_seed_support.ts",
+    "import_path": "#modules/filtering/domain/saved-filter-views/saved_filter_view",
+    "reason": "cross-module import targets internal layer domain"
+  },
+  {
+    "file": "app/modules/testing/infra/testing_seed_support.ts",
+    "import_path": "#modules/filtering/infra/adapters/filtering-runtime/node_filter_hash_generator",
+    "reason": "cross-module import targets internal layer infra"
+  }
+]

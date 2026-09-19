@@ -4,6 +4,8 @@ import { BaseCommand } from '@adonisjs/core/ace'
 import type { CommandOptions } from '@adonisjs/core/types/ace'
 import db from '@adonisjs/lucid/services/db'
 
+import { rollbackWithoutMaskingOriginalError } from '#modules/logger/public_contracts/transaction_rollback'
+
 type ProjectSkillRow = {
   skill_id: string
   skill_name: string
@@ -47,7 +49,7 @@ export default class SeedProjectSkillRubrics extends BaseCommand {
     'Create published rubrics and link them to active Project Skills for local task testing'
   static override options: CommandOptions = { startApp: true }
 
-  async run() {
+  override async run() {
     const trx = await db.transaction()
     try {
       const projectSkills = (await trx
@@ -148,7 +150,10 @@ export default class SeedProjectSkillRubrics extends BaseCommand {
         `Seeded ${createdRubrics} published rubrics and linked ${linkedProjectSkills} Project Skills across ${projectSkills.length} skills.`
       )
     } catch (error) {
-      await trx.rollback()
+      await rollbackWithoutMaskingOriginalError(trx, error, {
+        module: 'skills',
+        operation: 'seed_project_skill_rubrics',
+      })
       throw error
     }
   }

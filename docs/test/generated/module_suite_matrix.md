@@ -10,62 +10,66 @@
 
 | Module | Code files | Unit | Integration | Contract | Component | E2E |
 |---|---:|---:|---:|---:|---:|---:|
-| accomplishments | 65 | 16 | 6 | 0 | 0 | 0 |
-| admin | 175 | 15 | 7 | 2 | 29 | 2 |
-| audit | 41 | 8 | 1 | 0 | 0 | 0 |
-| auth | 81 | 13 | 10 | 0 | 0 | 2 |
-| authorization | 47 | 8 | 2 | 0 | 0 | 0 |
-| cache | 51 | 17 | 8 | 0 | 0 | 0 |
-| contracts | 15 | 3 | 0 | 0 | 0 | 0 |
-| errors | 46 | 12 | 1 | 0 | 0 | 0 |
-| events | 39 | 9 | 3 | 0 | 0 | 0 |
-| filtering | 55 | 9 | 2 | 2 | 0 | 0 |
-| http | 129 | 28 | 4 | 0 | 0 | 0 |
+| accomplishments | 107 | 24 | 10 | 1 | 0 | 0 |
+| admin | 196 | 19 | 13 | 2 | 32 | 3 |
+| audit | 43 | 8 | 1 | 0 | 0 | 0 |
+| auth | 85 | 14 | 11 | 0 | 0 | 2 |
+| authorization | 49 | 8 | 2 | 0 | 0 | 0 |
+| cache | 65 | 17 | 12 | 0 | 0 | 0 |
+| disputes | 113 | 10 | 0 | 0 | 0 | 0 |
+| errors | 53 | 14 | 1 | 0 | 0 | 0 |
+| events | 48 | 9 | 6 | 0 | 0 | 0 |
+| filtering | 171 | 35 | 10 | 7 | 0 | 0 |
+| http | 170 | 39 | 6 | 0 | 0 | 0 |
 | logger | 8 | 4 | 0 | 0 | 0 | 0 |
-| marketplace | 44 | 6 | 4 | 0 | 1 | 2 |
-| notifications | 146 | 25 | 17 | 1 | 3 | 0 |
-| observability | 20 | 5 | 1 | 0 | 0 | 0 |
-| organizations | 378 | 27 | 27 | 1 | 0 | 10 |
+| marketplace | 63 | 14 | 9 | 0 | 4 | 2 |
+| moderation | 24 | 4 | 3 | 0 | 0 | 0 |
+| notifications | 166 | 29 | 17 | 1 | 3 | 0 |
+| observability | 23 | 5 | 1 | 0 | 0 | 0 |
+| organizations | 362 | 44 | 27 | 1 | 0 | 10 |
 | pagination | 8 | 2 | 0 | 0 | 0 | 0 |
-| projects | 202 | 20 | 18 | 5 | 15 | 9 |
-| reviews | 429 | 43 | 48 | 0 | 4 | 5 |
-| search | 156 | 41 | 6 | 1 | 4 | 0 |
-| settings | 21 | 2 | 0 | 0 | 1 | 0 |
-| skills | 129 | 10 | 6 | 3 | 0 | 0 |
-| sprints | 35 | 5 | 4 | 0 | 1 | 0 |
-| tasks | 494 | 78 | 51 | 10 | 51 | 7 |
-| taxonomy | 12 | 4 | 0 | 0 | 0 | 0 |
-| testing | 28 | 9 | 3 | 0 | 0 | 0 |
-| users | 268 | 29 | 28 | 0 | 6 | 12 |
+| projects | 238 | 37 | 17 | 5 | 16 | 10 |
+| reputation | 11 | 1 | 0 | 0 | 0 | 0 |
+| reviews | 547 | 66 | 74 | 0 | 4 | 4 |
+| search | 241 | 65 | 20 | 6 | 5 | 0 |
+| settings | 25 | 3 | 0 | 0 | 1 | 0 |
+| skills | 145 | 17 | 6 | 3 | 0 | 0 |
+| sprints | 69 | 13 | 8 | 0 | 1 | 0 |
+| tasks | 621 | 110 | 64 | 12 | 55 | 9 |
+| taxonomy | 43 | 8 | 3 | 0 | 0 | 0 |
+| testing | 48 | 12 | 3 | 0 | 0 | 0 |
+| users | 311 | 47 | 30 | 0 | 8 | 12 |
 
 ## Source Split
 
 | Module | Unit local/legacy | Integration local/legacy | Contract local/legacy | Component local/legacy | E2E local/legacy |
 |---|---:|---:|---:|---:|---:|
-| accomplishments | 16/0 | 6/0 | 0/0 | 0/0 | 0/0 |
-| admin | 15/0 | 7/0 | 2/0 | 29/0 | 2/0 |
+| accomplishments | 24/0 | 10/0 | 1/0 | 0/0 | 0/0 |
+| admin | 19/0 | 13/0 | 2/0 | 32/0 | 3/0 |
 | audit | 8/0 | 1/0 | 0/0 | 0/0 | 0/0 |
-| auth | 13/0 | 10/0 | 0/0 | 0/0 | 2/0 |
+| auth | 14/0 | 11/0 | 0/0 | 0/0 | 2/0 |
 | authorization | 8/0 | 2/0 | 0/0 | 0/0 | 0/0 |
-| cache | 17/0 | 8/0 | 0/0 | 0/0 | 0/0 |
-| contracts | 3/0 | 0/0 | 0/0 | 0/0 | 0/0 |
-| errors | 12/0 | 1/0 | 0/0 | 0/0 | 0/0 |
-| events | 9/0 | 3/0 | 0/0 | 0/0 | 0/0 |
-| filtering | 9/0 | 2/0 | 2/0 | 0/0 | 0/0 |
-| http | 28/0 | 4/0 | 0/0 | 0/0 | 0/0 |
+| cache | 17/0 | 12/0 | 0/0 | 0/0 | 0/0 |
+| disputes | 10/0 | 0/0 | 0/0 | 0/0 | 0/0 |
+| errors | 14/0 | 1/0 | 0/0 | 0/0 | 0/0 |
+| events | 9/0 | 6/0 | 0/0 | 0/0 | 0/0 |
+| filtering | 35/0 | 10/0 | 7/0 | 0/0 | 0/0 |
+| http | 39/0 | 6/0 | 0/0 | 0/0 | 0/0 |
 | logger | 4/0 | 0/0 | 0/0 | 0/0 | 0/0 |
-| marketplace | 6/0 | 4/0 | 0/0 | 1/0 | 2/0 |
-| notifications | 25/0 | 17/0 | 1/0 | 3/0 | 0/0 |
+| marketplace | 14/0 | 9/0 | 0/0 | 4/0 | 2/0 |
+| moderation | 4/0 | 3/0 | 0/0 | 0/0 | 0/0 |
+| notifications | 29/0 | 17/0 | 1/0 | 3/0 | 0/0 |
 | observability | 5/0 | 1/0 | 0/0 | 0/0 | 0/0 |
-| organizations | 27/0 | 27/0 | 1/0 | 0/0 | 10/0 |
+| organizations | 44/0 | 27/0 | 1/0 | 0/0 | 10/0 |
 | pagination | 2/0 | 0/0 | 0/0 | 0/0 | 0/0 |
-| projects | 20/0 | 18/0 | 5/0 | 15/0 | 9/0 |
-| reviews | 43/0 | 48/0 | 0/0 | 4/0 | 5/0 |
-| search | 41/0 | 6/0 | 1/0 | 4/0 | 0/0 |
-| settings | 2/0 | 0/0 | 0/0 | 1/0 | 0/0 |
-| skills | 10/0 | 6/0 | 3/0 | 0/0 | 0/0 |
-| sprints | 5/0 | 4/0 | 0/0 | 1/0 | 0/0 |
-| tasks | 78/0 | 51/0 | 10/0 | 51/0 | 7/0 |
-| taxonomy | 4/0 | 0/0 | 0/0 | 0/0 | 0/0 |
-| testing | 9/0 | 3/0 | 0/0 | 0/0 | 0/0 |
-| users | 29/0 | 28/0 | 0/0 | 6/0 | 12/0 |
+| projects | 37/0 | 17/0 | 5/0 | 16/0 | 10/0 |
+| reputation | 1/0 | 0/0 | 0/0 | 0/0 | 0/0 |
+| reviews | 66/0 | 74/0 | 0/0 | 4/0 | 4/0 |
+| search | 65/0 | 20/0 | 6/0 | 5/0 | 0/0 |
+| settings | 3/0 | 0/0 | 0/0 | 1/0 | 0/0 |
+| skills | 17/0 | 6/0 | 3/0 | 0/0 | 0/0 |
+| sprints | 13/0 | 8/0 | 0/0 | 1/0 | 0/0 |
+| tasks | 110/0 | 64/0 | 12/0 | 55/0 | 9/0 |
+| taxonomy | 8/0 | 3/0 | 0/0 | 0/0 | 0/0 |
+| testing | 12/0 | 3/0 | 0/0 | 0/0 | 0/0 |
+| users | 47/0 | 30/0 | 0/0 | 8/0 | 12/0 |

@@ -12,7 +12,7 @@ import {
   pollAiDisputeEvaluation,
   waitForAiDisputePoll,
   type AiDisputeEvaluationStatusRow,
-} from '#modules/reviews/infra/adapters/disputes/ai_dispute_evaluation_polling'
+} from '#modules/disputes/infra/adapters/ai_dispute_evaluation_polling'
 
 interface AdminRow {
   id: string

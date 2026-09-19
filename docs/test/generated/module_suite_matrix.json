@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-08T14:01:24.096Z",
+  "generatedAt": "2026-09-21T03:06:30.996Z",
   "suites": [
     "unit",
     "integration",
@@ -14,18 +14,18 @@
   "modules": [
     {
       "module": "accomplishments",
-      "codeFiles": 65,
+      "codeFiles": 107,
       "totals": {
-        "unit": 16,
-        "integration": 6,
-        "contract": 0,
+        "unit": 24,
+        "integration": 10,
+        "contract": 1,
         "component": 0,
         "e2e": 0
       },
       "moduleLocal": {
-        "unit": 16,
-        "integration": 6,
-        "contract": 0,
+        "unit": 24,
+        "integration": 10,
+        "contract": 1,
         "component": 0,
         "e2e": 0
       },
@@ -39,20 +39,20 @@
     },
     {
       "module": "admin",
-      "codeFiles": 175,
+      "codeFiles": 196,
       "totals": {
-        "unit": 15,
-        "integration": 7,
+        "unit": 19,
+        "integration": 13,
         "contract": 2,
-        "component": 29,
-        "e2e": 2
+        "component": 32,
+        "e2e": 3
       },
       "moduleLocal": {
-        "unit": 15,
-        "integration": 7,
+        "unit": 19,
+        "integration": 13,
         "contract": 2,
-        "component": 29,
-        "e2e": 2
+        "component": 32,
+        "e2e": 3
       },
       "legacyMapped": {
         "unit": 0,
@@ -64,7 +64,7 @@
     },
     {
       "module": "audit",
-      "codeFiles": 41,
+      "codeFiles": 43,
       "totals": {
         "unit": 8,
         "integration": 1,
@@ -89,17 +89,17 @@
     },
     {
       "module": "auth",
-      "codeFiles": 81,
+      "codeFiles": 85,
       "totals": {
-        "unit": 13,
-        "integration": 10,
+        "unit": 14,
+        "integration": 11,
         "contract": 0,
         "component": 0,
         "e2e": 2
       },
       "moduleLocal": {
-        "unit": 13,
-        "integration": 10,
+        "unit": 14,
+        "integration": 11,
         "contract": 0,
         "component": 0,
         "e2e": 2
@@ -114,7 +114,7 @@
     },
     {
       "module": "authorization",
-      "codeFiles": 47,
+      "codeFiles": 49,
       "totals": {
         "unit": 8,
         "integration": 2,
@@ -139,17 +139,17 @@
     },
     {
       "module": "cache",
-      "codeFiles": 51,
+      "codeFiles": 65,
       "totals": {
         "unit": 17,
-        "integration": 8,
+        "integration": 12,
         "contract": 0,
         "component": 0,
         "e2e": 0
       },
       "moduleLocal": {
         "unit": 17,
-        "integration": 8,
+        "integration": 12,
         "contract": 0,
         "component": 0,
         "e2e": 0
@@ -163,17 +163,17 @@
       }
     },
     {
-      "module": "contracts",
-      "codeFiles": 15,
+      "module": "disputes",
+      "codeFiles": 113,
       "totals": {
-        "unit": 3,
+        "unit": 10,
         "integration": 0,
         "contract": 0,
         "component": 0,
         "e2e": 0
       },
       "moduleLocal": {
-        "unit": 3,
+        "unit": 10,
         "integration": 0,
         "contract": 0,
         "component": 0,
@@ -189,16 +189,16 @@
     },
     {
       "module": "errors",
-      "codeFiles": 46,
+      "codeFiles": 53,
       "totals": {
-        "unit": 12,
+        "unit": 14,
         "integration": 1,
         "contract": 0,
         "component": 0,
         "e2e": 0
       },
       "moduleLocal": {
-        "unit": 12,
+        "unit": 14,
         "integration": 1,
         "contract": 0,
         "component": 0,
@@ -214,17 +214,17 @@
     },
     {
       "module": "events",
-      "codeFiles": 39,
+      "codeFiles": 48,
       "totals": {
         "unit": 9,
-        "integration": 3,
+        "integration": 6,
         "contract": 0,
         "component": 0,
         "e2e": 0
       },
       "moduleLocal": {
         "unit": 9,
-        "integration": 3,
+        "integration": 6,
         "contract": 0,
         "component": 0,
         "e2e": 0
@@ -239,18 +239,18 @@
     },
     {
       "module": "filtering",
-      "codeFiles": 55,
+      "codeFiles": 171,
       "totals": {
-        "unit": 9,
-        "integration": 2,
-        "contract": 2,
+        "unit": 35,
+        "integration": 10,
+        "contract": 7,
         "component": 0,
         "e2e": 0
       },
       "moduleLocal": {
-        "unit": 9,
-        "integration": 2,
-        "contract": 2,
+        "unit": 35,
+        "integration": 10,
+        "contract": 7,
         "component": 0,
         "e2e": 0
       },
@@ -264,17 +264,17 @@
     },
     {
       "module": "http",
-      "codeFiles": 129,
+      "codeFiles": 170,
       "totals": {
-        "unit": 28,
-        "integration": 4,
+        "unit": 39,
+        "integration": 6,
         "contract": 0,
         "component": 0,
         "e2e": 0
       },
       "moduleLocal": {
-        "unit": 28,
-        "integration": 4,
+        "unit": 39,
+        "integration": 6,
         "contract": 0,
         "component": 0,
         "e2e": 0
@@ -314,19 +314,19 @@
     },
     {
       "module": "marketplace",
-      "codeFiles": 44,
+      "codeFiles": 63,
       "totals": {
-        "unit": 6,
-        "integration": 4,
+        "unit": 14,
+        "integration": 9,
         "contract": 0,
-        "component": 1,
+        "component": 4,
         "e2e": 2
       },
       "moduleLocal": {
-        "unit": 6,
-        "integration": 4,
+        "unit": 14,
+        "integration": 9,
         "contract": 0,
-        "component": 1,
+        "component": 4,
         "e2e": 2
       },
       "legacyMapped": {
@@ -338,17 +338,42 @@
       }
     },
     {
-      "module": "notifications",
-      "codeFiles": 146,
+      "module": "moderation",
+      "codeFiles": 24,
       "totals": {
-        "unit": 25,
+        "unit": 4,
+        "integration": 3,
+        "contract": 0,
+        "component": 0,
+        "e2e": 0
+      },
+      "moduleLocal": {
+        "unit": 4,
+        "integration": 3,
+        "contract": 0,
+        "component": 0,
+        "e2e": 0
+      },
+      "legacyMapped": {
+        "unit": 0,
+        "integration": 0,
+        "contract": 0,
+        "component": 0,
+        "e2e": 0
+      }
+    },
+    {
+      "module": "notifications",
+      "codeFiles": 166,
+      "totals": {
+        "unit": 29,
         "integration": 17,
         "contract": 1,
         "component": 3,
         "e2e": 0
       },
       "moduleLocal": {
-        "unit": 25,
+        "unit": 29,
         "integration": 17,
         "contract": 1,
         "component": 3,
@@ -364,7 +389,7 @@
     },
     {
       "module": "observability",
-      "codeFiles": 20,
+      "codeFiles": 23,
       "totals": {
         "unit": 5,
         "integration": 1,
@@ -389,16 +414,16 @@
     },
     {
       "module": "organizations",
-      "codeFiles": 378,
+      "codeFiles": 362,
       "totals": {
-        "unit": 27,
+        "unit": 44,
         "integration": 27,
         "contract": 1,
         "component": 0,
         "e2e": 10
       },
       "moduleLocal": {
-        "unit": 27,
+        "unit": 44,
         "integration": 27,
         "contract": 1,
         "component": 0,
@@ -439,20 +464,45 @@
     },
     {
       "module": "projects",
-      "codeFiles": 202,
+      "codeFiles": 238,
       "totals": {
-        "unit": 20,
-        "integration": 18,
+        "unit": 37,
+        "integration": 17,
         "contract": 5,
-        "component": 15,
-        "e2e": 9
+        "component": 16,
+        "e2e": 10
       },
       "moduleLocal": {
-        "unit": 20,
-        "integration": 18,
+        "unit": 37,
+        "integration": 17,
         "contract": 5,
-        "component": 15,
-        "e2e": 9
+        "component": 16,
+        "e2e": 10
+      },
+      "legacyMapped": {
+        "unit": 0,
+        "integration": 0,
+        "contract": 0,
+        "component": 0,
+        "e2e": 0
+      }
+    },
+    {
+      "module": "reputation",
+      "codeFiles": 11,
+      "totals": {
+        "unit": 1,
+        "integration": 0,
+        "contract": 0,
+        "component": 0,
+        "e2e": 0
+      },
+      "moduleLocal": {
+        "unit": 1,
+        "integration": 0,
+        "contract": 0,
+        "component": 0,
+        "e2e": 0
       },
       "legacyMapped": {
         "unit": 0,
@@ -464,20 +514,20 @@
     },
     {
       "module": "reviews",
-      "codeFiles": 429,
+      "codeFiles": 547,
       "totals": {
-        "unit": 43,
-        "integration": 48,
+        "unit": 66,
+        "integration": 74,
         "contract": 0,
         "component": 4,
-        "e2e": 5
+        "e2e": 4
       },
       "moduleLocal": {
-        "unit": 43,
-        "integration": 48,
+        "unit": 66,
+        "integration": 74,
         "contract": 0,
         "component": 4,
-        "e2e": 5
+        "e2e": 4
       },
       "legacyMapped": {
         "unit": 0,
@@ -489,19 +539,19 @@
     },
     {
       "module": "search",
-      "codeFiles": 156,
+      "codeFiles": 241,
       "totals": {
-        "unit": 41,
-        "integration": 6,
-        "contract": 1,
-        "component": 4,
+        "unit": 65,
+        "integration": 20,
+        "contract": 6,
+        "component": 5,
         "e2e": 0
       },
       "moduleLocal": {
-        "unit": 41,
-        "integration": 6,
-        "contract": 1,
-        "component": 4,
+        "unit": 65,
+        "integration": 20,
+        "contract": 6,
+        "component": 5,
         "e2e": 0
       },
       "legacyMapped": {
@@ -514,16 +564,16 @@
     },
     {
       "module": "settings",
-      "codeFiles": 21,
+      "codeFiles": 25,
       "totals": {
-        "unit": 2,
+        "unit": 3,
         "integration": 0,
         "contract": 0,
         "component": 1,
         "e2e": 0
       },
       "moduleLocal": {
-        "unit": 2,
+        "unit": 3,
         "integration": 0,
         "contract": 0,
         "component": 1,
@@ -539,16 +589,16 @@
     },
     {
       "module": "skills",
-      "codeFiles": 129,
+      "codeFiles": 145,
       "totals": {
-        "unit": 10,
+        "unit": 17,
         "integration": 6,
         "contract": 3,
         "component": 0,
         "e2e": 0
       },
       "moduleLocal": {
-        "unit": 10,
+        "unit": 17,
         "integration": 6,
         "contract": 3,
         "component": 0,
@@ -564,17 +614,17 @@
     },
     {
       "module": "sprints",
-      "codeFiles": 35,
+      "codeFiles": 69,
       "totals": {
-        "unit": 5,
-        "integration": 4,
+        "unit": 13,
+        "integration": 8,
         "contract": 0,
         "component": 1,
         "e2e": 0
       },
       "moduleLocal": {
-        "unit": 5,
-        "integration": 4,
+        "unit": 13,
+        "integration": 8,
         "contract": 0,
         "component": 1,
         "e2e": 0
@@ -589,20 +639,20 @@
     },
     {
       "module": "tasks",
-      "codeFiles": 494,
+      "codeFiles": 621,
       "totals": {
-        "unit": 78,
-        "integration": 51,
-        "contract": 10,
-        "component": 51,
-        "e2e": 7
+        "unit": 110,
+        "integration": 64,
+        "contract": 12,
+        "component": 55,
+        "e2e": 9
       },
       "moduleLocal": {
-        "unit": 78,
-        "integration": 51,
-        "contract": 10,
-        "component": 51,
-        "e2e": 7
+        "unit": 110,
+        "integration": 64,
+        "contract": 12,
+        "component": 55,
+        "e2e": 9
       },
       "legacyMapped": {
         "unit": 0,
@@ -614,17 +664,17 @@
     },
     {
       "module": "taxonomy",
-      "codeFiles": 12,
+      "codeFiles": 43,
       "totals": {
-        "unit": 4,
-        "integration": 0,
+        "unit": 8,
+        "integration": 3,
         "contract": 0,
         "component": 0,
         "e2e": 0
       },
       "moduleLocal": {
-        "unit": 4,
-        "integration": 0,
+        "unit": 8,
+        "integration": 3,
         "contract": 0,
         "component": 0,
         "e2e": 0
@@ -639,16 +689,16 @@
     },
     {
       "module": "testing",
-      "codeFiles": 28,
+      "codeFiles": 48,
       "totals": {
-        "unit": 9,
+        "unit": 12,
         "integration": 3,
         "contract": 0,
         "component": 0,
         "e2e": 0
       },
       "moduleLocal": {
-        "unit": 9,
+        "unit": 12,
         "integration": 3,
         "contract": 0,
         "component": 0,
@@ -664,19 +714,19 @@
     },
     {
       "module": "users",
-      "codeFiles": 268,
+      "codeFiles": 311,
       "totals": {
-        "unit": 29,
-        "integration": 28,
+        "unit": 47,
+        "integration": 30,
         "contract": 0,
-        "component": 6,
+        "component": 8,
         "e2e": 12
       },
       "moduleLocal": {
-        "unit": 29,
-        "integration": 28,
+        "unit": 47,
+        "integration": 30,
         "contract": 0,
-        "component": 6,
+        "component": 8,
         "e2e": 12
       },
       "legacyMapped": {
