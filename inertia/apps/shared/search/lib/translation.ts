@@ -9,7 +9,7 @@ export function defaultTranslate(
   params: Record<string, unknown> = {},
   fallback?: string
 ): string {
-  let text = fallback ?? key
+  const text = fallback ?? key
   return text.replace(
     /:(\w+)|\{(\w+)\}/g,
     (match: string, colonKey: string | undefined, braceKey: string | undefined) => {
@@ -17,7 +17,9 @@ export function defaultTranslate(
       if (!paramKey) return match
       const paramValue = params[paramKey]
       if (paramValue === undefined || paramValue === null) return match
-      return String(paramValue)
+      if (typeof paramValue === 'string') return paramValue
+      if (typeof paramValue === 'number' || typeof paramValue === 'boolean') return String(paramValue)
+      return JSON.stringify(paramValue)
     }
   )
 }

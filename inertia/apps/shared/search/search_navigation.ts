@@ -44,6 +44,7 @@ export function createSearchNavigation(searchRouter: SearchRouter = router) {
         if (error instanceof StaleSearchResponseError) {
           return false
         }
+        return undefined
       },
       onFinish: () => {
         if (sequence === searchVisitSequence) {

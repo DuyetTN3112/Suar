@@ -1,8 +1,28 @@
 <script lang="ts">
   import { router } from '@inertiajs/svelte'
+
+  import SavedViewMenu from '@/apps/shared/filtering/components/saved_views/saved_view_menu.svelte'
+  import type { FilterCriteria } from '@/apps/shared/filtering/contracts'
+  import type { SavedViewShareTarget } from '@/apps/shared/filtering/saved_views/filter_saved_view_client'
   import { buildSearchPageUrl, type SearchShell } from '@/apps/shared/navigation/shell_search_links'
-  import { createSearchNavigation } from './search_navigation'
+
+  import SearchFilters from './components/search_filters.svelte'
+  import SearchHeader from './components/search_header.svelte'
+  import SearchRecent from './components/search_recent.svelte'
+  import SearchResultsContainer from './components/search_results_container.svelte'
+  import SearchStatusBanners from './components/search_status_banners.svelte'
+  import type { DiscoveryPresentationHit } from './discovery_presentation'
+  import {
+    buildSourceStatusTelemetry,
+    calculateEffectiveTotalByType,
+    formatFailedSourceSummary,
+    readRecentSearches,
+    rememberRecentSearch,
+    removeRecentSearch,
+    sourceForType,
+  } from './lib/search_center_helpers'
   import { defaultTranslate, type TranslateFn } from './lib/translation'
+  import { createSearchNavigation } from './search_navigation'
   import type {
     FieldFacet,
     FilterType,
@@ -11,17 +31,6 @@
     SourceStatus,
     TotalByType,
   } from './types'
-  import SearchDiscoveryResultItem from './components/search_discovery_result_item.svelte'
-  import SearchFilters from './components/search_filters.svelte'
-  import SearchHeader from './components/search_header.svelte'
-  import SearchResultItem from './components/search_result_item.svelte'
-  import SearchRecent from './components/search_recent.svelte'
-  import SavedViewMenu from '@/apps/shared/filtering/components/saved_views/saved_view_menu.svelte'
-  import type { FilterCriteria } from '@/apps/shared/filtering/contracts'
-  import type { SavedViewShareTarget } from '@/apps/shared/filtering/saved_views/filter_saved_view_client'
-
-  const RECENT_SEARCHES_KEY = 'suar:search:recent_queries'
-  const MAX_RECENT_SEARCHES = 5
 
   interface Props {
     shellMode?: SearchShell
@@ -45,7 +54,15 @@
     savedViewContextKey?: string
     savedViewContextOwner?: string
     savedViewCapabilities?: { sharedViews?: boolean; alerts?: boolean }
-    telemetry?: (event: { eventName: string; surface: string; query: string; entityType?: string; entityId?: string; metadata?: Record<string, unknown>; resultCounts?: TotalByType }) => Promise<void>
+    telemetry?: (event: {
+      eventName: string
+      surface: string
+      query: string
+      entityType?: string
+      entityId?: string
+      metadata?: Record<string, unknown>
+      resultCounts?: TotalByType
+    }) => Promise<void>
     t?: TranslateFn
   }
 
@@ -115,29 +132,13 @@
     },
   ])
 
-  const effectiveTotalByType = $derived.by(() => {
-    if (!discovery) return totalByType
-
-    const totals: TotalByType = { ...totalByType }
-    const hitTotals: TotalByType = {
-      all: discovery.hits.length,
-      task: 0,
-      project: 0,
-      comment: 0,
-      talent: 0,
-      skill: 0,
-      organization: 0,
-    }
-    for (const hit of discovery.hits) {
-      hitTotals[hit.entityType] += 1
-    }
-
-    totals.all = discovery.total.value
-    for (const type of tabs.map((tab) => tab.type).filter((type): type is Exclude<FilterType, 'all'> => type !== 'all')) {
-      if (totals[type] === 0 && hitTotals[type] > 0) totals[type] = hitTotals[type]
-    }
-    return totals
-  })
+  const effectiveTotalByType = $derived.by(() =>
+    calculateEffectiveTotalByType(
+      totalByType,
+      discovery,
+      tabs.map((tab) => tab.type)
+    )
+  )
 
   const nonEmptyDomainCount = $derived(
     tabs.filter((tab) => tab.type !== 'all' && effectiveTotalByType[tab.type] > 0).length
@@ -171,6 +172,7 @@
         (source) => source.state !== 'ok' && source.state !== 'skipped'
       )
   )
+  const failedSourceSummaryText = $derived(formatFailedSourceSummary(failedSources, t))
 
   $effect(() => {
     const key = `${query}:${activeFilter}:${activeField ?? ''}`
@@ -191,7 +193,7 @@
         metadata: {
           active_type: activeFilter,
           active_field: activeField,
-          source_statuses: sourceStatusTelemetry(),
+          source_statuses: buildSourceStatusTelemetry(sourceStatuses),
         },
         resultCounts: effectiveTotalByType,
       }).catch(() => {})
@@ -215,7 +217,7 @@
         metadata: {
           active_type: activeFilter,
           active_field: field,
-          source_statuses: sourceStatusTelemetry(),
+          source_statuses: buildSourceStatusTelemetry(sourceStatuses),
         },
         resultCounts: effectiveTotalByType,
       }).catch(() => {})
@@ -229,10 +231,10 @@
     q: string,
     type: FilterType,
     field: string | null = activeField,
-    cursor: string | null = null,
-    previousCursor: string | null = null
+    cursorVal: string | null = null,
+    previousCursorVal: string | null = null
   ): string {
-    return buildSearchPageUrl(shellMode, q, type, field, cursor, previousCursor, projectId ?? null)
+    return buildSearchPageUrl(shellMode, q, type, field, cursorVal, previousCursorVal, projectId ?? null)
   }
 
   function selectFilter(type: FilterType) {
@@ -256,13 +258,8 @@
     })
   }
 
-  function removeRecentSearch(recentQuery: string) {
-    recentSearches = recentSearches.filter((item) => item !== recentQuery)
-    if (typeof window === 'undefined') return
-
-    try {
-      window.localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(recentSearches))
-    } catch {}
+  function onRemoveRecentSearch(recentQuery: string) {
+    recentSearches = removeRecentSearch(recentSearches, recentQuery)
   }
 
   function resetSearchScope() {
@@ -310,19 +307,6 @@
     return tabs.find((tab) => tab.type === type)?.label ?? t('workspace.search.tabs.all', {}, 'All')
   }
 
-  function sourceForType(type: FilterType) {
-    switch (type) {
-      case 'task': return 'tasks'
-      case 'project': return 'projects'
-      case 'comment': return 'comments'
-      case 'talent': return 'talents'
-      case 'skill': return 'skills'
-      case 'organization': return 'organizations'
-      case 'all': return null
-      default: return null
-    }
-  }
-
   function domainCountLabel(type: FilterType): string {
     const source = sourceForType(type)
     if (activeFilter !== 'all' && source && sourceStatuses.length > 0 && !queriedSources.has(source)) {
@@ -330,15 +314,6 @@
     }
 
     return String(effectiveTotalByType[type])
-  }
-
-  function sourceStatusTelemetry() {
-    return sourceStatuses.map((source) => ({
-      source: source.source,
-      status: source.status,
-      result_count: source.resultCount,
-      duration_ms: source.durationMs ?? 0,
-    }))
   }
 
   function trackResultClick(result: SearchCenterResult) {
@@ -357,14 +332,14 @@
           match_strength: result.matchStrength ?? null,
           active_type: activeFilter,
           active_field: activeField,
-          source_statuses: sourceStatusTelemetry(),
+          source_statuses: buildSourceStatusTelemetry(sourceStatuses),
         },
         resultCounts: effectiveTotalByType,
       }).catch(() => {})
     }
   }
 
-  function trackDiscoveryResult(result: import('./discovery_presentation').DiscoveryPresentationHit) {
+  function trackDiscoveryResult(result: DiscoveryPresentationHit) {
     if (telemetry) {
       void telemetry({
         eventName: 'search.ui.result_clicked',
@@ -385,54 +360,6 @@
     }
   }
 
-  function failedSourceSummary(): string {
-    return failedSources
-      .map((source) =>
-        source.status === 'timed_out'
-          ? t(
-              'workspace.search.source_timed_out',
-              { source: source.source },
-              ':source source timed out'
-            )
-          : t(
-              'workspace.search.source_unavailable',
-              { source: source.source },
-              ':source source unavailable'
-            )
-      )
-      .join(', ')
-  }
-
-  function readRecentSearches(): string[] {
-    if (typeof window === 'undefined') return []
-
-    try {
-      const parsed: unknown = JSON.parse(window.localStorage.getItem(RECENT_SEARCHES_KEY) ?? '[]')
-      return Array.isArray(parsed)
-        ? parsed
-            .filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
-            .slice(0, MAX_RECENT_SEARCHES)
-        : []
-    } catch {
-      return []
-    }
-  }
-
-  function rememberRecentSearch(value: string): string[] {
-    const normalized = value.trim()
-    if (!normalized || typeof window === 'undefined') return readRecentSearches()
-
-    const next = [
-      normalized,
-      ...readRecentSearches().filter((item) => item.toLocaleLowerCase() !== normalized.toLocaleLowerCase()),
-    ].slice(0, MAX_RECENT_SEARCHES)
-
-    try {
-      window.localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(next))
-    } catch {}
-
-    return next
-  }
   const currentCriteria = $derived<FilterCriteria>({
     context: savedViewContextKey,
     schemaVersion: 1,
@@ -461,153 +388,20 @@
     {t}
   />
 
-  {#if failedSources.length > 0}
-    <div
-      class="rounded-2xl border border-border bg-secondary/40 px-4 py-3 text-sm text-foreground"
-      role="status"
-      aria-live="polite"
-      aria-atomic="true"
-      aria-label={t('workspace.search.source_status_aria', {}, 'Search source status')}
-    >
-      <div class="font-black">
-        {allSourcesUnavailable
-          ? t('workspace.search.search_unavailable', {}, 'Search unavailable')
-          : t('workspace.search.partial_results', {}, 'Partial results')}
-      </div>
-      <div class="mt-1 text-muted-foreground">
-        {failedSourceSummary()}.
-        {allSourcesUnavailable
-          ? t(
-              'workspace.search.no_source_succeeded',
-              {},
-              'No source returned successfully.'
-            )
-          : t(
-              'workspace.search.other_sources_succeeded',
-              {},
-              'Other sources still returned normally.'
-            )}
-      </div>
-    </div>
-  {/if}
-
-  {#if discoveryFailure && !cursorFailure}
-    <div
-      class="rounded-2xl border border-border bg-secondary/40 px-4 py-3 text-sm text-foreground"
-      role="status"
-      aria-live="polite"
-      aria-atomic="true"
-      aria-label={t('workspace.search.discovery_availability', {}, 'Search availability')}
-    >
-      <div class="font-black">
-        {t(
-          'workspace.search.discovery_compatibility_mode',
-          {},
-          'Search is running in compatibility mode'
-        )}
-      </div>
-      <div class="mt-1 text-muted-foreground">
-        {t(
-          'workspace.search.discovery_fallback_description',
-          {},
-          'The canonical Discovery source is unavailable; results are coming from a compatibility provider. Retry to try Discovery again.'
-        )}
-      </div>
-      <button
-        class="mt-4 rounded-lg border border-border bg-foreground px-4 py-2 text-sm font-bold text-background transition hover:bg-foreground/90"
-        type="button"
-        onclick={retrySearch}
-      >
-        {t('workspace.search.retry', {}, 'Retry search')}
-      </button>
-    </div>
-  {/if}
-
-  {#if cursorFailure}
-    <div
-      class="rounded-2xl border border-border bg-secondary/40 px-4 py-3 text-sm text-foreground"
-      role="status"
-      aria-live="polite"
-      aria-atomic="true"
-      aria-label={t('workspace.search.cursor_status_aria', {}, 'Search cursor status')}
-    >
-      <div class="font-black">
-        {t('workspace.search.cursor_unavailable', {}, 'This search page is no longer available')}
-      </div>
-      <div class="mt-1 text-muted-foreground">
-        {t(
-          'workspace.search.cursor_fresh_retry_description',
-          {},
-          'The search cursor is invalid, expired, or stale. Start a fresh search to continue.'
-        )}
-      </div>
-      <button
-        class="mt-4 rounded-lg border border-border bg-foreground px-4 py-2 text-sm font-bold text-background transition hover:bg-foreground/90"
-        type="button"
-        onclick={retrySearch}
-      >
-        {t('workspace.search.cursor_fresh_retry', {}, 'Start a fresh search')}
-      </button>
-    </div>
-  {/if}
-
-  {#if discoveryIsDegraded}
-    <div
-      class="rounded-2xl border border-border bg-secondary/40 px-4 py-3 text-sm text-foreground"
-      role="status"
-      aria-live="polite"
-      aria-atomic="true"
-      aria-label={t('workspace.search.discovery_authority', {}, 'Discovery result authority')}
-    >
-      <div class="font-black">
-        {t('workspace.search.partial_results', {}, 'Partial results')}
-      </div>
-      <div class="mt-1 text-muted-foreground">
-        {t(
-          'workspace.search.discovery_partial_description',
-          {},
-          'Some totals or sources are not authoritative for this search.'
-        )}
-      </div>
-      <button
-        class="mt-4 rounded-lg border border-border bg-foreground px-4 py-2 text-sm font-bold text-background transition hover:bg-foreground/90"
-        type="button"
-        onclick={retrySearch}
-      >
-        {t('workspace.search.retry', {}, 'Retry search')}
-      </button>
-    </div>
-  {/if}
-
-  {#if queryWasNormalized}
-    <div class="rounded-2xl border border-border bg-muted/30 px-4 py-3 text-sm text-foreground">
-      <div class="font-black">
-        {t('workspace.search.normalized_title', {}, 'Query normalized')}
-      </div>
-      <div class="mt-1 text-muted-foreground">
-        {t(
-          'workspace.search.normalized_description',
-          {},
-          'Search was bounded before fanout to keep every source fast.'
-        )}
-      </div>
-    </div>
-  {/if}
-
-  {#if resultsTruncated}
-    <div class="rounded-2xl border border-border bg-background px-4 py-3 text-sm shadow-suar-xs">
-      <div class="font-black text-foreground">
-        {t('workspace.search.truncated_title', {}, 'Top results shown')}
-      </div>
-      <div class="mt-1 text-muted-foreground">
-        {t(
-          'workspace.search.truncated_description',
-          { limit: resultLimit, total: candidateResultCount },
-          'Showing the top :limit of :total ranked matches. Narrow by domain or field for a deeper cut.'
-        )}
-      </div>
-    </div>
-  {/if}
+  <SearchStatusBanners
+    {failedSources}
+    {allSourcesUnavailable}
+    failedSourceSummary={failedSourceSummaryText}
+    {discoveryFailure}
+    {cursorFailure}
+    {discoveryIsDegraded}
+    {queryWasNormalized}
+    {resultsTruncated}
+    {resultLimit}
+    {candidateResultCount}
+    {retrySearch}
+    {t}
+  />
 
   {#if !query && !discovery}
     <div class="rounded-md border border-dashed border-border p-10 text-center">
@@ -626,7 +420,7 @@
       <SearchRecent
         {recentSearches}
         {selectRecentSearch}
-        {removeRecentSearch}
+        removeRecentSearch={onRemoveRecentSearch}
         {t}
       />
     {/if}
@@ -710,134 +504,27 @@
             </button>
           </div>
         {/if}
-        {#if visibleResultCount === 0}
-          <div
-            class="rounded-2xl border border-border bg-background p-10 text-center"
-            role="status"
-            aria-live="polite"
-            aria-atomic="true"
-            aria-label={t('workspace.search.result_status_aria', {}, 'Search result status')}
-          >
-            {#if cursorFailure}
-              <p class="text-sm font-bold text-foreground">
-                {t(
-                  'workspace.search.cursor_results_unavailable',
-                  {},
-                  'Results are hidden until you start a fresh search.'
-                )}
-              </p>
-              <p class="mt-2 text-sm text-muted-foreground">
-                {t(
-                  'workspace.search.cursor_results_unavailable_description',
-                  {},
-                  'No compatibility results were substituted for this cursor failure.'
-                )}
-              </p>
-            {:else if skippedAllSources}
-              <p class="text-sm font-bold text-foreground">
-                {t(
-                  'workspace.search.short_query',
-                  {},
-                  'Add one more character to search across Suar.'
-                )}
-              </p>
-              <p class="mt-2 text-sm text-muted-foreground">
-                {t(
-                  'workspace.search.short_query_description',
-                  {},
-                  'Short queries skip source fanout to keep search fast.'
-                )}
-              </p>
-            {:else if allSourcesUnavailable}
-              <p class="text-sm font-bold text-foreground">
-                {t('workspace.search.sources_unavailable', {}, 'Search sources unavailable.')}
-              </p>
-              <p class="mt-2 text-sm text-muted-foreground">
-                {t(
-                  'workspace.search.no_source_for_query',
-                  { query },
-                  'No source returned successfully for ":query".'
-                )}
-              </p>
-              <button
-                class="mt-5 rounded-lg border border-border bg-foreground px-4 py-2 text-sm font-bold text-background transition hover:bg-foreground/90"
-                type="button"
-                onclick={retrySearch}
-              >
-                {t('workspace.search.retry', {}, 'Retry search')}
-              </button>
-            {:else}
-              <p class="text-sm font-bold text-foreground">
-                {t('workspace.search.no_results', { query }, 'No results for ":query".')}
-              </p>
-              <p class="mt-2 text-sm text-muted-foreground">
-                {t(
-                  'workspace.search.no_results_hint',
-                  {},
-                  'Try another keyword or switch back to All.'
-                )}
-              </p>
-            {/if}
-          </div>
-        {:else if discovery}
-          {#each discovery.hits as result (result.id)}
-            <SearchDiscoveryResultItem {query} result={result} onclick={trackDiscoveryResult} {t} />
-          {/each}
-          {#if discovery.page.nextCursor || cursor}
-            <nav
-              class="flex items-center justify-between gap-2 border-t border-border/70 pt-3"
-              aria-label={t('workspace.search.pagination_aria', {}, 'Search result pagination')}
-            >
-              <button
-                class="rounded-lg border border-border px-3 py-2 text-xs font-bold text-muted-foreground transition hover:border-foreground/50 hover:text-foreground"
-                type="button"
-                onclick={previousDiscoveryPage}
-              >
-                {t('workspace.search.previous_page', {}, 'Previous page')}
-              </button>
-              {#if discovery.page.nextCursor}
-                <button
-                  class="rounded-lg border border-border px-3 py-2 text-xs font-bold text-muted-foreground transition hover:border-foreground/50 hover:text-foreground"
-                  type="button"
-                  aria-label={t('workspace.search.next_page_aria', {}, 'Next page')}
-                  onclick={nextDiscoveryPage}
-                >
-                  {t('workspace.search.next_page', {}, 'Next page')}
-                </button>
-              {/if}
-            </nav>
-          {/if}
-        {:else}
-          {#each pagedResults as result (result.id)}
-            <SearchResultItem {result} onclick={trackResultClick} {t} />
-          {/each}
-          {#if globalPageCount > 1}
-            <nav
-              class="flex items-center justify-end gap-2 border-t border-border/70 pt-3"
-              aria-label={t('workspace.search.pagination_aria', {}, 'Search result pagination')}
-            >
-              <button
-                class="rounded-lg border border-border px-3 py-2 text-xs font-bold text-muted-foreground transition hover:border-foreground/50 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
-                type="button"
-                disabled={globalPage === 1}
-                onclick={previousGlobalPage}
-              >
-                {t('workspace.search.previous_page', {}, 'Previous page')}
-              </button>
-              <span class="text-xs font-semibold text-muted-foreground">
-                {globalPage} / {globalPageCount}
-              </span>
-              <button
-                class="rounded-lg border border-border px-3 py-2 text-xs font-bold text-muted-foreground transition hover:border-foreground/50 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
-                type="button"
-                disabled={globalPage === globalPageCount}
-                onclick={nextGlobalPage}
-              >
-                {t('workspace.search.next_page', {}, 'Next page')}
-              </button>
-            </nav>
-          {/if}
-        {/if}
+
+        <SearchResultsContainer
+          {query}
+          {visibleResultCount}
+          {cursorFailure}
+          {skippedAllSources}
+          {allSourcesUnavailable}
+          {discovery}
+          {pagedResults}
+          {globalPage}
+          {globalPageCount}
+          {cursor}
+          {trackDiscoveryResult}
+          {trackResultClick}
+          {retrySearch}
+          {previousDiscoveryPage}
+          {nextDiscoveryPage}
+          {previousGlobalPage}
+          {nextGlobalPage}
+          {t}
+        />
       </div>
     </div>
   {/if}
