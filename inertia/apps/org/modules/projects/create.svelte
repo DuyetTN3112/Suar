@@ -1,7 +1,7 @@
 <script lang="ts">
   import { router } from '@inertiajs/svelte'
   import { format } from 'date-fns'
-  import { CheckCircle2, ChevronLeft, ChevronRight } from 'lucide-svelte'
+  import { ChevronLeft, ChevronRight } from 'lucide-svelte'
 
   import Button from '@/apps/org/shared/ui/button.svelte'
   import Card from '@/apps/org/shared/ui/card.svelte'
@@ -16,38 +16,17 @@
   import ProjectCreateStaffingStep from './components/project_create_staffing_step.svelte'
   import ProjectCreateLaunchStep from './components/project_create_launch_step.svelte'
   import type { OrganizationCandidate, ProjectCreateProps } from './types'
-
-  type WizardStep = 'foundation' | 'staffing' | 'launch'
-  type ProjectSetupPreset = 'delivery_squad' | 'review_pipeline' | 'marketplace_rollout'
-  type BlueprintRoleSlot = {
-    templateCode: string
-    name: string
-    skills: string
-    note: string
-  }
-  type BlueprintRoleSlotDefinition = {
-    templateCode: string
-    nameKey: string
-    nameFallback: string
-    skillsKey: string
-    skillsFallback: string
-    noteKey?: string
-    noteFallback?: string
-  }
-  type BlueprintDefinition = {
-    labelKey: string
-    labelFallback: string
-    descriptionKey: string
-    descriptionFallback: string
-    roles: BlueprintRoleSlotDefinition[]
-  }
-  type WizardStepConfig = {
-    id: WizardStep
-    titleKey: string
-    titleFallback: string
-    descriptionKey: string
-    descriptionFallback: string
-  }
+  import {
+    FOUNDATION_STEP,
+    WIZARD_STEPS,
+    buildProjectCreatePayload,
+    resolveBlueprint,
+    resolveLaunchSummary,
+    type BlueprintRoleSlot,
+    type ProjectSetupPreset,
+    type WizardStep,
+  } from '@/apps/shared/projects/project_create_blueprints'
+  import ProjectCreateStepNav from '@/apps/shared/projects/project_create_step_nav.svelte'
 
   const { organizations, organizationMembersByOrg, statuses, auth }: ProjectCreateProps = $props()
   const { t } = $derived(useTranslation())
@@ -74,31 +53,7 @@
   let projectSetupPreset = $state<ProjectSetupPreset>('delivery_squad')
   let initialStaffingAssignments = $state<Record<string, string>>({})
 
-  const foundationStep: WizardStepConfig = {
-    id: 'foundation',
-    titleKey: 'project.create_page.steps.foundation.title',
-    titleFallback: '1. Project foundation',
-    descriptionKey: 'project.create_page.steps.foundation.description',
-    descriptionFallback: 'Name, organization, status, timeline.',
-  }
-  const steps: WizardStepConfig[] = [
-    foundationStep,
-    {
-      id: 'staffing',
-      titleKey: 'project.create_page.steps.staffing.title',
-      titleFallback: '2. Staffing',
-      descriptionKey: 'project.create_page.steps.staffing.description',
-      descriptionFallback: 'Initial roles and first owners.',
-    },
-    {
-      id: 'launch',
-      titleKey: 'project.create_page.steps.launch.title',
-      titleFallback: '3. After create',
-      descriptionKey: 'project.create_page.steps.launch.description',
-      descriptionFallback: 'Choose the next step.',
-    },
-  ]
-
+  const steps = WIZARD_STEPS
   const stepIndex = $derived(steps.findIndex((step) => step.id === currentStep))
   const currentOrganization = $derived(
     organizations.find((organization) => organization.id === formData.organization_id) ?? null
@@ -109,125 +64,12 @@
       Boolean(formData.status)
   )
   const currentStepConfig = $derived(
-    steps.find((step) => step.id === currentStep) ?? foundationStep
+    steps.find((step) => step.id === currentStep) ?? FOUNDATION_STEP
   )
-  const launchSummary = $derived(
-    firstTaskPlan === 'launch_immediately'
-      ? t('project.create_page.launch_summary.launch_immediately', {}, 'Open tasks now')
-      : firstTaskPlan === 'collect_people_first'
-        ? t('project.create_page.launch_summary.collect_people_first', {}, 'Add people first')
-        : t('project.create_page.launch_summary.setup_roles_first', {}, 'Set up roles first')
-  )
-  const roleBlueprints = {
-    delivery_squad: {
-      labelKey: 'project.create_page.blueprints.delivery_squad.label',
-      labelFallback: 'Delivery squad',
-      descriptionKey: 'project.create_page.blueprints.delivery_squad.description',
-      descriptionFallback: '',
-      roles: [
-        {
-          templateCode: 'frontend_engineer',
-          nameKey: 'project.create_page.blueprints.delivery_squad.roles.frontend_engineer.name',
-          nameFallback: 'Frontend engineer',
-          skillsKey: 'project.create_page.blueprints.delivery_squad.roles.frontend_engineer.skills',
-          skillsFallback: 'React L7, Testing L6, UI quality L6',
-        },
-        {
-          templateCode: 'fullstack_engineer',
-          nameKey: 'project.create_page.blueprints.delivery_squad.roles.fullstack_engineer.name',
-          nameFallback: 'Fullstack engineer',
-          skillsKey: 'project.create_page.blueprints.delivery_squad.roles.fullstack_engineer.skills',
-          skillsFallback: 'API delivery L6, Integration L6, Scope ownership L6',
-        },
-        {
-          templateCode: 'qa_engineer',
-          nameKey: 'project.create_page.blueprints.delivery_squad.roles.qa_engineer.name',
-          nameFallback: 'QA / reviewer',
-          skillsKey: 'project.create_page.blueprints.delivery_squad.roles.qa_engineer.skills',
-          skillsFallback: 'Test design L6, Review discipline L7, Bug triage L6',
-        },
-      ],
-    },
-    review_pipeline: {
-      labelKey: 'project.create_page.blueprints.review_pipeline.label',
-      labelFallback: 'Review pipeline',
-      descriptionKey: 'project.create_page.blueprints.review_pipeline.description',
-      descriptionFallback: '',
-      roles: [
-        {
-          templateCode: 'frontend_engineer',
-          nameKey: 'project.create_page.blueprints.review_pipeline.roles.frontend_engineer.name',
-          nameFallback: 'Delivery contributor',
-          skillsKey: 'project.create_page.blueprints.review_pipeline.roles.frontend_engineer.skills',
-          skillsFallback: 'Execution L6, Evidence quality L6, Review response L6',
-        },
-        {
-          templateCode: 'backend_engineer',
-          nameKey: 'project.create_page.blueprints.review_pipeline.roles.backend_engineer.name',
-          nameFallback: 'System contributor',
-          skillsKey: 'project.create_page.blueprints.review_pipeline.roles.backend_engineer.skills',
-          skillsFallback: 'Implementation L6, Reliability L6, Handover quality L6',
-        },
-        {
-          templateCode: 'qa_engineer',
-          nameKey: 'project.create_page.blueprints.review_pipeline.roles.qa_engineer.name',
-          nameFallback: 'Reviewer / approver',
-          skillsKey: 'project.create_page.blueprints.review_pipeline.roles.qa_engineer.skills',
-          skillsFallback: 'Domain review L7, Rubric judgment L7, Dispute awareness L6',
-        },
-      ],
-    },
-    marketplace_rollout: {
-      labelKey: 'project.create_page.blueprints.marketplace_rollout.label',
-      labelFallback: 'Marketplace rollout',
-      descriptionKey: 'project.create_page.blueprints.marketplace_rollout.description',
-      descriptionFallback: '',
-      roles: [
-        {
-          templateCode: 'fullstack_engineer',
-          nameKey: 'project.create_page.blueprints.marketplace_rollout.roles.fullstack_engineer.name',
-          nameFallback: 'Core specialist',
-          skillsKey: 'project.create_page.blueprints.marketplace_rollout.roles.fullstack_engineer.skills',
-          skillsFallback: 'Primary domain L7, Delivery autonomy L6, Collaboration L6',
-        },
-        {
-          templateCode: 'qa_engineer',
-          nameKey: 'project.create_page.blueprints.marketplace_rollout.roles.qa_engineer.name',
-          nameFallback: 'Quality / reviewer',
-          skillsKey: 'project.create_page.blueprints.marketplace_rollout.roles.qa_engineer.skills',
-          skillsFallback: 'Review responsiveness L6, Evidence quality L6, Acceptance clarity L6',
-        },
-        {
-          templateCode: 'devops_engineer',
-          nameKey: 'project.create_page.blueprints.marketplace_rollout.roles.devops_engineer.name',
-          nameFallback: 'Operations specialist',
-          skillsKey: 'project.create_page.blueprints.marketplace_rollout.roles.devops_engineer.skills',
-          skillsFallback: 'Release readiness L6, Ops continuity L6, Environment control L6',
-        },
-      ],
-    },
-  } satisfies Record<ProjectSetupPreset, BlueprintDefinition>
-  const selectedBlueprintDefinition = $derived(roleBlueprints[projectSetupPreset])
-  const selectedBlueprint = $derived<{
-    label: string
-    description: string
-    roles: BlueprintRoleSlot[]
-  }>({
-    label: t(selectedBlueprintDefinition.labelKey, {}, selectedBlueprintDefinition.labelFallback),
-    description: t(
-      selectedBlueprintDefinition.descriptionKey,
-      {},
-      selectedBlueprintDefinition.descriptionFallback
-    ),
-    roles: selectedBlueprintDefinition.roles.map((role) => ({
-      templateCode: role.templateCode,
-      name: t(role.nameKey, {}, role.nameFallback),
-      skills: t(role.skillsKey, {}, role.skillsFallback),
-      note: '',
-    })),
-  })
+  const launchSummary = $derived(resolveLaunchSummary(firstTaskPlan, t))
+  const selectedBlueprint = $derived(resolveBlueprint(projectSetupPreset, t))
   const selectedTemplateCodes = $derived(
-    selectedBlueprintDefinition.roles.map((role) => role.templateCode)
+    selectedBlueprint.roles.map((role: BlueprintRoleSlot) => role.templateCode)
   )
   const organizationMemberPool = $derived<OrganizationCandidate[]>(
     currentOrganization ? organizationMembersByOrg[currentOrganization.id] ?? [] : []
@@ -237,19 +79,15 @@
   )
   const staffingSelections = $derived(
     selectedBlueprint.roles
-      .map((role) => {
+      .map((role: BlueprintRoleSlot) => {
         const userId = initialStaffingAssignments[role.templateCode] ?? ''
         const member = organizationMemberLookup.get(userId) ?? null
-        return {
-          role,
-          userId,
-          member,
-        }
+        return { role, userId, member }
       })
-      .filter((selection) => selection.userId.length > 0 && selection.member)
+      .filter((selection: { userId: string; member: OrganizationCandidate | null }) => selection.userId.length > 0 && selection.member)
   )
   const selectedStaffingUserIds = $derived(
-    staffingSelections.map((selection) => selection.userId)
+    staffingSelections.map((selection: { userId: string }) => selection.userId)
   )
   const uniqueStaffingUserCount = $derived(new Set(selectedStaffingUserIds).size)
   const hasDuplicateStaffingAssignments = $derived(
@@ -262,6 +100,7 @@
       ':assigned/:total roles assigned.'
     )
   )
+
   $effect(() => {
     if (formData.organization_id) return
     const currentOrganizationId = authUser?.current_organization_id
@@ -418,33 +257,18 @@
       return
     }
 
-    const afterCreateFocus =
-      firstTaskPlan === 'collect_people_first'
-        ? 'members'
-        : firstTaskPlan === 'launch_immediately'
-          ? 'tasks'
-          : 'roles'
+    const payload = buildProjectCreatePayload({
+      formData,
+      managerId: authUser?.id ?? '',
+      firstTaskPlan,
+      selectedTemplateCodes,
+      staffingSelections,
+    })
 
-    router.post(
-      '/projects',
-      {
-        ...formData,
-        organizationId: formData.organization_id,
-        startDate: formData.start_date,
-        endDate: formData.end_date,
-        managerId: authUser?.id ?? '',
-        afterCreateFocus,
-        seedRoleTemplates: selectedTemplateCodes,
-        initialStaffingAssignments: staffingSelections.map((selection) => ({
-          userId: selection.userId,
-          templateCode: selection.role.templateCode,
-        })),
-      },
-      {
-        preserveState: true,
-        preserveScroll: true,
-      }
-    )
+    router.post('/projects', payload as never, {
+      preserveState: true,
+      preserveScroll: true,
+    })
   }
 </script>
 
@@ -461,38 +285,14 @@
         </h1>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('project.create_page.steps_heading', {}, 'Steps')}</CardTitle>
-        </CardHeader>
-        <CardContent class="grid gap-3 md:grid-cols-3">
-          {#each steps as step, index}
-            <button
-              type="button"
-              class={`w-full rounded-2xl border px-4 py-3 text-left transition-colors ${currentStep === step.id ? 'border-primary bg-primary/5' : 'border-border bg-background hover:bg-secondary/30'}`}
-              onclick={() => {
-                if (step.id === 'foundation' || hasFoundationReady) {
-                  currentStep = step.id
-                }
-              }}
-            >
-              <div class="flex items-start justify-between gap-3">
-                <div>
-                  <p class="text-sm font-semibold text-foreground">
-                    {t(step.titleKey, {}, step.titleFallback)}
-                  </p>
-                  <p class="mt-1 text-xs leading-5 text-muted-foreground">
-                    {t(step.descriptionKey, {}, step.descriptionFallback)}
-                  </p>
-                </div>
-                {#if index < stepIndex || (step.id === 'foundation' && hasFoundationReady)}
-                  <CheckCircle2 class="mt-0.5 size-4 text-emerald-600" />
-                {/if}
-              </div>
-            </button>
-          {/each}
-        </CardContent>
-      </Card>
+      <ProjectCreateStepNav
+        {steps}
+        {currentStep}
+        {stepIndex}
+        {hasFoundationReady}
+        onSelectStep={(stepId: WizardStep) => { currentStep = stepId }}
+        {t}
+      />
     </div>
 
     <form onsubmit={handleSubmit} class="grid gap-6">
@@ -515,60 +315,58 @@
               onEndDateChange={handleEndDateChange}
               onInputChange={handleChange}
               onSelectChange={handleSelectChange}
-              onDomainsChange={(domains) => {
+              onDomainsChange={(domains: string[]) => {
                 formData = { ...formData, business_domains: domains }
                 clearError('business_domains')
               }}
             />
-          {/if}
-
-          {#if currentStep === 'staffing'}
+          {:else if currentStep === 'staffing'}
             <ProjectCreateStaffingStep
-              {deliveryModel}
-              {staffingFocus}
-              {projectSetupPreset}
+              bind:deliveryModel
+              bind:staffingFocus
+              bind:projectSetupPreset
               {initialStaffingAssignments}
               {selectedBlueprint}
               {organizationMemberPool}
               {staffingCoverageSummary}
+              {hasDuplicateStaffingAssignments}
               {errors}
-              {formData}
-              onStaffingModelChange={(model: typeof deliveryModel) => { deliveryModel = model }}
-              onStaffingFocusChange={(focus: typeof staffingFocus) => { staffingFocus = focus }}
-              onPresetChange={(preset: ProjectSetupPreset) => { projectSetupPreset = preset }}
-              onStaffingAssignmentChange={handleInitialStaffingChange}
+              onStaffingChange={handleInitialStaffingChange}
             />
-          {/if}
-
-          {#if currentStep === 'launch'}
+          {:else}
             <ProjectCreateLaunchStep
-              {firstTaskPlan}
+              bind:firstTaskPlan
               {launchSummary}
-              onLaunchPlanChange={(plan: typeof firstTaskPlan) => { firstTaskPlan = plan }}
+              {staffingCoverageSummary}
             />
           {/if}
         </CardContent>
-
-        <CardFooter class="flex justify-between border-t pt-6">
-          <div class="flex gap-2">
+        <CardFooter class="flex justify-between gap-3 border-t p-6">
+          <div>
             {#if currentStep !== 'foundation'}
               <Button type="button" variant="outline" onclick={goToPreviousStep}>
-                <ChevronLeft class="mr-1 h-4 w-4" />
-                {t('project.create_page.back', {}, 'Back')}
+                <ChevronLeft class="size-4" />
+                {t('project.create_page.nav.previous', {}, 'Previous')}
               </Button>
             {/if}
           </div>
 
-          <div class="flex gap-2">
+          <div class="flex gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              onclick={() => router.visit('/projects')}
+            >
+              {t('common.cancel', {}, 'Cancel')}
+            </Button>
             {#if currentStep !== 'launch'}
               <Button type="button" onclick={goToNextStep}>
-                {t('project.create_page.next', {}, 'Next')}
-                <ChevronRight class="ml-1 h-4 w-4" />
+                {t('project.create_page.nav.next', {}, 'Next')}
+                <ChevronRight class="size-4" />
               </Button>
-            {/if}
-            {#if currentStep === 'launch'}
+            {:else}
               <Button type="submit">
-                {t('project.create_page.submit', {}, 'Create project')}
+                {t('project.create_page.nav.submit', {}, 'Create project')}
               </Button>
             {/if}
           </div>

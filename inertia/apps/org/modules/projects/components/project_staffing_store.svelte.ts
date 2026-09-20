@@ -1,83 +1,23 @@
 import { router } from '@inertiajs/svelte'
-import axios from 'axios'
 
 import { notificationStore } from '@/apps/org/shared/stores/notification_store.svelte'
 import { useTranslation } from '@/apps/org/shared/stores/translation.svelte'
 
-import type { ProjectMember } from '../types'
+import {
+  assignCandidateToRole,
+  buildAutoFillPreview,
+  calculateAutoFillSummary,
+  fetchRoleCandidateInsights,
+} from './project_staffing_actions'
+import type {
+  AutoFillResultItem,
+  ProfessionalRoleOption,
+  ProjectStaffingStoreProps,
+  RoleCandidateInsight,
+  RoleCandidateSummary,
+} from './project_staffing_types'
 
-export interface ProfessionalRoleOption {
-  id: string
-  name: string
-  code: string
-  isActive?: boolean
-}
-
-export interface RoleCandidateSummary {
-  userId: string
-  username: string
-  source: 'project_member' | 'org_member' | 'external'
-  matchScore: number
-  matchedSkills: number
-  totalRequiredSkills: number
-  skillGaps: string[]
-  reviewedSkillsCount: number
-  importedSkillsCount: number
-  underDisputeSkillsCount: number
-  latestConfidenceSignal: 'low' | 'medium' | 'high' | null
-}
-
-export interface RoleCandidateInsight {
-  roleId: string
-  roleName: string
-  roleCode: string
-  totalCandidates: number
-  orgMemberCandidates: number
-  projectMemberCandidates: number
-  topCandidate: RoleCandidateSummary | null
-  topCandidates: RoleCandidateSummary[]
-}
-
-export interface AutoFillPreviewItem {
-  roleId: string
-  roleName: string
-  candidate: RoleCandidateSummary | null
-  excluded: boolean
-  actionType: 'add_member' | 'update_member' | null
-}
-
-export interface AutoFillResultItem {
-  roleId: string
-  roleName: string
-  candidateUserId: string | null
-  candidateUsername: string | null
-  actionType: 'add_member' | 'update_member' | null
-  status: 'success' | 'error'
-  errorMessage?: string
-  reviewedSkillsCount?: number | null
-  importedSkillsCount?: number | null
-  underDisputeSkillsCount?: number | null
-  latestConfidenceSignal?: 'low' | 'medium' | 'high' | null
-  matchedSkills?: number | null
-  totalRequiredSkills?: number | null
-  skillGaps?: string[]
-}
-
-export interface RoleCandidateResponsePayload {
-  data: {
-    role: { id: string; name: string; code: string }
-    candidates: RoleCandidateSummary[]
-    orgMembers?: unknown[]
-    projectMembers?: unknown[]
-  }
-}
-
-export interface ProjectStaffingStoreProps {
-  projectId: string
-  members: ProjectMember[]
-  activeProfessionalRoles: ProfessionalRoleOption[]
-  unstaffedProfessionalRoles: ProfessionalRoleOption[]
-}
+export * from './project_staffing_types'
 
 export function useProjectStaffingStore(getProps: () => ProjectStaffingStoreProps) {
   const { t } = useTranslation()
@@ -91,37 +31,9 @@ export function useProjectStaffingStore(getProps: () => ProjectStaffingStoreProp
   let autoFillConfirming = $state(false)
   let staffingCandidateActionKey = $state<string | null>(null)
 
-  const autoFillPreview = $derived.by(() => {
-    const seenUserIds = new Set<string>()
-    const items: AutoFillPreviewItem[] = []
-
-    for (const insight of roleCandidateInsights) {
-      const candidate =
-        insight.topCandidates.find(
-          (item) => item.source !== 'external' && !seenUserIds.has(item.userId)
-        ) ?? null
-
-      if (candidate) {
-        seenUserIds.add(candidate.userId)
-      }
-
-      items.push({
-        roleId: insight.roleId,
-        roleName: insight.roleName,
-        candidate,
-        excluded: autoFillExcludedRoleIds.includes(insight.roleId),
-        actionType: candidate
-          ? candidate.source === 'project_member'
-            ? 'update_member'
-            : candidate.source === 'org_member'
-              ? 'add_member'
-              : null
-          : null,
-      })
-    }
-
-    return items
-  })
+  const autoFillPreview = $derived.by(() =>
+    buildAutoFillPreview(roleCandidateInsights, autoFillExcludedRoleIds)
+  )
 
   const autoFillReadyCount = $derived(
     autoFillPreview.filter((item) => item.candidate !== null && !item.excluded).length
@@ -132,29 +44,7 @@ export function useProjectStaffingStore(getProps: () => ProjectStaffingStoreProp
       .map((item) => item.roleId)
   )
 
-  const autoFillSummary = $derived.by(() => {
-    let addMemberCount = 0
-    let updateMemberCount = 0
-    let skippedCount = 0
-    let excludedCount = 0
-
-    for (const item of autoFillPreview) {
-      if (item.excluded) {
-        excludedCount += 1
-        continue
-      }
-      if (!item.candidate || item.actionType === null) {
-        skippedCount += 1
-        continue
-      }
-      if (item.actionType === 'add_member') {
-        addMemberCount += 1
-      } else {
-        updateMemberCount += 1
-      }
-    }
-    return { addMemberCount, updateMemberCount, skippedCount, excludedCount }
-  })
+  const autoFillSummary = $derived.by(() => calculateAutoFillSummary(autoFillPreview))
 
   $effect(() => {
     const currentRoleIds = new Set(roleCandidateInsights.map((insight) => insight.roleId))
@@ -194,69 +84,12 @@ export function useProjectStaffingStore(getProps: () => ProjectStaffingStoreProp
   async function loadRoleCandidateInsights(roles: ProfessionalRoleOption[]) {
     loadingRoleCandidateInsights = true
     try {
-      const results = await Promise.all(
-        roles.map(async (role) => {
-          const response = await axios.get<RoleCandidateResponsePayload>(
-            `/api/v1/projects/${props.projectId}/professional-roles/${role.id}/candidates`
-          )
-
-          const payload = response.data.data
-          const candidateList = payload.candidates
-          return {
-            roleId: payload.role.id,
-            roleName: payload.role.name,
-            roleCode: payload.role.code,
-            totalCandidates: candidateList.length,
-            orgMemberCandidates: payload.orgMembers?.length ?? 0,
-            projectMemberCandidates: payload.projectMembers?.length ?? 0,
-            topCandidate: candidateList[0] ?? null,
-            topCandidates: candidateList.slice(0, 3),
-          } satisfies RoleCandidateInsight
-        })
-      )
-      roleCandidateInsights = results
+      roleCandidateInsights = await fetchRoleCandidateInsights(props.projectId, roles)
     } catch {
       roleCandidateInsights = []
     } finally {
       loadingRoleCandidateInsights = false
     }
-  }
-
-  async function assignCandidateToRole(
-    insight: RoleCandidateInsight,
-    candidate: RoleCandidateSummary
-  ): Promise<'updated_member' | 'added_member'> {
-    if (candidate.source === 'external') {
-      throw new Error('External candidates cannot be assigned from this flow')
-    }
-    const existingProjectMember = props.members.find(
-      (member) => member.user_id === candidate.userId
-    )
-
-    if (candidate.source === 'project_member' && existingProjectMember?.user_id) {
-      await axios.put(
-        `/projects/members/${existingProjectMember.user_id}`,
-        {
-          projectId: props.projectId,
-          projectRole: existingProjectMember.role,
-          projectProfessionalRoleId: insight.roleId,
-        },
-        { headers: { Accept: 'application/json' } }
-      )
-      return 'updated_member'
-    }
-
-    await axios.post(
-      '/projects/members',
-      {
-        projectId: props.projectId,
-        userId: candidate.userId,
-        projectRole: 'project_member',
-        projectProfessionalRoleId: insight.roleId,
-      },
-      { headers: { Accept: 'application/json' } }
-    )
-    return 'added_member'
   }
 
   async function handleAssignCandidate(
@@ -268,7 +101,12 @@ export function useProjectStaffingStore(getProps: () => ProjectStaffingStoreProp
     const actionKey = `${insight.roleId}:${candidate.userId}`
     staffingCandidateActionKey = actionKey
     try {
-      const result = await assignCandidateToRole(insight, candidate)
+      const result = await assignCandidateToRole({
+        projectId: props.projectId,
+        members: props.members,
+        insight,
+        candidate,
+      })
       if (result === 'updated_member') {
         notificationStore.success(t('project.role_candidates.assign_success', { user: candidate.username, role: insight.roleName }, ':user assigned to role :role'))
       } else {
@@ -303,7 +141,12 @@ export function useProjectStaffingStore(getProps: () => ProjectStaffingStoreProp
 
         seenUserIds.add(candidate.userId)
         try {
-          const result = await assignCandidateToRole(insight, candidate)
+          const result = await assignCandidateToRole({
+            projectId: props.projectId,
+            members: props.members,
+            insight,
+            candidate,
+          })
           if (result === 'updated_member') {
             updatedCount += 1
           } else {
@@ -418,6 +261,6 @@ export function useProjectStaffingStore(getProps: () => ProjectStaffingStoreProp
     handleRetryAutoFillResult,
     toggleAutoFillRole,
     includeAllAutoFillRoles,
-    excludeAllAutoFillRoles
+    excludeAllAutoFillRoles,
   }
 }

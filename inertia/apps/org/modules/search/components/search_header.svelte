@@ -1,7 +1,7 @@
 <script lang="ts">
   import { Search } from 'lucide-svelte'
   import { useTranslation } from '@/apps/org/shared/stores/translation.svelte'
-  import type { MatchStrength, SearchCenterResult } from '../types'
+  import type { MatchStrength, SearchCenterResult } from '@/apps/shared/search/types'
 
   interface Props {
     searchInput: string

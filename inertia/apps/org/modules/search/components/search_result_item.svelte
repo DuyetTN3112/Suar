@@ -8,7 +8,7 @@
     Sparkles,
   } from 'lucide-svelte'
   import { useTranslation } from '@/apps/org/shared/stores/translation.svelte'
-  import type { SearchCenterResult, EntityType, MatchStrength, HighlightSegment } from '../types'
+  import type { SearchCenterResult, EntityType, MatchStrength, HighlightSegment } from '@/apps/shared/search/types'
 
   interface Props {
     result: SearchCenterResult

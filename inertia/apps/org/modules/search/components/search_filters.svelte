@@ -1,7 +1,7 @@
 <script lang="ts">
   import { useTranslation } from '@/apps/org/shared/stores/translation.svelte'
 
-  import type { FieldFacet, FilterType, SourceStatus } from '../types'
+  import type { FieldFacet, FilterType, SourceStatus } from '@/apps/shared/search/types'
 
   interface Props {
     tabs: Array<{ type: FilterType; label: string }>
