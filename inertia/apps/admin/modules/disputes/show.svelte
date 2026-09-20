@@ -18,7 +18,7 @@
     getDisputeRuntimeContext,
     getDisputeSourceType,
   } from './types/dispute_resolve_types'
-  import type { DisputeSourceType, RuntimeContext } from './types/dispute_resolve_types'
+  import type { AiEvaluation, DisputeSourceType, RuntimeContext } from './types/dispute_resolve_types'
 
 	  interface Dispute {
 	    id: string
@@ -104,23 +104,6 @@
         author_context?: string | null
       }>
     }
-  }
-
-  interface AiEvaluation {
-    id: string
-    provider: string
-    status: string
-    recommendation: string | null
-    confidence_score: number | null
-    summary: string | null
-    error_message?: string | null
-    completed_at: string | null
-    profileApprovals?: Array<{
-      id: string
-      proposalIndex: number
-      approvedObservedLevel: string
-      approvedAt: string
-    }>
   }
 
   interface TimelineEntry {

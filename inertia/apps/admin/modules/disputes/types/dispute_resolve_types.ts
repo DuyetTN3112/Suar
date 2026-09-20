@@ -99,6 +99,7 @@ export interface AiEvaluation {
   confidence_score?: number | string | null
   summary: string | null
   error_message?: string | null
+  completed_at?: string | null
   profile_approvals?: Array<{
     id: string
     proposal_index: number
@@ -119,6 +120,8 @@ export interface AiEvaluation {
       summary?: string
       type?: string
       evidence?: string
+      round?: number
+      visibility?: string
       audit?: Record<string, unknown>
       presentation?: Record<string, unknown>
     }> | null

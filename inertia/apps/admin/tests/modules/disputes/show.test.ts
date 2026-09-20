@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/svelte'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import AdminDisputeShowPage from '@/apps/admin/modules/disputes/show.svelte'
+import type { AiEvaluation } from '@/apps/admin/modules/disputes/types/dispute_resolve_types'
 
 const { getSpy, postSpy, reloadSpy } = vi.hoisted(() => ({
   getSpy: vi.fn(),
@@ -19,7 +20,7 @@ vi.mock('axios', () => ({
 }))
 
 function renderDetail(
-  aiEvaluations = [
+  aiEvaluations: AiEvaluation[] = [
     {
       id: 'ai-1',
       provider: 'clawagent',

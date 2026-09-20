@@ -382,3 +382,5 @@ export function buildAdminAuditLogTraceTimeline(
       requestLabel: row.requestLabel,
     }))
 }
+
+export type AdminAuditLogConsoleModel = ReturnType<typeof buildAdminAuditLogConsoleModel>

@@ -3,12 +3,10 @@ import { describe, expect, it, vi } from 'vitest'
 import { SearchProjectionAdminClient } from '@/apps/admin/modules/search_projections/client'
 
 function response(body: unknown, status = 200): Response {
-  const result = {
-    ok: status >= 200 && status < 300,
+  return new Response(JSON.stringify(body), {
     status,
-    json: () => Promise.resolve(body),
-  } as Response
-  return result
+    headers: { 'Content-Type': 'application/json' },
+  })
 }
 
 describe('SearchProjectionAdminClient', () => {
