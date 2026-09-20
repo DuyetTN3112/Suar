@@ -164,7 +164,7 @@
 </script>
 
 {#snippet assignmentContent()}
-  {#if !store.isDocumentationItem && store.formData.task_visibility === 'project' && store.availableRoles.length > 0}
+  {#if !store.isDocumentationItem && (store.formData.task_visibility === 'project' || store.formData.task_visibility === 'internal') && store.availableRoles.length > 0}
     <TaskCreateRoleBanner
       projectId={store.formData.project_id}
       availableRoles={store.availableRoles}

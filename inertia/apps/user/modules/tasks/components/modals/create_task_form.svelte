@@ -37,7 +37,7 @@
 
   interface Props {
     formData: TaskCreateFormData
-    setFormData: (updater: (prev: typeof formData) => typeof formData) => void
+    setFormData: (updater: (prev: TaskCreateFormData) => TaskCreateFormData) => void
     errors: Record<string, string>
     statuses: { value: string; label: string; slug?: string; category?: string }[]
     priorities: { value: string; label: string }[]
