@@ -2,17 +2,41 @@ import { fireEvent, render, screen } from '@testing-library/svelte'
 import { describe, expect, it } from 'vitest'
 
 import CreateTaskForm from '@/apps/org/modules/tasks/components/modals/create_task_form.svelte'
-import type { TaskCreateFormData } from '@/apps/org/modules/tasks/types/create_form_types'
+import type {
+  TaskCreateAssigneeGroups,
+  TaskCreateFormData,
+} from '@/apps/org/modules/tasks/types/create_form_types'
+import { createEmptyTaskBrief } from '@/apps/shared/tasks/task_brief_contract'
 
-function buildProps() {
+interface CreateTaskFormTestProps {
+  formData: TaskCreateFormData
+  setFormData: (updater: (prev: TaskCreateFormData) => TaskCreateFormData) => void
+  errors: Record<string, string>
+  statuses: { value: string; label: string; slug?: string; category?: string }[]
+  priorities: { value: string; label: string }[]
+  labels: { value: string; label: string }[]
+  users: { id: string; username: string; email: string }[]
+  assigneeGroups: TaskCreateAssigneeGroups
+  parentTasks: { id: string; title: string; task_status_id: string | null }[]
+  availableSkills: {
+    id: string
+    name: string
+    categoryCode?: string | null
+  }[]
+  proficiencyLevels: { value: string; label: string }[]
+  formError: string
+}
+
+function buildProps(): CreateTaskFormTestProps {
   return {
     formData: {
       title: '', description: '', task_status_id: 'todo', task_type: 'feature_development',
       verification_method: 'code_review', project_id: 'project-1', priority: 'high', label: 'backend',
-      task_visibility: 'internal', assigned_to: '', reviewer_user_id: '', due_date: '',
+      task_visibility: 'internal' as const, assigned_to: '', reviewer_user_id: '', due_date: '',
       parent_task_id: '', estimated_time: '0', required_skills: [], acceptance_criteria: '',
       context_background: '', role_in_task: '', business_domain: '', problem_category: '',
       tech_stack_text: '', learning_objectives_text: '', domain_tags_text: '',
+      brief: createEmptyTaskBrief(),
     } satisfies TaskCreateFormData,
     setFormData: () => {}, errors: {},
     statuses: [{ value: 'todo', label: 'To do', slug: 'todo' }],
