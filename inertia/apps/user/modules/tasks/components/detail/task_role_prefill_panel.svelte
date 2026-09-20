@@ -35,7 +35,6 @@
   let selectedRoleId = $state('')
   let availableRoles = $state<ProjectProfessionalRoleOption[]>([])
   let didAutoPrefillFromQuery = $state(false)
-  let prefilledSkillCount = $state(0)
   const { t } = useTranslation()
 
   const selectedRole = $derived(
@@ -55,18 +54,15 @@
           if (selectedRoleId && !availableRoles.some((role) => role.id === selectedRoleId)) {
             selectedRoleId = ''
             projectProfessionalRoleId = ''
-            prefilledSkillCount = 0
           }
         })
         .catch(() => {
           availableRoles = []
           projectProfessionalRoleId = ''
-          prefilledSkillCount = 0
         })
     } else {
       availableRoles = []
       selectedRoleId = ''
-      prefilledSkillCount = 0
     }
   })
 
@@ -74,11 +70,9 @@
     if (!projectId) return
     if (!roleId) {
       projectProfessionalRoleId = ''
-      prefilledSkillCount = 0
       return
     }
     projectProfessionalRoleId = roleId
-    prefilledSkillCount = 0
   }
 
   function handleRoleChange(nextRoleId: string) {

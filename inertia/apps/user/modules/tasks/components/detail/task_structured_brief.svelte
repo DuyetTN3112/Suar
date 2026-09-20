@@ -11,7 +11,7 @@
   const showContent = $derived(section === 'all' || section === 'content')
   const showAcceptance = $derived(section === 'all' || section === 'acceptance')
   const nonEmpty = (value: string) => value.trim().length > 0
-  const validLines = (items: { text: string }[]) => items.filter((item) => nonEmpty(item.text))
+  const validLines = <T extends { text: string }>(items: T[]): T[] => items.filter((item) => nonEmpty(item.text))
 </script>
 
 <section class="space-y-5" data-testid="task-structured-brief" aria-label="Contract công việc đã chốt">
