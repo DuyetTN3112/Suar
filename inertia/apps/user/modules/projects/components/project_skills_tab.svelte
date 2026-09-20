@@ -1,86 +1,31 @@
-  <script lang="ts">
+<script lang="ts">
   import axios from 'axios'
   import { LoaderCircle, Plus, Settings, ToggleLeft, X } from 'lucide-svelte'
 
   import Button from '@/apps/user/shared/ui/button.svelte'
-  import Dialog from '@/apps/user/shared/ui/dialog.svelte'
-  import DialogContent from '@/apps/user/shared/ui/dialog_content.svelte'
-  import DialogHeader from '@/apps/user/shared/ui/dialog_header.svelte'
-  import DialogTitle from '@/apps/user/shared/ui/dialog_title.svelte'
   import Input from '@/apps/user/shared/ui/input.svelte'
-  import Label from '@/apps/user/shared/ui/label.svelte'
-  import SkillSearchCombobox from '@/apps/user/modules/search/components/skill_search_combobox.svelte'
-  import Textarea from '@/apps/user/shared/ui/textarea.svelte'
   import { confirmDialogStore } from '@/apps/user/shared/stores/confirm_dialog_store.svelte'
   import { useTranslation } from '@/apps/user/shared/stores/translation.svelte'
   import { uiToast } from '@/apps/user/shared/lib/ui_toast'
+  import {
+    categoryColors,
+    categoryFilters,
+    categoryLabelFallbacks,
+    getErrorMessage,
+    isCategoryFilter,
+    levelRangeLabel,
+    rubricLabel,
+    statusLabelFallbacks,
+    type ProficiencyLevel,
+    type ProjectSkill,
+    type ProjectSkillCategoryFilter,
+    type ProjectSkillsTabProps,
+    type Skill,
+  } from '@/apps/shared/projects/project_skills_types'
+  import ProjectSkillAddDialog from './project_skill_add_dialog.svelte'
+  import ProjectSkillEditDialog from './project_skill_edit_dialog.svelte'
 
-  interface Skill {
-    id: string
-    skillName: string
-    categoryCode?: string
-    aliases?: string[]
-  }
-
-  interface ProjectSkill {
-    id: string
-    skill: Skill
-    displayNameOverride: string | null
-    descriptionOverride: string | null
-    rubricVersionId: string | null
-    minimumTaskRequirementLevelId: string | null
-    maximumTaskRequirementLevelId: string | null
-    isActive: boolean
-  }
-
-  interface RubricVersion {
-    id: string
-    version: number
-    status: 'draft' | 'published'
-    effective_to: string | null
-  }
-
-  interface ProficiencyLevel {
-    id: string
-    ordinal: number
-    code: string
-    displayName: string
-  }
-
-  interface Props {
-    projectId: string
-    canEdit: boolean
-  }
-
-  interface ApiErrorResponse {
-    message?: string
-  }
-
-  type ProjectSkillCategoryFilter = 'all' | 'technology' | 'engineering' | 'soft_skill' | 'delivery'
-
-  const categoryFilters: ProjectSkillCategoryFilter[] = [
-    'all',
-    'technology',
-    'engineering',
-    'soft_skill',
-    'delivery',
-  ]
-
-  const categoryLabelFallbacks: Record<ProjectSkillCategoryFilter, string> = {
-    all: 'All',
-    technology: 'Technology',
-    engineering: 'Software engineering',
-    soft_skill: 'Soft skills',
-    delivery: 'Delivery',
-  }
-
-  const statusLabelFallbacks: Record<'all' | 'active' | 'inactive', string> = {
-    active: 'Active only',
-    inactive: 'Inactive only',
-    all: 'All statuses',
-  }
-
-  const { projectId, canEdit }: Props = $props()
+  const { projectId, canEdit }: ProjectSkillsTabProps = $props()
   const { t } = useTranslation()
 
   // State
@@ -90,23 +35,8 @@
   let loading = $state(true)
 
   let addOpen = $state(false)
-  let selectedSkillId = $state('')
-  let customSkillName = $state('')
-  let customSkillCategory = $state<ProjectSkillCategoryFilter>('technology')
-  let adding = $state(false)
-  let addMinimumTaskRequirementLevelId = $state('')
-  let addMaximumTaskRequirementLevelId = $state('')
-
   let editOpen = $state(false)
   let editingSkill = $state<ProjectSkill | null>(null)
-  let displayNameOverride = $state('')
-  let descriptionOverride = $state('')
-  let editMinimumTaskRequirementLevelId = $state('')
-  let editMaximumTaskRequirementLevelId = $state('')
-  let editRubricVersionId = $state('')
-  let rubricVersions = $state<RubricVersion[]>([])
-  let rubricLoading = $state(false)
-  let saving = $state(false)
 
   let deactivating = $state<string | null>(null)
   let activating = $state<string | null>(null)
@@ -153,17 +83,6 @@
     })
   )
 
-  const categoryColors: Record<string, string> = {
-    technology: 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-300 border-cyan-500/30',
-    engineering: 'bg-violet-500/10 text-violet-700 dark:text-violet-300 border-violet-500/30',
-    soft_skill: 'bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-500/30',
-    delivery: 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30',
-  }
-
-  function isCategoryFilter(category: string): category is ProjectSkillCategoryFilter {
-    return categoryFilters.includes(category as ProjectSkillCategoryFilter)
-  }
-
   function categoryLabel(category: string | undefined): string {
     if (!category) {
       return t('project.skills_tab.category.none', {}, 'Uncategorized')
@@ -188,131 +107,9 @@
     )
   }
 
-  function getErrorMessage(error: unknown, fallback: string): string {
-    if (axios.isAxiosError<ApiErrorResponse>(error)) {
-      return error.response ? (error.response.data.message ?? fallback) : fallback
-    }
-
-    return fallback
-  }
-
-  async function handleAdd(e: Event) {
-    e.preventDefault()
-    const isCustomSkill = customSkillName.trim().length > 0
-    if (
-      (!selectedSkillId && !isCustomSkill) ||
-      !addMinimumTaskRequirementLevelId ||
-      !addMaximumTaskRequirementLevelId
-    ) {
-      return
-    }
-    adding = true
-    try {
-      if (isCustomSkill) {
-        await axios.post(`/api/v1/projects/${projectId}/skills/custom`, {
-          name: customSkillName.trim(),
-          categoryCode: customSkillCategory,
-          minimumTaskRequirementLevelId: addMinimumTaskRequirementLevelId,
-          maximumTaskRequirementLevelId: addMaximumTaskRequirementLevelId,
-        })
-      } else {
-        await axios.post(`/api/v1/projects/${projectId}/skills`, {
-          skillId: selectedSkillId,
-          minimumTaskRequirementLevelId: addMinimumTaskRequirementLevelId,
-          maximumTaskRequirementLevelId: addMaximumTaskRequirementLevelId,
-        })
-      }
-      uiToast.success(t('project.skills_tab.add_success', {}, 'Skill added to Catalog'))
-      addOpen = false
-      selectedSkillId = ''
-      customSkillName = ''
-      customSkillCategory = 'technology'
-      addMinimumTaskRequirementLevelId = ''
-      addMaximumTaskRequirementLevelId = ''
-      await fetchAll()
-    } catch (error: unknown) {
-      uiToast.error(getErrorMessage(error, t('project.skills_tab.add_error', {}, 'Unable to add skill')))
-    } finally {
-      adding = false
-    }
-  }
-
-  async function openEdit(ps: ProjectSkill) {
+  function openEdit(ps: ProjectSkill) {
     editingSkill = ps
-    displayNameOverride = ps.displayNameOverride ?? ''
-    descriptionOverride = ps.descriptionOverride ?? ''
-    editRubricVersionId = ps.rubricVersionId ?? ''
-    editMinimumTaskRequirementLevelId = ps.minimumTaskRequirementLevelId ?? ''
-    editMaximumTaskRequirementLevelId = ps.maximumTaskRequirementLevelId ?? ''
-    rubricVersions = []
     editOpen = true
-
-    rubricLoading = true
-    try {
-      const response = await axios.get<{ data: RubricVersion[] }>(
-        `/api/v1/skills/${ps.skill.id}/rubrics`
-      )
-      rubricVersions = response.data.data.filter(
-        (version) => version.status === 'published' && version.effective_to === null
-      )
-    } catch (error: unknown) {
-      uiToast.error(
-        getErrorMessage(
-          error,
-          'Không tải được rubric global của skill này. Hãy publish rubric trước.'
-        )
-      )
-    } finally {
-      rubricLoading = false
-    }
-  }
-
-  async function handleSaveOverrides(e: Event) {
-    e.preventDefault()
-    if (!editingSkill) return
-    saving = true
-    try {
-      await axios.put(`/api/v1/projects/${projectId}/skills/${editingSkill.id}`, {
-        displayNameOverride: displayNameOverride || null,
-        descriptionOverride: descriptionOverride || null,
-        rubricVersionId: editRubricVersionId || null,
-        minimumTaskRequirementLevelId: editMinimumTaskRequirementLevelId || null,
-        maximumTaskRequirementLevelId: editMaximumTaskRequirementLevelId || null,
-      })
-      uiToast.success(t('project.skills_tab.save_success', {}, 'Skill settings updated'))
-      editOpen = false
-      editingSkill = null
-      await fetchAll()
-    } catch (error: unknown) {
-      uiToast.error(getErrorMessage(error, t('project.skills_tab.save_error', {}, 'Unable to save skill settings')))
-    } finally {
-      saving = false
-    }
-  }
-
-  function levelLabel(levelId: string | null): string {
-    const level = proficiencyLevels.find((item) => item.id === levelId)
-    return level ? level.code.toUpperCase() : 'Chưa cấu hình'
-  }
-
-  function levelRangeLabel(projectSkill: ProjectSkill): string {
-    if (
-      !projectSkill.minimumTaskRequirementLevelId ||
-      !projectSkill.maximumTaskRequirementLevelId
-    ) {
-      return 'Chưa cấu hình'
-    }
-    return `${levelLabel(projectSkill.minimumTaskRequirementLevelId)}–${levelLabel(projectSkill.maximumTaskRequirementLevelId)}`
-  }
-
-  function rubricLabel(projectSkill: ProjectSkill): string {
-    return projectSkill.rubricVersionId ? 'Đã gắn' : 'Chưa gắn'
-  }
-
-  function isValidRange(minimumLevelId: string, maximumLevelId: string): boolean {
-    const minimum = proficiencyLevels.find((level) => level.id === minimumLevelId)
-    const maximum = proficiencyLevels.find((level) => level.id === maximumLevelId)
-    return Boolean(minimum && maximum && minimum.ordinal <= maximum.ordinal)
   }
 
   async function handleDeactivate(ps: ProjectSkill) {
@@ -395,102 +192,13 @@
         <Plus class="h-4 w-4" />
         {t('project.skills_tab.add_skill', {}, 'Add Skill')}
       </Button>
-      <Dialog bind:open={addOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{t('project.skills_tab.add_title', {}, 'Add Skill to Catalog')}</DialogTitle>
-          </DialogHeader>
-          <form onsubmit={handleAdd} class="space-y-4 pt-2">
-            <div class="space-y-2">
-              <Label>{t('project.skills_tab.select_skill', {}, 'Choose Skill')}</Label>
-              <SkillSearchCombobox
-                skills={addableSkills}
-                bind:value={selectedSkillId}
-                onSelect={() => { customSkillName = '' }}
-                placeholder={t('project.skills_tab.select_skill_placeholder', {}, 'Search and choose a skill...')}
-              />
-              <div class="grid grid-cols-[1fr_auto] gap-2 items-end">
-                <div class="space-y-1.5">
-                  <Label for="ps-add-custom-name">Hoặc tạo skill mới</Label>
-                  <Input
-                    id="ps-add-custom-name"
-                    bind:value={customSkillName}
-                    oninput={() => { selectedSkillId = '' }}
-                    placeholder="Nhập tên skill chưa có trong catalog"
-                  />
-                </div>
-                <select
-                  aria-label="Nhóm skill mới"
-                  bind:value={customSkillCategory}
-                  class="flex h-9 rounded-md border border-input bg-background px-3 py-1.5 text-sm"
-                >
-                  <option value="technology">Công nghệ</option>
-                  <option value="engineering">Kỹ thuật phần mềm</option>
-                  <option value="soft_skill">Kỹ năng mềm</option>
-                  <option value="delivery">Quản lý công việc</option>
-                </select>
-              </div>
-              <div class="grid grid-cols-2 gap-3">
-                <div class="space-y-1.5">
-                  <Label for="ps-add-minimum">Mức task thấp nhất</Label>
-                  <select
-                    id="ps-add-minimum"
-                    bind:value={addMinimumTaskRequirementLevelId}
-                    class="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1.5 text-sm"
-                    required
-                  >
-                    <option value="" disabled>Chọn level</option>
-                    {#each proficiencyLevels as level (level.id)}
-                      <option value={level.id}>{level.code.toUpperCase()} · {level.displayName}</option>
-                    {/each}
-                  </select>
-                </div>
-                <div class="space-y-1.5">
-                  <Label for="ps-add-maximum">Mức task cao nhất</Label>
-                  <select
-                    id="ps-add-maximum"
-                    bind:value={addMaximumTaskRequirementLevelId}
-                    class="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1.5 text-sm"
-                    required
-                  >
-                    <option value="" disabled>Chọn level</option>
-                    {#each proficiencyLevels as level (level.id)}
-                      <option value={level.id}>{level.code.toUpperCase()} · {level.displayName}</option>
-                    {/each}
-                  </select>
-                </div>
-              </div>
-              <p class="text-xs text-muted-foreground">
-                Đây là khoảng level task được phép yêu cầu; không phải trần năng lực người làm.
-              </p>
-              {#if addableSkills.length === 0}
-                <p class="text-xs text-muted-foreground">
-                  {t('project.skills_tab.all_skills_added', {}, 'All skills are already in the Catalog.')}
-                </p>
-              {/if}
-            </div>
-            <div class="flex justify-end gap-2">
-              <Button type="button" variant="outline" onclick={() => { addOpen = false }}>
-                {t('project.skills_tab.cancel', {}, 'Cancel')}
-              </Button>
-              <Button
-                type="submit"
-                disabled={
-                  (!selectedSkillId && !customSkillName.trim()) ||
-                  !isValidRange(
-                    addMinimumTaskRequirementLevelId,
-                    addMaximumTaskRequirementLevelId
-                  ) ||
-                  adding
-                }
-              >
-                {#if adding}<LoaderCircle class="h-4 w-4 animate-spin mr-1.5" />{/if}
-                {t('project.skills_tab.add_to_catalog', {}, 'Add to Catalog')}
-              </Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <ProjectSkillAddDialog
+        bind:open={addOpen}
+        {projectId}
+        {addableSkills}
+        {proficiencyLevels}
+        onAdded={fetchAll}
+      />
     {/if}
   </div>
 
@@ -543,7 +251,7 @@
                 {/if}
               </td>
               <td class="px-4 py-3 text-xs font-semibold text-foreground">
-                {levelRangeLabel(ps)}
+                {levelRangeLabel(ps, proficiencyLevels)}
               </td>
               <td class="px-4 py-3 text-xs font-semibold {ps.rubricVersionId ? 'text-emerald-700 dark:text-emerald-300' : 'text-amber-700 dark:text-amber-300'}">
                 {rubricLabel(ps)}
@@ -566,7 +274,7 @@
                 <td class="px-4 py-3 text-right">
                   <div class="flex items-center justify-end gap-1.5">
                     {#if ps.isActive}
-                      <Button size="sm" variant="outline" onclick={() => { void openEdit(ps); }} class="h-7 gap-1 px-2 text-xs">
+                      <Button size="sm" variant="outline" onclick={() => { openEdit(ps); }} class="h-7 gap-1 px-2 text-xs">
                         <Settings class="h-3.5 w-3.5" />
                         {t('project.skills_tab.configure', {}, 'Configure')}
                       </Button>
@@ -612,103 +320,11 @@
 
 <!-- Edit overrides dialog -->
 {#if editOpen && editingSkill}
-  <Dialog bind:open={editOpen}>
-    <DialogContent>
-      <DialogHeader>
-        <DialogTitle>{t('project.skills_tab.edit_title', { skill: editingSkill.skill.skillName }, `Configure: ${editingSkill.skill.skillName}`)}</DialogTitle>
-      </DialogHeader>
-      <form onsubmit={handleSaveOverrides} class="space-y-4 pt-2">
-        <div class="space-y-1.5">
-          <Label for="ps-display-name">{t('project.skills_tab.display_name_label', {}, 'Custom display name')}</Label>
-          <Input
-            id="ps-display-name"
-            bind:value={displayNameOverride}
-            placeholder={editingSkill.skill.skillName}
-          />
-        </div>
-        <div class="space-y-1.5">
-          <Label for="ps-description">{t('project.skills_tab.description_label', {}, 'Custom description')}</Label>
-          <Textarea
-            id="ps-description"
-            bind:value={descriptionOverride}
-            rows={3}
-            placeholder={t('project.skills_tab.description_placeholder', {}, 'Describe this skill in this project context...')}
-          />
-        </div>
-        <div class="space-y-1.5">
-          <Label for="ps-rubric">Rubric global dùng cho task</Label>
-          <select
-            id="ps-rubric"
-            bind:value={editRubricVersionId}
-            disabled={rubricLoading}
-            class="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1.5 text-sm"
-          >
-            <option value="">Chưa gắn rubric</option>
-            {#each rubricVersions as rubric (rubric.id)}
-              <option value={rubric.id}>Rubric v{rubric.version} · đã publish</option>
-            {/each}
-          </select>
-          {#if rubricLoading}
-            <p class="text-xs text-muted-foreground">Đang tải rubric global...</p>
-          {:else if rubricVersions.length === 0}
-            <p class="text-xs text-amber-700 dark:text-amber-300">
-              Skill này chưa có rubric published. Skill vẫn có thể nằm trong Project, nhưng chưa dùng để giao task được.
-            </p>
-          {:else}
-            <p class="text-xs text-muted-foreground">
-              Chỉ rubric published đang hiệu lực mới được gắn vào Project Skill.
-            </p>
-          {/if}
-        </div>
-        <div class="grid grid-cols-2 gap-3">
-          <div class="space-y-1.5">
-            <Label for="ps-edit-minimum">Mức task thấp nhất</Label>
-            <select
-              id="ps-edit-minimum"
-              bind:value={editMinimumTaskRequirementLevelId}
-              class="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1.5 text-sm"
-              required
-            >
-              <option value="" disabled>Chọn level</option>
-              {#each proficiencyLevels as level (level.id)}
-                <option value={level.id}>{level.code.toUpperCase()} · {level.displayName}</option>
-              {/each}
-            </select>
-          </div>
-          <div class="space-y-1.5">
-            <Label for="ps-edit-maximum">Mức task cao nhất</Label>
-            <select
-              id="ps-edit-maximum"
-              bind:value={editMaximumTaskRequirementLevelId}
-              class="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1.5 text-sm"
-              required
-            >
-              <option value="" disabled>Chọn level</option>
-              {#each proficiencyLevels as level (level.id)}
-                <option value={level.id}>{level.code.toUpperCase()} · {level.displayName}</option>
-              {/each}
-            </select>
-          </div>
-        </div>
-        <p class="text-xs text-muted-foreground">
-          Task chỉ được chọn mức tối thiểu trong khoảng này. Người cao hơn vẫn đủ điều kiện.
-        </p>
-        <div class="flex justify-end gap-2 pt-1">
-          <Button type="button" variant="outline" onclick={() => { editOpen = false; editingSkill = null }}>
-            {t('project.skills_tab.cancel', {}, 'Cancel')}
-          </Button>
-          <Button
-            type="submit"
-            disabled={
-              saving ||
-              !isValidRange(editMinimumTaskRequirementLevelId, editMaximumTaskRequirementLevelId)
-            }
-          >
-            {#if saving}<LoaderCircle class="h-4 w-4 animate-spin mr-1.5" />{/if}
-            {t('project.skills_tab.save_settings', {}, 'Save settings')}
-          </Button>
-        </div>
-      </form>
-    </DialogContent>
-  </Dialog>
+  <ProjectSkillEditDialog
+    bind:open={editOpen}
+    bind:editingSkill
+    {projectId}
+    {proficiencyLevels}
+    onSaved={fetchAll}
+  />
 {/if}

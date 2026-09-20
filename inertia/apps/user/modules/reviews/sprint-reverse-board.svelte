@@ -259,6 +259,7 @@
       disputed: 'Disputed',
       reported: 'Reported',
       ai_reviewing: 'AI reviewing',
+      admin_reviewing: 'Admin reviewing',
       resolved: 'Resolved',
       done: 'Done',
     }
