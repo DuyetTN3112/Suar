@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import TaskRolePrefillPanel from '@/apps/org/modules/tasks/components/detail/task_role_prefill_panel.svelte'
 import type { TaskCreateFormData } from '@/apps/org/modules/tasks/types/create_form_types'
+import { createInitialTaskBrief } from '@/apps/shared/tasks/task_brief_contract'
 
 describe('TaskRolePrefillPanel', () => {
   type JsonResponse = { json: () => Promise<unknown> }
@@ -81,6 +82,7 @@ describe('TaskRolePrefillPanel', () => {
       tech_stack_text: '',
       learning_objectives_text: '',
       domain_tags_text: '',
+      brief: createInitialTaskBrief(),
     }
 
     const setFormData = (updater: (prev: TaskCreateFormData) => TaskCreateFormData) => {
@@ -91,7 +93,6 @@ describe('TaskRolePrefillPanel', () => {
       props: {
         projectId: 'project-1',
         assignedTo: '',
-        requestedTaskType: '',
         requestedRoleId: '',
         assigneeGroups: {
           projectMembers: [

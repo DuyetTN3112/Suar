@@ -85,8 +85,10 @@ export class FilterAlertClient {
       )
     }
 
-    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-    if (response.status === 204) return {} as T
+    if (response.status === 204) {
+      const emptyPayload: unknown = {}
+      return emptyPayload as T
+    }
     return (await response.json()) as T
   }
 

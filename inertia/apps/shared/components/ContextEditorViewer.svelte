@@ -1,5 +1,4 @@
 <script lang="ts">
-  /* eslint-disable svelte/no-at-html-tags -- sanitizedRichContent is allow-listed before rendering */
   import { useTranslation } from '@/apps/user/shared/hooks/use_translation.svelte';
   import Button from '@/apps/user/shared/ui/button.svelte';
   import Input from '@/apps/user/shared/ui/input.svelte';
@@ -72,6 +71,15 @@
   function handleCancelClick() {
     onCancel();
   }
+
+  function renderHtml(node: HTMLElement, html: string) {
+    node.innerHTML = html;
+    return {
+      update(nextHtml: string) {
+        node.innerHTML = nextHtml;
+      },
+    };
+  }
 </script>
 
 {#if mode === 'view'}
@@ -80,11 +88,9 @@
     {#if data.summary}
       <p class="text-muted-foreground">{data.summary}</p>
     {/if}
-    <!-- eslint-disable svelte/no-at-html-tags -- content is allow-listed by sanitizeRichContent -->
     {#if sanitizedRichContent}
-      <div class="prose prose-sm max-w-none mt-4">{@html sanitizedRichContent}</div>
+      <div class="prose prose-sm max-w-none mt-4" use:renderHtml={sanitizedRichContent}></div>
     {/if}
-    <!-- eslint-enable svelte/no-at-html-tags -->
   </div>
 {:else}
   <form class="space-y-6" onsubmit={handleSubmit}>

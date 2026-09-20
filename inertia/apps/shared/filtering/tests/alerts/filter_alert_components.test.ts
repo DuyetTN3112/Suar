@@ -208,16 +208,12 @@ describe('SavedViewRepairDialog', () => {
     await fireEvent.click(screen.getByRole('button', { name: 'Repair & Revalidate View' }))
 
     await waitFor(() => expect(onRepair).toHaveBeenCalledOnce())
-    expect(onRepair).toHaveBeenCalledWith(
-      'view-taxonomy-repair',
-      expect.objectContaining({
-        // Vitest's asymmetric matcher is intentionally untyped; the runtime assertion below is the contract.
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        filter: expect.objectContaining({
-          value: { kind: 'hierarchy', termIds: ['skill-c'], expansion: 'descendants' },
-        }),
-      })
-    )
+    expect(onRepair.mock.calls[0]?.[0]).toBe('view-taxonomy-repair')
+    expect(onRepair.mock.calls[0]?.[1]).toMatchObject({
+      filter: {
+        value: { kind: 'hierarchy', termIds: ['skill-c'], expansion: 'descendants' },
+      },
+    })
     expect(screen.getByRole('button', { name: 'Resume paused alert' })).toBeInTheDocument()
     await fireEvent.click(screen.getByRole('button', { name: 'Resume paused alert' }))
     expect(onResumeAlert).toHaveBeenCalledOnce()
@@ -318,14 +314,10 @@ describe('SavedViewMenu alert integration', () => {
     await fireEvent.click(screen.getByRole('button', { name: 'Repair & Revalidate View' }))
 
     await waitFor(() => expect(screen.getByRole('button', { name: 'Resume paused alert' })).toBeInTheDocument())
-    expect(onApplyView).toHaveBeenCalledWith(
-      expect.objectContaining({
-        // Vitest's asymmetric matcher is intentionally untyped; the runtime assertion below is the contract.
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        filter: expect.objectContaining({ value: { kind: 'hierarchy', termIds: ['skill-c'], expansion: 'descendants' } }),
-      }),
-      {}
-    )
+    expect(onApplyView.mock.calls[0]?.[0]).toMatchObject({
+      filter: { value: { kind: 'hierarchy', termIds: ['skill-c'], expansion: 'descendants' } },
+    })
+    expect(onApplyView.mock.calls[0]?.[1]).toEqual({})
     await fireEvent.click(screen.getByRole('button', { name: 'Resume paused alert' }))
     await waitFor(() => expect(fetchFn).toHaveBeenCalledWith(
       `/api/v1/filter-saved-views/${repairView.id}/alert`,

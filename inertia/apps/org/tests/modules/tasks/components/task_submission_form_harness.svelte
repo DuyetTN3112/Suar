@@ -45,10 +45,11 @@
   function handleRemoveEvidence(index: number) {
     evidences = evidences.filter((_, evidenceIndex) => evidenceIndex !== index)
   }
+  const defaultAcceptanceCriteria = 'Add tests\nDocument the result'
 </script>
 
 <TaskSubmissionForm
-  acceptanceCriteria={'Add tests\nDocument the result'}
+  acceptanceCriteria={defaultAcceptanceCriteria}
   verificationMethods={['Automated test']}
   verificationRequiresEvidence={true}
   bind:summary

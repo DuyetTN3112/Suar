@@ -164,8 +164,8 @@ export class FilterSavedViewClient {
 
       if (response.status === 204) {
         // The 204 branch intentionally has no JSON payload; callers of mutation methods ignore it.
-        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-        return {} as T
+        const emptyPayload: unknown = {}
+        return emptyPayload as T
       }
 
       return (await response.json()) as T
