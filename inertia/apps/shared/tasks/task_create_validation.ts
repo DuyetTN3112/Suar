@@ -20,8 +20,9 @@ export type TaskCreateValidationField =
   | 'verification_method'
   | 'reviewer_user_id'
   | 'creator_confirmed'
-
 import type { TaskBriefV2 } from '@/apps/shared/tasks/task_brief_contract'
+
+import { validateTaskCreateBrief } from './task_create_brief_validation.js'
 
 export type TaskCreateTab = 'setup' | 'skills' | 'assignment' | 'planning' | 'contract'
 
@@ -303,151 +304,7 @@ export function validateTaskCreate(
       'Enter an estimated time before publishing'
     )
   }
-  const hasCompleteWorkItem = formData.brief.workItems.some((item) =>
-    isMeaningfulTaskCreateText(item.affectedArea) &&
-    isMeaningfulTaskCreateText(item.requiredChange) &&
-    isMeaningfulTaskCreateText(item.resultingBehaviour)
-  )
-  const hasIncompleteWorkItem = formData.brief.workItems.some((item) => {
-    const values = [item.affectedArea, item.requiredChange, item.resultingBehaviour]
-    return values.some(isMeaningfulTaskCreateText) && !values.every(isMeaningfulTaskCreateText)
-  })
-  if (hasIncompleteWorkItem) {
-    errors.brief_work_items = translated(
-      t,
-      'task.validation.work_items_incomplete',
-      'Hoàn thiện hoặc xóa từng hạng mục công việc đang điền dở'
-    )
-  } else if (!hasCompleteWorkItem) {
-    errors.brief_work_items = translated(
-      t,
-      'task.validation.work_items_required',
-      'Thêm ít nhất một hạng mục có phần bị tác động, thay đổi và hành vi sau thay đổi'
-    )
-  }
-
-  if (![
-    formData.brief.currentState,
-    formData.brief.currentStateSituation,
-    formData.brief.affectedParties,
-    formData.brief.impactIfUnresolved,
-  ].every(isMeaningfulTaskCreateText)) {
-    errors.brief_current_state = translated(
-      t,
-      'task.validation.current_state_required',
-      'Làm rõ hiện trạng, nơi xảy ra, phần bị ảnh hưởng và hậu quả nếu chưa xử lý'
-    )
-  }
-
-  if (!formData.brief.scope.some((item) => isMeaningfulTaskCreateText(item.text))) {
-    errors.brief_scope = translated(
-      t,
-      'task.validation.scope_required',
-      'Nêu ít nhất một phần hoặc hành vi nằm trong Task'
-    )
-  }
-
-  const hasIncompleteRequiredDetail = [
-    formData.brief.outOfScope.length === 0 ||
-      !formData.brief.outOfScope.some((item) => isMeaningfulTaskCreateText(item.text)),
-    formData.brief.businessRules.some((item) => {
-      const values = [item.actor, item.condition, item.permission, item.systemResult]
-      return values.some(isMeaningfulTaskCreateText) && !values.every(isMeaningfulTaskCreateText)
-    }),
-    formData.brief.businessRules.length === 0 ||
-      !formData.brief.businessRules.some((item) =>
-        [item.actor, item.condition, item.permission, item.systemResult].every(isMeaningfulTaskCreateText)
-      ),
-    formData.brief.constraints.length === 0 ||
-      !formData.brief.constraints.some((item) => isMeaningfulTaskCreateText(item.text)),
-    formData.brief.dependencies.some((item) => {
-      const values = [item.dependency, item.owner]
-      return values.some(isMeaningfulTaskCreateText) && !values.every(isMeaningfulTaskCreateText)
-    }),
-    formData.brief.dependencies.length === 0 ||
-      !formData.brief.dependencies.some((item) =>
-        [item.dependency, item.owner].every(isMeaningfulTaskCreateText)
-      ),
-  ].some(Boolean)
-  const hasIncompleteRequiredQuality =
-    formData.brief.qualityRequirements.length === 0 ||
-    !formData.brief.qualityRequirements.some((item) =>
-      [item.property, item.appliesTo, item.observableCheck].every(isMeaningfulTaskCreateText)
-    )
-  const hasIncompleteRequiredDesiredValue =
-    !formData.brief.desiredValue ||
-    ![
-      formData.brief.desiredValue.beneficiary,
-      formData.brief.desiredValue.usefulState,
-    ].every(isMeaningfulTaskCreateText)
-  const hasIncompleteOptionalDetail = [
-    hasIncompleteRequiredQuality,
-    hasIncompleteRequiredDesiredValue,
-    formData.brief.qualityRequirements.some((item) => {
-      const values = [item.property, item.appliesTo, item.observableCheck]
-      return values.some(isMeaningfulTaskCreateText) && !values.every(isMeaningfulTaskCreateText)
-    }),
-    Boolean(
-      formData.brief.desiredValue &&
-        [formData.brief.desiredValue.beneficiary, formData.brief.desiredValue.usefulState]
-          .some(isMeaningfulTaskCreateText) &&
-        ![formData.brief.desiredValue.beneficiary, formData.brief.desiredValue.usefulState]
-          .every(isMeaningfulTaskCreateText)
-    ),
-  ].some(Boolean)
-  if (hasIncompleteRequiredDetail || hasIncompleteOptionalDetail) {
-    errors.brief_optional_details = translated(
-      t,
-      'task.validation.required_details_incomplete',
-      'Hoàn thiện yêu cầu chất lượng, giá trị mong muốn và các mục ngoài phạm vi, quy tắc, giới hạn, phụ thuộc bắt buộc'
-    )
-  }
-
-  const hasCompleteDeliverable = formData.brief.deliverables.some((item) =>
-    isMeaningfulTaskCreateText(item.outputType) &&
-    isMeaningfulTaskCreateText(item.locationOrRecipient) &&
-    isMeaningfulTaskCreateText(item.minimumState)
-  )
-  const hasIncompleteDeliverable = formData.brief.deliverables.some((item) => {
-    const values = [item.outputType, item.locationOrRecipient, item.minimumState]
-    return values.some(isMeaningfulTaskCreateText) && !values.every(isMeaningfulTaskCreateText)
-  })
-  if (hasIncompleteDeliverable) {
-    errors.brief_deliverables = translated(
-      t,
-      'task.validation.deliverables_incomplete',
-      'Hoàn thiện hoặc xóa từng đầu ra đang điền dở'
-    )
-  } else if (!hasCompleteDeliverable) {
-    errors.brief_deliverables = translated(
-      t,
-      'task.validation.deliverables_required',
-      'Thêm ít nhất một đầu ra có loại, vị trí/đối tượng và trạng thái tối thiểu'
-    )
-  }
-
-  const hasCompleteAcceptance = formData.brief.acceptanceCriteria.some((item) =>
-    isMeaningfulTaskCreateText(item.condition) &&
-    isMeaningfulTaskCreateText(item.action) &&
-    isMeaningfulTaskCreateText(item.observableResult)
-  )
-  const hasIncompleteAcceptance = formData.brief.acceptanceCriteria.some((item) => {
-    const values = [item.condition, item.action, item.observableResult]
-    return values.some(isMeaningfulTaskCreateText) && !values.every(isMeaningfulTaskCreateText)
-  })
-  if (hasIncompleteAcceptance) {
-    errors.brief_acceptance = translated(
-      t,
-      'task.validation.acceptance_incomplete',
-      'Hoàn thiện hoặc xóa từng tiêu chí nghiệm thu đang điền dở'
-    )
-  } else if (!hasCompleteAcceptance) {
-    errors.brief_acceptance = translated(
-      t,
-      'task.validation.acceptance_required',
-      'Thêm ít nhất một tiêu chí có điều kiện, hành động và kết quả quan sát được'
-    )
-  }
+  validateTaskCreateBrief(formData.brief, errors, t)
 
   if (formData.required_skills.length === 0) {
     errors.required_skills = translated(

@@ -85,9 +85,11 @@ export const createEmptyTaskBrief = (): TaskBriefV2 => ({
   desiredValue: null,
 })
 
+export const createInitialTaskBrief = createEmptyTaskBrief
+
 export function isTaskBriefV2(value: unknown): value is TaskBriefV2 {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false
-  const candidate = value as Partial<TaskBriefV2>
+  const candidate = value as Record<string, unknown>
   const isRecord = (item: unknown): item is Record<string, unknown> =>
     Boolean(item) && typeof item === 'object' && !Array.isArray(item)
   const hasTextFields = (item: unknown, fields: string[]) =>
@@ -111,6 +113,7 @@ export function isTaskBriefV2(value: unknown): value is TaskBriefV2 {
     && candidate.constraints.every(hasIdAndText)
     && Array.isArray(candidate.dependencies)
     && candidate.dependencies.every((item) =>
+      isRecord(item) &&
       hasTextFields(item, ['id', 'dependency', 'owner']) &&
       (item.state === 'available' || item.state === 'waiting' || item.state === 'blocked')
     )

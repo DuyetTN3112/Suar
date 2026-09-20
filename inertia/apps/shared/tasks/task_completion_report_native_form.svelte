@@ -12,125 +12,22 @@
     type CompletionEvidenceDraft,
     mergeExistingContributorClaims,
     type CompletionOwnership,
-    type CompletionPrivacy,
     type CompletionReportPayloadContext,
   } from './task_completion_report_payload'
+  import CompletionReportCriteriaSection from './components/completion_report_criteria_section.svelte'
+  import CompletionReportDeliverablesSection from './components/completion_report_deliverables_section.svelte'
+  import CompletionReportEvidenceSection from './components/completion_report_evidence_section.svelte'
+  import CompletionReportOverviewSection from './components/completion_report_overview_section.svelte'
   import type {
-    NativeCompletionBrief,
-    NativeCompletionReportTranslate,
-  } from './task_completion_report_native_form.types'
+    Envelope,
+    NativeCompletionReportProps,
+    NativeReportClaim,
+    NativeReportField,
+    NativeReportValue,
+    StartValue,
+  } from './task_completion_report_native_form.types.js'
 
-  interface NativeReportCriterion {
-    id: string
-    criterionId: string
-    expectedOutcome: string
-    actualOutcome: string
-    result: CompletionCriterionResult
-    explanation: string
-    evidenceIds: readonly string[]
-    deviationStatus?: CompletionDeviationStatus
-    deviationSummary?: string | null
-    deviationApprovalRef?: string | null
-    notApplicableReason?: string | null
-    notApplicablePolicyRef?: string | null
-  }
-
-  interface NativeReportEvidence {
-    id: string
-    evidenceRequirementIds: readonly string[]
-    criterionIds: readonly string[]
-    deliverableIds: readonly string[]
-    ownerUserId?: string | null
-    contributorUserIds?: readonly string[]
-    reviewerAccessState: CompletionEvidenceDraft['reviewerAccessState']
-    availability: CompletionEvidenceDraft['availability']
-    privacyClassification: CompletionPrivacy
-  }
-
-  interface NativeReportClaim {
-    id: string
-    contributorUserId: string
-    actualRole: string
-    actualOwnership: CompletionOwnership
-    contributionStatement: string
-    deliverableIds: readonly string[]
-    criterionResultIds: readonly string[]
-    evidenceIds: readonly string[]
-  }
-
-  interface NativeReportValue {
-    id: string
-    taskSubmissionId: string
-    taskId: string
-    taskAssignmentId: string
-    assignmentSnapshotId: string
-    assignmentSnapshotHash: string
-    taskContractVersionId: string
-    reportedBy: string
-    revision: number
-    status: 'draft' | 'submitted'
-    report: {
-      workPerformed: string
-      contributionStatement: string
-      actualRole: string
-      actualOwnership: CompletionOwnership | null
-      actualAutonomy: CompletionAutonomy | null
-      actualOutcomes: Record<string, unknown>
-      impactObserved: Record<string, unknown>
-      limitations: string | null
-      remainingWork: string | null
-      actualDeliverableIds: readonly string[]
-      criterionResults: readonly NativeReportCriterion[]
-      evidence: readonly NativeReportEvidence[]
-      contributorClaims: readonly NativeReportClaim[]
-    }
-    evidenceManifest: readonly {
-      evidenceId: string
-      evidenceType: string
-      title: string
-      description?: string | null
-      uri?: string | null
-      storageReference?: string | null
-      versionReference?: string | null
-      contentHash?: string | null
-      capturedAt?: string | null
-    }[]
-  }
-
-  interface StartValue {
-    taskSubmissionId: string
-    taskId: string
-    taskAssignmentId: string
-    assigneeId: string
-    assignmentSnapshotId: string
-    assignmentSnapshotHash: string
-    taskContractVersionId: string
-    status: 'draft' | 'submitted' | 'accepted_for_review' | 'needs_changes' | 'locked'
-    replayed: boolean
-  }
-
-  interface Props {
-    taskId: string
-    assigneeId?: string | null
-    brief: NativeCompletionBrief
-    translate?: NativeCompletionReportTranslate
-  }
-
-  interface Envelope<T> {
-    data: T
-  }
-
-  type Field =
-    | 'actualOutcome'
-    | 'explanation'
-    | 'result'
-    | 'deviationStatus'
-    | 'deviationSummary'
-    | 'deviationApprovalRef'
-    | 'notApplicableReason'
-    | 'notApplicablePolicyRef'
-
-  const props: Props = $props()
+  const props: NativeCompletionReportProps = $props()
 
   function t(key: string, fallback: string, params: Record<string, unknown> = {}): string {
     return props.translate?.(key, params, fallback) ?? fallback
@@ -168,16 +65,7 @@
   let evidence = $state<CompletionEvidenceDraft[]>([])
   let contributorClaims = $state<NativeReportClaim[]>([])
 
-  let evidenceTitle = $state('')
-  let evidenceType = $state('document_link')
-  let evidenceUri = $state('')
-  let evidenceDescription = $state('')
-  let evidenceRequirementId = $state('')
-  let evidenceCriterionId = $state('')
-  let evidenceDeliverableId = $state('')
-  let evidenceAccess: CompletionEvidenceDraft['reviewerAccessState'] = $state('unknown')
-  let evidenceAvailability: CompletionEvidenceDraft['availability'] = $state('not_disclosed')
-  let evidencePrivacy: CompletionPrivacy = $state('internal')
+
 
   const canEdit = $derived(report?.status !== 'submitted')
   const usableBrief = $derived(
@@ -286,8 +174,11 @@
           notApplicableReason: persisted.notApplicableReason ?? null,
           notApplicablePolicyRef: persisted.notApplicablePolicyRef ?? null,
         }
-      } else if (criterionDrafts[criterion.id]) {
-        nextCriteria[criterion.id] = criterionDrafts[criterion.id]
+      } else {
+        const existingDraft = criterionDrafts[criterion.id]
+        if (existingDraft) {
+          nextCriteria[criterion.id] = existingDraft
+        }
       }
     }
     criterionDrafts = nextCriteria
@@ -322,7 +213,7 @@
     return typeof summary === 'string' ? summary : ''
   }
 
-  function setCriterionField(criterionId: string, field: Field, value: string) {
+  function setCriterionField(criterionId: string, field: NativeReportField, value: string) {
     const current = criterionDrafts[criterionId] ?? {
       id: newId(),
       actualOutcome: '',
@@ -342,44 +233,14 @@
     }
   }
 
-  function addEvidence() {
-    error = ''
-    if (!evidenceTitle.trim() || !evidenceUri.trim()) {
-      error = t('task.submission_panel.native.errors.evidence_required', 'Evidence title and URL are required.')
-      return
-    }
-    if (!evidenceRequirementId || !evidenceCriterionId || !evidenceDeliverableId) {
-      error = t(
-        'task.submission_panel.native.errors.evidence_mapping_required',
-        'Map each evidence item to a requirement, criterion, and deliverable.'
-      )
-      return
-    }
-    evidence = [
-      ...evidence,
-      {
-        id: newId(),
-        evidenceType: evidenceType.trim() || 'document_link',
-        title: evidenceTitle.trim(),
-        description: evidenceDescription.trim() || null,
-        uri: evidenceUri.trim(),
-        storageReference: null,
-        versionReference: null,
-        contentHash: null,
-        capturedAt: null,
-        evidenceRequirementIds: [evidenceRequirementId],
-        criterionIds: [evidenceCriterionId],
-        deliverableIds: [evidenceDeliverableId],
-        ownerUserId: reportContext?.reportedBy ?? props.assigneeId ?? null,
-        contributorUserIds: [reportContext?.reportedBy ?? props.assigneeId ?? ''],
-        reviewerAccessState: evidenceAccess,
-        availability: evidenceAvailability,
-        privacyClassification: evidencePrivacy,
-      },
-    ]
-    evidenceTitle = ''
-    evidenceUri = ''
-    evidenceDescription = ''
+
+
+  function addEvidence(item: CompletionEvidenceDraft) {
+    evidence = [...evidence, item]
+  }
+
+  function handleEvidenceError(msg: string) {
+    error = msg
   }
 
   function removeEvidence(id: string) {
@@ -618,280 +479,49 @@
       <div class="rounded border border-primary/30 bg-primary/5 px-3 py-2 text-sm" role="status">{success}</div>
     {/if}
 
-    <div class="grid gap-4 md:grid-cols-2">
-      <label class="space-y-1 text-sm">
-        <span class="font-medium">{t('task.submission_panel.native.work_performed', 'Work performed')}</span>
-        <textarea class="min-h-28 w-full rounded border bg-background p-2" bind:value={workPerformed} disabled={!canEdit}></textarea>
-      </label>
-      <label class="space-y-1 text-sm">
-        <span class="font-medium">{t('task.submission_panel.native.contribution_statement', 'Contribution statement')}</span>
-        <textarea class="min-h-28 w-full rounded border bg-background p-2" bind:value={contributionStatement} disabled={!canEdit}></textarea>
-      </label>
-      <label class="space-y-1 text-sm">
-        <span class="font-medium">{t('task.submission_panel.native.actual_role', 'Actual role')}</span>
-        <input class="w-full rounded border bg-background p-2" bind:value={actualRole} disabled={!canEdit} />
-      </label>
-      <label class="space-y-1 text-sm">
-        <span class="font-medium">{t('task.submission_panel.native.actual_ownership', 'Actual ownership')}</span>
-        <select class="w-full rounded border bg-background p-2" aria-label={t('task.submission_panel.native.actual_ownership', 'Actual ownership')} bind:value={actualOwnership} disabled={!canEdit}>
-          <option value={null}>{t('task.submission_panel.native.ownership.select', 'Select ownership')}</option>
-          <option value="contributor">{t('task.submission_panel.native.ownership.contributor', 'Contributor')}</option>
-          <option value="shared_owner">{t('task.submission_panel.native.ownership.shared_owner', 'Shared owner')}</option>
-          <option value="primary_owner">{t('task.submission_panel.native.ownership.primary_owner', 'Primary owner')}</option>
-          <option value="lead">{t('task.submission_panel.native.ownership.lead', 'Lead')}</option>
-        </select>
-      </label>
-      <label class="space-y-1 text-sm">
-        <span class="font-medium">{t('task.submission_panel.native.actual_autonomy', 'Actual autonomy')}</span>
-        <select class="w-full rounded border bg-background p-2" aria-label={t('task.submission_panel.native.actual_autonomy', 'Actual autonomy')} bind:value={actualAutonomy} disabled={!canEdit}>
-          <option value={null}>{t('task.submission_panel.native.autonomy.not_specified', 'Not specified')}</option>
-          <option value="guided">{t('task.submission_panel.native.autonomy.guided', 'Guided')}</option>
-          <option value="supervised">{t('task.submission_panel.native.autonomy.supervised', 'Supervised')}</option>
-          <option value="independent">{t('task.submission_panel.native.autonomy.independent', 'Independent')}</option>
-          <option value="leads_others">{t('task.submission_panel.native.autonomy.leads_others', 'Leads others')}</option>
-        </select>
-      </label>
-      <label class="space-y-1 text-sm">
-        <span class="font-medium">{t('task.submission_panel.native.actual_outcomes', 'Actual outcomes')}</span>
-        <textarea class="min-h-24 w-full rounded border bg-background p-2" bind:value={actualOutcomes} disabled={!canEdit}></textarea>
-      </label>
-      <label class="space-y-1 text-sm">
-        <span class="font-medium">{t('task.submission_panel.native.impact_observed', 'Impact observed')}</span>
-        <textarea class="min-h-24 w-full rounded border bg-background p-2" bind:value={impactObserved} disabled={!canEdit}></textarea>
-      </label>
-      <label class="space-y-1 text-sm">
-        <span class="font-medium">{t('task.submission_panel.native.limitations', 'Limitations')}</span>
-        <textarea class="min-h-20 w-full rounded border bg-background p-2" bind:value={limitations} disabled={!canEdit}></textarea>
-      </label>
-      <label class="space-y-1 text-sm">
-        <span class="font-medium">{t('task.submission_panel.native.remaining_work', 'Remaining work')}</span>
-        <textarea class="min-h-20 w-full rounded border bg-background p-2" bind:value={remainingWork} disabled={!canEdit}></textarea>
-      </label>
-    </div>
+    <CompletionReportOverviewSection
+      bind:workPerformed
+      bind:contributionStatement
+      bind:actualRole
+      bind:actualOwnership
+      bind:actualAutonomy
+      bind:actualOutcomes
+      bind:impactObserved
+      bind:limitations
+      bind:remainingWork
+      {canEdit}
+      {t}
+    />
 
-    <section class="space-y-3 rounded border bg-background/70 p-3" aria-labelledby="native-deliverables-heading">
-      <h4 id="native-deliverables-heading" class="font-medium">
-        {t('task.submission_panel.native.deliverables.title', 'Deliverables')}
-      </h4>
-      {#if deliverables.length === 0}
-        <p class="text-sm text-muted-foreground">
-          {t('task.submission_panel.native.deliverables.none', 'No deliverables are pinned to this assignment.')}
-        </p>
-      {:else}
-        <div>
-          <p class="text-xs text-muted-foreground">
-            {t('task.submission_panel.native.deliverables.expected', 'Expected deliverables from the pinned contract')}
-          </p>
-          <ul class="mt-1 list-disc space-y-1 pl-5 text-sm">
-            {#each deliverables as deliverable}<li>{deliverable.title}</li>{/each}
-          </ul>
-        </div>
-        <p class="text-xs text-muted-foreground">
-          {t('task.submission_panel.native.deliverables.select_actual', 'Select the deliverables you actually completed.')}
-        </p>
-        <div class="grid gap-2 sm:grid-cols-2">
-          {#each deliverables as deliverable}
-            <label class="flex items-start gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={selectedDeliverableIds.includes(deliverable.id)}
-                disabled={!canEdit}
-                onchange={() => {
-                  selectedDeliverableIds = selectedDeliverableIds.includes(deliverable.id)
-                    ? selectedDeliverableIds.filter((id) => id !== deliverable.id)
-                    : [...selectedDeliverableIds, deliverable.id]
-                }}
-              />
-              <span>{deliverable.title}</span>
-            </label>
-          {/each}
-        </div>
-      {/if}
-    </section>
+    <CompletionReportDeliverablesSection
+      {deliverables}
+      bind:selectedDeliverableIds
+      {canEdit}
+      {t}
+    />
 
-    <section class="space-y-4" aria-labelledby="native-criteria-heading">
-      <div>
-        <h4 id="native-criteria-heading" class="font-medium">
-          {t('task.submission_panel.native.criteria.title', 'Criterion results')}
-        </h4>
-        <p class="text-xs text-muted-foreground">
-          {t('task.submission_panel.native.criteria.expected_read_only', 'Expected outcome is read-only from the pinned contract.')}
-        </p>
-      </div>
-      {#each criteria as criterion}
-        {@const draft = criterionDrafts[criterion.id]}
-        <article class="space-y-3 rounded border bg-background/70 p-3">
-          <p class="text-sm font-medium">
-            {t('task.submission_panel.native.criteria.expected_outcome', 'Expected outcome')}: {criterion.statement}
-          </p>
-          <div class="grid gap-3 md:grid-cols-3">
-            <label class="space-y-1 text-sm md:col-span-2">
-              <span>{t('task.submission_panel.native.criteria.actual_outcome', 'Actual outcome')}</span>
-              <textarea
-                class="min-h-20 w-full rounded border bg-background p-2"
-                value={draft?.actualOutcome ?? ''}
-                disabled={!canEdit}
-                oninput={(event) => setCriterionField(criterion.id, 'actualOutcome', event.currentTarget.value)}
-              ></textarea>
-            </label>
-            <label class="space-y-1 text-sm">
-              <span>{t('task.submission_panel.native.criteria.result', 'Result')}</span>
-              <select
-                class="w-full rounded border bg-background p-2"
-                value={draft?.result ?? ''}
-                disabled={!canEdit}
-                onchange={(event) => setCriterionField(criterion.id, 'result', event.currentTarget.value)}
-              >
-                <option value="">{t('task.submission_panel.native.criteria.select_result', 'Select result')}</option>
-                <option value="met">{t('task.submission_panel.native.criteria.results.met', 'Met')}</option>
-                <option value="partially_met">{t('task.submission_panel.native.criteria.results.partially_met', 'Partially met')}</option>
-                <option value="not_met">{t('task.submission_panel.native.criteria.results.not_met', 'Not met')}</option>
-                <option value="not_applicable">{t('task.submission_panel.native.criteria.results.not_applicable', 'Not applicable')}</option>
-              </select>
-            </label>
-          </div>
-          <label class="block space-y-1 text-sm">
-            <span>{t('task.submission_panel.native.criteria.explanation', 'Explanation')}</span>
-            <textarea
-              class="min-h-20 w-full rounded border bg-background p-2"
-              value={draft?.explanation ?? ''}
-              disabled={!canEdit}
-              oninput={(event) => setCriterionField(criterion.id, 'explanation', event.currentTarget.value)}
-            ></textarea>
-          </label>
-          <label class="block space-y-1 text-sm">
-            <span>{t('task.submission_panel.native.criteria.deviation_status', 'Deviation status')}</span>
-            <select
-              class="w-full rounded border bg-background p-2"
-              value={draft?.deviationStatus ?? 'none'}
-              disabled={!canEdit}
-              onchange={(event) => setCriterionField(criterion.id, 'deviationStatus', event.currentTarget.value)}
-            >
-              <option value="none">{t('task.submission_panel.native.criteria.deviation.none', 'No deviation')}</option>
-              <option value="reported">{t('task.submission_panel.native.criteria.deviation.reported', 'Reported deviation')}</option>
-              <option value="approved">{t('task.submission_panel.native.criteria.deviation.approved', 'Approved deviation')}</option>
-              <option value="governed_exception">{t('task.submission_panel.native.criteria.deviation.governed_exception', 'Governed exception')}</option>
-            </select>
-          </label>
-          {#if draft?.deviationStatus && draft.deviationStatus !== 'none'}
-            <div class="grid gap-3 md:grid-cols-2">
-              <label class="space-y-1 text-sm">
-                <span>{t('task.submission_panel.native.criteria.deviation_summary', 'Deviation summary')}</span>
-                <input
-                  class="w-full rounded border bg-background p-2"
-                  value={draft.deviationSummary ?? ''}
-                  disabled={!canEdit}
-                  oninput={(event) => setCriterionField(criterion.id, 'deviationSummary', event.currentTarget.value)}
-                />
-              </label>
-              {#if draft.deviationStatus === 'approved' || draft.deviationStatus === 'governed_exception'}
-                <label class="space-y-1 text-sm">
-                  <span>{t('task.submission_panel.native.criteria.deviation_approval_ref', 'Deviation approval reference')}</span>
-                  <input
-                    class="w-full rounded border bg-background p-2"
-                    value={draft.deviationApprovalRef ?? ''}
-                    disabled={!canEdit}
-                    oninput={(event) => setCriterionField(criterion.id, 'deviationApprovalRef', event.currentTarget.value)}
-                  />
-                </label>
-              {/if}
-            </div>
-          {/if}
-          {#if draft?.result === 'not_applicable'}
-            <div class="grid gap-3 md:grid-cols-2">
-              <label class="space-y-1 text-sm">
-                <span>{t('task.submission_panel.native.criteria.not_applicable_reason', 'Not-applicable reason')}</span>
-                <input
-                  class="w-full rounded border bg-background p-2"
-                  value={draft.notApplicableReason ?? ''}
-                  disabled={!canEdit}
-                  oninput={(event) => setCriterionField(criterion.id, 'notApplicableReason', event.currentTarget.value)}
-                />
-              </label>
-              <label class="space-y-1 text-sm">
-                <span>{t('task.submission_panel.native.criteria.not_applicable_policy_ref', 'Not-applicable policy reference')}</span>
-                <input
-                  class="w-full rounded border bg-background p-2"
-                  value={draft.notApplicablePolicyRef ?? ''}
-                  disabled={!canEdit}
-                  oninput={(event) => setCriterionField(criterion.id, 'notApplicablePolicyRef', event.currentTarget.value)}
-                />
-              </label>
-            </div>
-          {/if}
-          <p class="text-xs text-muted-foreground">
-            {t('task.submission_panel.native.criteria.evidence_mapped', 'Evidence mapped to this criterion')}: {evidenceIdsForCriterion(criterion.id).length}
-          </p>
-        </article>
-      {/each}
-    </section>
+    <CompletionReportCriteriaSection
+      {criteria}
+      {criterionDrafts}
+      {canEdit}
+      {t}
+      onSetCriterionField={setCriterionField}
+      {evidenceIdsForCriterion}
+    />
 
-    <section class="space-y-3 rounded border bg-background/70 p-3" aria-labelledby="native-evidence-heading">
-      <div>
-        <h4 id="native-evidence-heading" class="font-medium">
-          {t('task.submission_panel.native.evidence.title', 'Evidence mapping')}
-        </h4>
-        <p class="text-xs text-muted-foreground">
-          {t('task.submission_panel.native.evidence.description', 'Every evidence item must point to pinned requirement, criterion, and deliverable IDs.')}
-        </p>
-      </div>
-      {#if canEdit}
-        <div class="grid gap-2 md:grid-cols-2">
-          <input class="rounded border bg-background p-2 text-sm" aria-label={t('task.submission_panel.native.evidence.title_label', 'Evidence title')} placeholder={t('task.submission_panel.native.evidence.title_label', 'Evidence title')} bind:value={evidenceTitle} />
-          <input class="rounded border bg-background p-2 text-sm" aria-label={t('task.submission_panel.native.evidence.url_label', 'Evidence URL')} placeholder="https://…" bind:value={evidenceUri} />
-          <input class="rounded border bg-background p-2 text-sm" aria-label={t('task.submission_panel.native.evidence.type_label', 'Evidence type')} placeholder={t('task.submission_panel.native.evidence.type_label', 'Evidence type')} bind:value={evidenceType} />
-          <input class="rounded border bg-background p-2 text-sm" aria-label={t('task.submission_panel.native.evidence.description_label', 'Evidence description')} placeholder={t('task.submission_panel.native.evidence.description_placeholder', 'Description')} bind:value={evidenceDescription} />
-          <select class="rounded border bg-background p-2 text-sm" aria-label={t('task.submission_panel.native.evidence.requirement_label', 'Evidence requirement')} bind:value={evidenceRequirementId}>
-            <option value="">{t('task.submission_panel.native.evidence.select_requirement', 'Select requirement')}</option>
-            {#each evidenceRequirements as requirement}<option value={requirement.id}>{requirement.title}</option>{/each}
-          </select>
-          <select class="rounded border bg-background p-2 text-sm" aria-label={t('task.submission_panel.native.evidence.criterion_label', 'Evidence criterion')} bind:value={evidenceCriterionId}>
-            <option value="">{t('task.submission_panel.native.evidence.select_criterion', 'Select criterion')}</option>
-            {#each criteria as criterion}<option value={criterion.id}>{criterion.statement}</option>{/each}
-          </select>
-          <select class="rounded border bg-background p-2 text-sm" aria-label={t('task.submission_panel.native.evidence.deliverable_label', 'Evidence deliverable')} bind:value={evidenceDeliverableId}>
-            <option value="">{t('task.submission_panel.native.evidence.select_deliverable', 'Select deliverable')}</option>
-            {#each deliverables as deliverable}<option value={deliverable.id}>{deliverable.title}</option>{/each}
-          </select>
-          <select class="rounded border bg-background p-2 text-sm" aria-label={t('task.submission_panel.native.evidence.access_label', 'Reviewer access state')} bind:value={evidenceAccess}>
-            <option value="unknown">{t('task.submission_panel.native.evidence.access.unknown', 'Reviewer access unknown')}</option>
-            <option value="available">{t('task.submission_panel.native.evidence.access.available', 'Reviewer can access')}</option>
-            <option value="restricted">{t('task.submission_panel.native.evidence.access.restricted', 'Reviewer access restricted')}</option>
-            <option value="unavailable">{t('task.submission_panel.native.evidence.access.unavailable', 'Reviewer access unavailable')}</option>
-          </select>
-          <select class="rounded border bg-background p-2 text-sm" aria-label={t('task.submission_panel.native.evidence.availability_label', 'Evidence availability')} bind:value={evidenceAvailability}>
-            <option value="not_disclosed">{t('task.submission_panel.native.evidence.availability.not_disclosed', 'Not disclosed')}</option>
-            <option value="available">{t('task.submission_panel.native.evidence.availability.available', 'Available')}</option>
-            <option value="partially_available">{t('task.submission_panel.native.evidence.availability.partially_available', 'Partially available')}</option>
-            <option value="unavailable">{t('task.submission_panel.native.evidence.availability.unavailable', 'Unavailable')}</option>
-          </select>
-          <select class="rounded border bg-background p-2 text-sm" aria-label={t('task.submission_panel.native.evidence.privacy_label', 'Evidence privacy')} bind:value={evidencePrivacy}>
-            <option value="internal">{t('task.submission_panel.native.evidence.privacy.internal', 'Internal')}</option>
-            <option value="private">{t('task.submission_panel.native.evidence.privacy.private', 'Private')}</option>
-            <option value="confidential">{t('task.submission_panel.native.evidence.privacy.confidential', 'Confidential')}</option>
-            <option value="redacted">{t('task.submission_panel.native.evidence.privacy.redacted', 'Redacted')}</option>
-            <option value="public_safe">{t('task.submission_panel.native.evidence.privacy.public_safe', 'Public safe')}</option>
-          </select>
-        </div>
-        <button type="button" class="rounded border px-3 py-2 text-sm" onclick={addEvidence}>
-          {t('task.submission_panel.native.evidence.add', 'Add evidence')}
-        </button>
-      {/if}
-      {#if evidence.length > 0}
-        <ul class="space-y-2">
-          {#each evidence as item}
-            <li class="flex items-start justify-between gap-3 rounded border p-2 text-sm">
-              <span><strong>{item.title}</strong> · {item.uri ?? item.storageReference ?? t('task.submission_panel.native.evidence.no_locator', 'No locator')} · {t(`task.submission_panel.native.evidence.privacy.${item.privacyClassification}`, item.privacyClassification)}</span>
-              {#if canEdit}<button type="button" class="text-destructive" onclick={() => removeEvidence(item.id)}>{t('task.submission_panel.native.evidence.remove', 'Remove')}</button>{/if}
-            </li>
-          {/each}
-        </ul>
-      {:else}
-        <p class="text-sm text-muted-foreground">
-          {t('task.submission_panel.native.evidence.none', 'No evidence mapped yet.')}
-        </p>
-      {/if}
-    </section>
+    <CompletionReportEvidenceSection
+      {canEdit}
+      {evidence}
+      {evidenceRequirements}
+      {criteria}
+      {deliverables}
+      reportedBy={reportContext?.reportedBy}
+      assigneeId={props.assigneeId}
+      {t}
+      onAddEvidence={addEvidence}
+      onRemoveEvidence={removeEvidence}
+      onError={handleEvidenceError}
+    />
 
     {#if canEdit}
       <div class="flex flex-wrap gap-2">
