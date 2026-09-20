@@ -1,78 +1,30 @@
 <script lang="ts">
   import { page, router } from '@inertiajs/svelte'
-  import { Inbox, Check, X } from 'lucide-svelte'
+  import { Inbox } from 'lucide-svelte'
 
   import Badge from '@/apps/user/shared/ui/badge.svelte'
   import Button from '@/apps/user/shared/ui/button.svelte'
   import Card from '@/apps/user/shared/ui/card.svelte'
   import CardContent from '@/apps/user/shared/ui/card_content.svelte'
-  import Select from '@/apps/user/shared/ui/select.svelte'
-  import SelectContent from '@/apps/user/shared/ui/select_content.svelte'
-  import SelectItem from '@/apps/user/shared/ui/select_item.svelte'
-  import SelectTrigger from '@/apps/user/shared/ui/select_trigger.svelte'
-  import TalentExplainabilityBadges from '@/apps/user/modules/profile/components/talent_explainability_badges.svelte'
   import Table from '@/apps/user/shared/ui/table.svelte'
   import TableBody from '@/apps/user/shared/ui/table_body.svelte'
   import TableCell from '@/apps/user/shared/ui/table_cell.svelte'
   import TableHead from '@/apps/user/shared/ui/table_head.svelte'
   import TableHeader from '@/apps/user/shared/ui/table_header.svelte'
   import TableRow from '@/apps/user/shared/ui/table_row.svelte'
-  import type { OffsetPagePagination } from '@/apps/user/shared/lib/pagination'
   import UnifiedOffsetPagination from '@/apps/user/shared/ui/unified_offset_pagination.svelte'
   import { APPLICATION_STATUSES, APPLICATION_STATUS_BADGE_VARIANTS, FILTER_VALUES, getTaskApplicationProcessRoute, getTaskApplicationsRoute, type ApplicationFilterValue, type ApplicationStatus } from '@/apps/user/shared/constants'
   import { currentDocumentLocale } from '@/apps/user/shared/lib/date_locale'
   import AppLayout from '@/apps/user/shared/layouts/app_layout.svelte'
   import { notificationStore } from '@/apps/user/shared/stores/notification_store.svelte'
   import { useTranslation } from '@/apps/user/shared/stores/translation.svelte'
-
-
-  interface ApplicationUser {
-    id: string
-    username: string
-    email: string
-  }
-
-  interface Application {
-    id: string
-    user?: ApplicationUser
-    status: ApplicationStatus
-    cover_letter?: string
-    portfolio_links?: string[]
-    estimated_duration?: number
-    created_at: string
-    candidate_source?: 'project_member' | 'org_member' | 'external' | string | null
-  }
-
-  interface RankedApplication {
-    applicationId: string
-    rank?: number
-    matchScore: number
-    skillMatch?: number | null
-    domainMatch?: number | null
-    deliveryReliability?: number | null
-    trustScore: number
-    evidenceConfidence?: 'low' | 'medium' | 'high'
-    evidenceWarnings?: string[]
-    explanations?: string[]
-    risks?: string[]
-    candidateSource?: string
-    fitLabel?: 'strong_match' | 'good_match' | 'partial_match' | 'weak_match'
-    reviewedSkillsCount?: number
-    importedSkillsCount?: number
-    underDisputeSkillsCount?: number
-    latestConfidenceSignal?: 'low' | 'medium' | 'high' | null
-  }
-
-  type AssignmentType = 'member' | 'external_contributor' | 'volunteer'
-
-  interface Props {
-    shellMode?: 'app' | 'organization'
-    auth?: { user?: { current_organization_role?: string | null } }
-    taskId: string
-    applications: Application[]
-    pagination: OffsetPagePagination
-    statusFilter: string
-  }
+  import type {
+    RankedApplication,
+    AssignmentType,
+    TaskApplicationsProps as Props,
+  } from '@/apps/shared/tasks/task_application_types'
+  import TaskApplicationMatchCell from './components/task_application_match_cell.svelte'
+  import TaskApplicationActionCell from './components/task_application_action_cell.svelte'
 
   const props: Props = $props()
   const { t } = useTranslation()
@@ -180,15 +132,6 @@
       default:
         return t('task.applications.fit.unclassified', {}, 'Unclassified')
     }
-  }
-
-  function clampPercent(value: number): number {
-    return Math.max(0, Math.min(100, Math.round(value)))
-  }
-
-  function metricLabel(label: string, value?: number | null): string | null {
-    if (typeof value !== 'number') return null
-    return `${label} ${clampPercent(value)}%`
   }
 
   async function loadRankings(taskId: string) {
@@ -466,73 +409,13 @@
                       {/if}
                     </TableCell>
                     <TableCell>
-                      {@const ranking = rankings[app.id]}
-                      {#if ranking?.matchScore != null}
-                        <div class="space-y-1.5">
-                          <div class="flex flex-wrap items-center gap-1.5">
-                            {#if ranking.rank}
-                              <Badge variant="outline" class="text-[10px] font-bold">
-                                #{ranking.rank}
-                              </Badge>
-                            {/if}
-                            <p class="font-bold">{clampPercent(ranking.matchScore)}%</p>
-                            <Badge
-                              variant={evidenceConfidenceBadgeVariant(ranking.evidenceConfidence)}
-                              class="text-[10px] font-bold"
-                            >
-                              {evidenceConfidenceLabel(ranking.evidenceConfidence)}
-                            </Badge>
-                            <Badge variant="outline" class="text-[10px] font-bold">
-                              {fitLabel(ranking.fitLabel)}
-                            </Badge>
-                          </div>
-                          <div class="flex flex-wrap gap-1">
-                            {#each [
-                              metricLabel(t('task.applications.metric.skill', {}, 'Skill'), ranking.skillMatch),
-                              metricLabel(t('task.applications.metric.domain', {}, 'Domain'), ranking.domainMatch),
-                              metricLabel(t('task.applications.metric.delivery', {}, 'Delivery'), ranking.deliveryReliability),
-                              metricLabel(t('task.applications.metric.trust', {}, 'Trust'), ranking.trustScore),
-                            ].filter(Boolean) as signal}
-                              <span class="rounded-full border border-border bg-background px-2 py-0.5 text-[10px] font-bold text-muted-foreground">
-                                {signal}
-                              </span>
-                            {/each}
-                          </div>
-                          {#if ranking.explanations?.length}
-                            <ul class="space-y-1 text-xs leading-5 text-muted-foreground">
-                              {#each ranking.explanations.slice(0, 2) as explanation}
-                                <li>{explanation}</li>
-                              {/each}
-                            </ul>
-                          {/if}
-                          {#if ranking.evidenceConfidence === 'low'}
-                            <p class="text-xs font-medium text-foreground">
-                              {t('task.applications.low_evidence_hint', {}, 'Evidence is not enough to treat this ranking as a final decision.')}
-                            </p>
-                          {/if}
-                          {#if ranking.evidenceWarnings?.length || ranking.risks?.length}
-                            <div class="space-y-1 rounded-lg border border-amber-500/30 bg-amber-500/10 px-2 py-1.5 text-xs leading-5 text-foreground">
-                              {#each [...(ranking.evidenceWarnings ?? []), ...(ranking.risks ?? [])].slice(0, 2) as warning}
-                                <p>{warning}</p>
-                              {/each}
-                            </div>
-                          {/if}
-                          <TalentExplainabilityBadges
-                            reviewedSkillsCount={ranking.reviewedSkillsCount}
-                            importedSkillsCount={ranking.importedSkillsCount}
-                            underDisputeSkillsCount={ranking.underDisputeSkillsCount}
-                            latestConfidenceSignal={ranking.latestConfidenceSignal}
-                            containerClass="flex flex-wrap gap-1"
-                            badgeClass="text-[10px] font-bold"
-                          />
-                        </div>
-                      {:else}
-                        <span class="text-muted-foreground">
-                          {rankingLoaded
-                            ? t('task.applications.no_ranking', {}, 'No ranking yet')
-                            : t('common.loading', {}, 'Loading')}
-                        </span>
-                      {/if}
+                      <TaskApplicationMatchCell
+                        ranking={rankings[app.id]}
+                        {rankingLoaded}
+                        {evidenceConfidenceBadgeVariant}
+                        {evidenceConfidenceLabel}
+                        {fitLabel}
+                      />
                     </TableCell>
                     <TableCell>
                       {#if app.estimated_duration != null}
@@ -566,87 +449,20 @@
                     <TableCell>{formatDate(app.created_at)}</TableCell>
                     <TableCell class="text-right">
                       {#if app.status === APPLICATION_STATUSES.PENDING}
-                        <div class="ml-auto mb-2 grid max-w-[220px] gap-1 text-left">
-                          <label class="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground" for={`assignment-type-${app.id}`}>
-                            {t('task.applications.assignment_type.label', {}, 'Assignment type')}
-                          </label>
-                          <Select
-                            value={assignmentTypeFor(app.id)}
-                            onValueChange={(value: string) => setAssignmentType(app.id, value as AssignmentType)}
-                          >
-                            <SelectTrigger id={`assignment-type-${app.id}`}>
-                              <span>{assignmentTypeLabel(assignmentTypeFor(app.id))}</span>
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="member" label={t('task.applications.assignment_type.member', {}, 'Member')}>
-                                {t('task.applications.assignment_type.member', {}, 'Member')}
-                              </SelectItem>
-                              <SelectItem value="external_contributor" label={t('task.applications.assignment_type.external_contributor', {}, 'External contributor')}>
-                                {t('task.applications.assignment_type.external_contributor', {}, 'External contributor')}
-                              </SelectItem>
-                              <SelectItem value="volunteer" label={t('task.applications.assignment_type.volunteer', {}, 'Volunteer')}>
-                                {t('task.applications.assignment_type.volunteer', {}, 'Volunteer')}
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        {#if rejectingAppId === app.id}
-                          <div class="ml-auto grid max-w-[280px] gap-2 text-left">
-                            <label class="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground" for={`rejection-reason-${app.id}`}>
-                              {t('task.applications.rejection_reason', {}, 'Rejection reason')}
-                            </label>
-                            <textarea
-                              id={`rejection-reason-${app.id}`}
-                              class="min-h-20 rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
-                              value={rejectionReasons[app.id] ?? ''}
-                              oninput={(event) => setRejectionReason(app.id, event.currentTarget.value)}
-                              placeholder={t('task.applications.rejection_reason_placeholder', {}, 'Explain the reason so the applicant understands the decision')}
-                            ></textarea>
-                            <div class="flex justify-end gap-1">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                class="h-7 font-bold"
-                                onclick={() => { rejectingAppId = null; }}
-                                disabled={processing !== null}
-                              >
-                                {t('common.cancel', {}, 'Cancel')}
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                class="h-7 font-bold text-destructive hover:text-destructive"
-                                onclick={() => handleProcess(app.id, 'reject')}
-                                disabled={processing !== null || !rejectionReasonFor(app.id)}
-                              >
-                                <X class="mr-1 h-3 w-3" />
-                                {t('task.applications.confirm_reject', {}, 'Confirm rejection')}
-                              </Button>
-                            </div>
-                          </div>
-                        {:else}
-                          <div class="flex justify-end gap-1">
-                            <Button
-                              size="sm"
-                              class="h-7 font-bold"
-                              onclick={() => handleProcess(app.id, 'approve')}
-                              disabled={processing !== null}
-                            >
-                              <Check class="mr-1 h-3 w-3" />
-                              {t('task.applications.approve', {}, 'Approve')}
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              class="h-7 font-bold text-destructive hover:text-destructive"
-                              onclick={() => { rejectingAppId = app.id; }}
-                              disabled={processing !== null}
-                            >
-                              <X class="mr-1 h-3 w-3" />
-                              {t('task.applications.reject', {}, 'Reject')}
-                            </Button>
-                          </div>
-                        {/if}
+                        <TaskApplicationActionCell
+                          appId={app.id}
+                          assignmentType={assignmentTypeFor(app.id)}
+                          isRejecting={rejectingAppId === app.id}
+                          rejectionReason={rejectionReasons[app.id] ?? ''}
+                          isProcessing={processing !== null}
+                          {assignmentTypeLabel}
+                          onAssignmentTypeChange={(val: AssignmentType) => setAssignmentType(app.id, val)}
+                          onRejectionReasonChange={(val: string) => setRejectionReason(app.id, val)}
+                          onStartReject={() => { rejectingAppId = app.id }}
+                          onCancelReject={() => { rejectingAppId = null }}
+                          onApprove={() => handleProcess(app.id, 'approve')}
+                          onConfirmReject={() => handleProcess(app.id, 'reject')}
+                        />
                       {/if}
                     </TableCell>
                   </TableRow>
