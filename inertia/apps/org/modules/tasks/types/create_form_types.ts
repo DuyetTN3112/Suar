@@ -2,6 +2,7 @@ import type {
   PrefilledTaskSkill,
   RoleMatchedProjectMember,
 } from '@/apps/org/modules/tasks/lib/create_prefill'
+import type { TaskBriefV2 } from '@/apps/shared/tasks/task_brief_contract'
 
 export type TaskCreateSkill = PrefilledTaskSkill
 
@@ -59,4 +60,5 @@ export interface TaskCreateFormData {
   profile_eligibility?: boolean
   project_context_version_id?: string
   work_package_version_id?: string
+  brief: TaskBriefV2
 }

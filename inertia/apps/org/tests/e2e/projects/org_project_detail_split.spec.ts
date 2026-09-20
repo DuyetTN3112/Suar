@@ -45,7 +45,7 @@ test.describe('Org Project Detail Split', () => {
     let projectNavigation = page
       .getByRole('navigation')
       .filter({ has: page.getByRole('button', { name: /Project hiện tại/i }) })
-    let operatingModelSidebarButton = projectNavigation.getByRole('button', { name: /Operating model/i })
+    const operatingModelSidebarButton = projectNavigation.getByRole('button', { name: /Operating model/i })
     if (!(await operatingModelSidebarButton.isVisible())) {
       await projectNavigation.getByRole('button', { name: /Project hiện tại/i }).click()
     }

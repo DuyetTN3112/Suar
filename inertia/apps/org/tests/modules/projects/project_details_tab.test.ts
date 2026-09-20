@@ -28,6 +28,7 @@ describe('ProjectDetailsTab', () => {
           name: 'Apollo',
           description: 'Project profile description',
           status: 'in_progress',
+          businessDomains: [],
         },
         formatDate: (value: string) => value.slice(0, 10),
       },
