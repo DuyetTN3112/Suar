@@ -189,7 +189,9 @@ describe('buildTaskCompletionReportPayload', () => {
         evidenceIds: ['evidence-1'],
       },
     ]
-    const current = { ...existing[0], id: 'claim-current-new', actualRole: 'API designer' }
+    const firstClaim = existing[0]
+    if (!firstClaim) throw new Error('Expected existing claim')
+    const current = { ...firstClaim, id: 'claim-current-new', actualRole: 'API designer' }
 
     expect(mergeExistingContributorClaims(existing, current, 'user-1')).toEqual([
       current,

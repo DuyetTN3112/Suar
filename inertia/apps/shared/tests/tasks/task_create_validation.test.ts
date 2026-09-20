@@ -92,7 +92,10 @@ describe('task create validation', () => {
     formData.title = 'todo'
     formData.reviewer_user_id = formData.assigned_to
     formData.required_skills[0] = { id: 'skill-1', name: 'Thiết kế API', rubric_version_id: null, assessment_ceiling_level_id: null }
-    formData.brief.acceptanceCriteria[0].observableResult = 'TBD'
+    const firstCriterion = formData.brief.acceptanceCriteria[0]
+    if (firstCriterion) {
+      firstCriterion.observableResult = 'TBD'
+    }
 
     const errors = validateTaskCreate(formData, 'publish', t)
     expect(errors.title).toMatch(/specific title/i)

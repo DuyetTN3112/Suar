@@ -1,8 +1,13 @@
-import type { HttpResponse } from '@inertiajs/core'
 import { http, router } from '@inertiajs/svelte'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { createSearchNavigation } from '@/apps/shared/search/search_navigation'
+
+interface HttpResponse {
+  status: number
+  data: string
+  headers: Record<string, string>
+}
 
 interface Deferred<T> {
   promise: Promise<T>
@@ -42,6 +47,8 @@ describe('Search navigation late responses', () => {
       url: '/search',
       version: null,
       rescuedProps: [],
+      flash: {},
+      rememberedState: {},
     }
     const swaps: Array<{ url: string; title: string }> = []
     const pending = new Map<string, Deferred<HttpResponse>>()

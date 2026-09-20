@@ -186,7 +186,7 @@
         <ProjectBusinessDomainsField
           domains={editing ? editForm.businessDomains : projectState.business_domains ?? []}
           {editing}
-          onDomainsChange={(domains) => {
+          onDomainsChange={(domains: string[]) => {
             editForm.businessDomains = domains
           }}
         />
