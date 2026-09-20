@@ -11,52 +11,17 @@
   import type { OffsetPagePagination } from '@/apps/org/shared/lib/pagination'
   import { notificationStore } from '@/apps/org/shared/stores/notification_store.svelte'
   import { useTranslation } from '@/apps/org/shared/stores/translation.svelte'
-
-  type SprintStatus = 'draft' | 'active' | 'review_open' | 'review_closed' | 'archived'
-
-  interface ProjectSprint {
-    id: string
-    name: string
-    goal: string | null
-    status: SprintStatus
-    startsAt: string
-    endsAt: string
-    reviewOpenedAt: string | null
-    reviewClosedAt: string | null
-    reverseReviewPendingCount?: number | string
-    reverseReviewAssignerPendingCount?: number | string
-    reverseReviewEnvironmentPendingCount?: number | string
-  }
-
-  interface SprintBoardTask {
-    id: string
-    title: string
-    status: string
-    priority: string
-    assignedTo: string | null
-    projectSprintId: string | null
-    sortOrder: number
-    updatedAt: string
-    addedAfterStart?: boolean
-  }
-
-  interface SprintBoard {
-    projectId: string
-    sprint: {
-      id: string
-      name: string
-      goal: string | null
-      status: SprintStatus
-      startsAt: string
-      endsAt: string
-    } | null
-    backlogTasks: SprintBoardTask[]
-    sprintTasks: SprintBoardTask[]
-    counts: {
-      backlogTasks: number
-      sprintTasks: number
-    }
-  }
+  import {
+    statusFallbacks,
+    type ProjectSprint,
+    type SprintBoard,
+    type SprintBoardTask,
+    type SprintStatus,
+    type TaskHistoryEntry,
+  } from '@/apps/shared/projects/project_sprint_types'
+  import ProjectSprintBoard from './project_sprint_board.svelte'
+  import ProjectSprintEndDeliveryModal from './project_sprint_end_delivery_modal.svelte'
+  import ProjectSprintHistoryModal from './project_sprint_history_modal.svelte'
 
   const { projectId, canManage = false }: { projectId: string; canManage?: boolean } = $props()
 
@@ -74,7 +39,7 @@
   let endDeliveryError = $state<string | null>(null)
   let endDestinations = $state<Record<string, string>>({})
   let historyTaskId = $state<string | null>(null)
-  let taskHistory = $state<Array<{ id: string; sprintId: string | null; entryReason: string; exitReason: string | null; current: boolean }>>([])
+  let taskHistory = $state<TaskHistoryEntry[]>([])
   let pagination = $state<OffsetPagePagination | null>(null)
   let hydratedProjectId = $state<string | null>(null)
   let form = $state({
@@ -85,13 +50,6 @@
   })
   const { t } = useTranslation()
   const documentLocale = $derived(currentDocumentLocale() === 'vi' ? 'vi-VN' : 'en-US')
-  const statusFallbacks: Record<SprintStatus, string> = {
-    draft: 'Draft',
-    active: 'Active',
-    review_open: 'In review',
-    review_closed: 'Review closed',
-    archived: 'Archived',
-  }
 
   $effect(() => {
     if (projectId && hydratedProjectId !== projectId) {
@@ -196,8 +154,8 @@
     }
   }
 
-  function incompleteTasksForEnd(sprintId: string): SprintBoardTask[] {
-    if (selectedSprintId !== sprintId) return []
+  function incompleteTasksForEnd(sprintId: string | null): SprintBoardTask[] {
+    if (!sprintId || selectedSprintId !== sprintId) return []
     return (board?.sprintTasks ?? []).filter((task) => !['done', 'cancelled', 'rejected'].includes(task.status))
   }
 
@@ -515,177 +473,46 @@
       {/if}
     {/if}
 
-    <section class="rounded-lg border border-border bg-background p-4">
-      <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h3 class="text-lg font-black text-foreground">{t('project.sprint_panel.backlog_title_compact', {}, 'Backlog')}</h3>
-          <p class="mt-1 text-xs font-semibold text-muted-foreground">
-            {board?.sprint ? board.sprint.name : t('project.sprint_panel.no_sprint_selected', {}, 'No sprint selected')}
-          </p>
-          {#if board?.sprint?.goal}
-            <p class="mt-2 max-w-2xl text-sm font-semibold text-foreground">
-              {board.sprint.goal}
-            </p>
-          {/if}
-        </div>
-        <Button
-          variant="outline"
-          onclick={() => {
-            void loadSprintBoard(selectedSprintId)
-          }}
-          disabled={boardLoading}
-        >
-          {boardLoading
-            ? t('project.sprint_panel.board_loading', {}, 'Loading board...')
-            : t('project.sprint_panel.refresh_board', {}, 'Refresh board')}
-        </Button>
-      </div>
+    <ProjectSprintBoard
+      {board}
+      {selectedSprintId}
+      {boardLoading}
+      {movingTaskId}
+      canEditSelectedSprint={canEditSelectedSprint()}
+      {taskCountLabel}
+      onRefreshBoard={() => {
+        void loadSprintBoard(selectedSprintId)
+      }}
+      onMoveTaskToSprint={(taskId: string, destId: string | null) => {
+        void moveTaskToSprint(taskId, destId)
+      }}
+      onShowTaskHistory={(taskId: string) => {
+        void showTaskHistory(taskId)
+      }}
+    />
 
-      <div class="mt-4 grid gap-4 lg:grid-cols-2">
-        <div class="rounded-lg border border-dashed border-amber-500/40 bg-amber-500/10 p-3">
-          <div class="flex items-center justify-between gap-2">
-            <h4 class="text-sm font-black uppercase text-foreground">{t('project.sprint_panel.backlog_title', {}, 'Product Backlog')}</h4>
-            <span class="text-xs font-bold text-muted-foreground">
-              {taskCountLabel(board?.counts.backlogTasks ?? 0)}
-            </span>
-          </div>
-          <div class="mt-3 grid gap-2">
-            {#if board?.backlogTasks.length}
-              {#each board.backlogTasks as task (task.id)}
-                <div class="rounded-2xl border border-border bg-background p-3">
-                  <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                    <div>
-                      <div class="text-sm font-black text-foreground">{task.title}</div>
-                      <div class="mt-1 text-xs text-muted-foreground">
-                        {task.status} · {task.priority}
-                        {#if task.addedAfterStart}
-                          <span class="ml-2 font-bold text-amber-700 dark:text-amber-300">{t('project.sprint_panel.scope_change', {}, 'Added after start')}</span>
-                        {/if}
-                      </div>
-                    </div>
-                    {#if canEditSelectedSprint()}
-                      <Button
-                        variant="outline"
-                        onclick={() => {
-                          void moveTaskToSprint(task.id, board?.sprint?.id ?? null)
-                        }}
-                        disabled={movingTaskId === task.id}
-                      >
-                        {movingTaskId === task.id
-                          ? t('project.sprint_panel.moving_button', {}, 'Moving...')
-                          : t('project.sprint_panel.move_to_sprint', {}, 'Move to sprint')}
-                      </Button>
-                    {/if}
-                    <Button variant="ghost" onclick={() => { void showTaskHistory(task.id) }}>
-                      {t('project.sprint_panel.history', {}, 'History')}
-                    </Button>
-                  </div>
-                </div>
-              {/each}
-            {:else}
-              <p class="rounded-lg border border-dashed border-border bg-secondary/30 p-4 text-sm text-muted-foreground">
-                {t('project.sprint_panel.empty_short', {}, 'Empty.')}
-              </p>
-            {/if}
-          </div>
-        </div>
+    <ProjectSprintEndDeliveryModal
+      bind:endingSprintId
+      {sprints}
+      {board}
+      {endDestinations}
+      {endDeliveryError}
+      incompleteTasks={incompleteTasksForEnd(endingSprintId)}
+      onDestinationChange={(taskId: string, dest: string) => {
+        endDestinations = { ...endDestinations, [taskId]: dest }
+      }}
+      onConfirm={confirmEndDelivery}
+      onCancel={() => {
+        endingSprintId = null
+      }}
+    />
 
-        <div class="rounded-lg border border-border bg-background p-3">
-          <div class="flex items-center justify-between gap-2">
-            <h4 class="text-sm font-black uppercase text-foreground">{t('project.sprint_panel.sprint_tasks_title', {}, 'Sprint Tasks')}</h4>
-            <span class="text-xs font-bold text-muted-foreground">
-              {taskCountLabel(board?.counts.sprintTasks ?? 0)}
-            </span>
-          </div>
-          <div class="mt-3 grid gap-2">
-            {#if board?.sprintTasks.length}
-              {#each board.sprintTasks as task (task.id)}
-                <div class="rounded-2xl border border-border bg-background p-3">
-                  <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                    <div>
-                      <div class="text-sm font-black text-foreground">{task.title}</div>
-                      <div class="mt-1 text-xs text-muted-foreground">
-                        {task.status} · {task.priority}
-                      </div>
-                    </div>
-                    {#if canEditSelectedSprint()}
-                      <Button
-                        variant="outline"
-                        onclick={() => {
-                          void moveTaskToSprint(task.id, null)
-                        }}
-                        disabled={movingTaskId === task.id}
-                      >
-                        {movingTaskId === task.id
-                          ? t('project.sprint_panel.moving_button', {}, 'Moving...')
-                          : t('project.sprint_panel.move_to_backlog', {}, 'Move to backlog')}
-                      </Button>
-                    {/if}
-                    <Button variant="ghost" onclick={() => { void showTaskHistory(task.id) }}>
-                      {t('project.sprint_panel.history', {}, 'History')}
-                    </Button>
-                  </div>
-                </div>
-              {/each}
-            {:else}
-              <p class="rounded-lg border border-dashed border-border bg-secondary/30 p-4 text-sm text-muted-foreground">
-                {t('project.sprint_panel.sprint_tasks_empty_compact', {}, 'No tasks yet.')}
-              </p>
-            {/if}
-          </div>
-        </div>
-      </div>
-    </section>
-
-    {#if endingSprintId}
-      <div class="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" role="presentation">
-        <div class="w-full max-w-2xl rounded-xl border border-border bg-background p-5 shadow-xl" role="dialog" aria-modal="true" aria-labelledby="end-delivery-title" tabindex="-1">
-          <h2 id="end-delivery-title" class="text-lg font-black">{t('project.sprint_panel.end_delivery_title', {}, 'End Sprint delivery')}</h2>
-          <p class="mt-1 text-sm text-muted-foreground">{t('project.sprint_panel.end_delivery_help', {}, 'Incomplete work must be explicitly planned before delivery ends.')}</p>
-          <div class="mt-4 grid gap-2">
-            {#each incompleteTasksForEnd(endingSprintId) as task (task.id)}
-              <label class="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-sm">
-                <span class="font-bold">{task.title}</span>
-                <select class="mt-2 block h-9 w-full rounded-md border border-border bg-background px-2" aria-label={`${task.title} destination`} value={endDestinations[task.id]} onchange={(event) => { endDestinations = { ...endDestinations, [task.id]: (event.currentTarget as HTMLSelectElement).value } }}>
-                  <option value="">{t('project.sprint_panel.choose_destination', {}, 'Choose destination')}</option>
-                  <option value="backlog">{t('project.sprint_panel.backlog_title', {}, 'Product Backlog')}</option>
-                  {#each sprints.filter((candidate) => candidate.status === 'draft' && candidate.id !== endingSprintId) as destination}
-                    <option value={destination.id}>{destination.name}</option>
-                  {/each}
-                </select>
-              </label>
-            {/each}
-            {#each (board?.sprintTasks ?? []).filter((task) => ['done', 'cancelled', 'rejected'].includes(task.status)) as task (task.id)}
-              <div class="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-3 text-sm">
-                <div class="font-bold">{task.title}</div>
-                <div class="text-xs text-muted-foreground">{task.status} · {t('project.sprint_panel.historical_result', {}, 'Kept in historical Sprint')}</div>
-              </div>
-            {/each}
-          </div>
-          {#if endDeliveryError}<p class="mt-3 text-sm font-semibold text-red-600" role="alert">{endDeliveryError}</p>{/if}
-          <div class="mt-5 flex justify-end gap-2">
-            <Button variant="outline" onclick={() => { endingSprintId = null }}>{t('project.sprint_panel.cancel', {}, 'Cancel')}</Button>
-            <Button onclick={confirmEndDelivery}>{t('project.sprint_panel.confirm_end_delivery', {}, 'End delivery')}</Button>
-          </div>
-        </div>
-      </div>
-    {/if}
-
-    {#if historyTaskId}
-      <div class="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" role="presentation">
-        <div class="w-full max-w-xl rounded-xl border border-border bg-background p-5 shadow-xl" role="dialog" aria-modal="true" aria-labelledby="history-title" tabindex="-1">
-          <h2 id="history-title" class="text-lg font-black">{t('project.sprint_panel.history_title', {}, 'Assignment history')}</h2>
-          <div class="mt-4 grid gap-2">
-            {#each taskHistory as entry (entry.id)}
-              <div class="rounded-lg border border-border p-3 text-sm">
-                <div class="font-bold">{entry.sprintId ?? t('project.sprint_panel.backlog_title', {}, 'Product Backlog')}</div>
-                <div class="text-xs text-muted-foreground">{entry.entryReason} → {entry.exitReason ?? t('project.sprint_panel.current', {}, 'current')}</div>
-              </div>
-            {/each}
-          </div>
-          <div class="mt-5 flex justify-end"><Button variant="outline" onclick={() => { historyTaskId = null }}>{t('project.sprint_panel.close', {}, 'Close')}</Button></div>
-        </div>
-      </div>
-    {/if}
+    <ProjectSprintHistoryModal
+      bind:historyTaskId
+      {taskHistory}
+      onClose={() => {
+        historyTaskId = null
+      }}
+    />
   </CardContent>
 </Card>

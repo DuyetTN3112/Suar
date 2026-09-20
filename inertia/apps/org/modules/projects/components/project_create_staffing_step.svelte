@@ -19,9 +19,9 @@
   type ProjectSetupPreset = 'delivery_squad' | 'review_pipeline' | 'marketplace_rollout'
 
   interface Props {
-    deliveryModel: 'core_team' | 'hybrid' | 'exploration'
-    staffingFocus: 'fill_now' | 'fill_after_scope' | 'explore_market'
-    projectSetupPreset: ProjectSetupPreset
+    deliveryModel?: 'core_team' | 'hybrid' | 'exploration'
+    staffingFocus?: 'fill_now' | 'fill_after_scope' | 'explore_market'
+    projectSetupPreset?: ProjectSetupPreset
     initialStaffingAssignments: Record<string, string>
     selectedBlueprint: {
       label: string
@@ -30,28 +30,32 @@
     }
     organizationMemberPool: MemberOption[]
     staffingCoverageSummary: string
+    hasDuplicateStaffingAssignments?: boolean
     errors: Record<string, string>
-    formData: { organization_id: string }
-    onStaffingModelChange: (model: 'core_team' | 'hybrid' | 'exploration') => void
-    onStaffingFocusChange: (focus: 'fill_now' | 'fill_after_scope' | 'explore_market') => void
-    onPresetChange: (preset: ProjectSetupPreset) => void
-    onStaffingAssignmentChange: (templateCode: string, userId: string) => void
+    formData?: { organization_id: string }
+    onStaffingModelChange?: (model: 'core_team' | 'hybrid' | 'exploration') => void
+    onStaffingFocusChange?: (focus: 'fill_now' | 'fill_after_scope' | 'explore_market') => void
+    onPresetChange?: (preset: ProjectSetupPreset) => void
+    onStaffingAssignmentChange?: (templateCode: string, userId: string) => void
+    onStaffingChange?: (templateCode: string, userId: string) => void
   }
 
   let {
-    deliveryModel,
-    staffingFocus,
-    projectSetupPreset,
+    deliveryModel = $bindable('core_team'),
+    staffingFocus = $bindable('fill_now'),
+    projectSetupPreset = $bindable('delivery_squad'),
     initialStaffingAssignments,
     selectedBlueprint,
     organizationMemberPool,
     staffingCoverageSummary,
+    hasDuplicateStaffingAssignments = false,
     errors,
     formData,
     onStaffingModelChange,
     onStaffingFocusChange,
     onPresetChange,
     onStaffingAssignmentChange,
+    onStaffingChange,
   }: Props = $props()
 
   const { t } = $derived(useTranslation())
@@ -70,21 +74,30 @@
       <button
         type="button"
         class={`rounded-2xl border p-4 text-left ${deliveryModel === 'core_team' ? 'border-primary bg-primary/5' : 'border-border bg-background'}`}
-        onclick={() => onStaffingModelChange('core_team')}
+        onclick={() => {
+          deliveryModel = 'core_team'
+          onStaffingModelChange?.('core_team')
+        }}
       >
         <p class="text-sm font-semibold text-foreground">{t('project.create_page.delivery_model.core_team', {}, 'Core team')}</p>
       </button>
       <button
         type="button"
         class={`rounded-2xl border p-4 text-left ${deliveryModel === 'hybrid' ? 'border-primary bg-primary/5' : 'border-border bg-background'}`}
-        onclick={() => onStaffingModelChange('hybrid')}
+        onclick={() => {
+          deliveryModel = 'hybrid'
+          onStaffingModelChange?.('hybrid')
+        }}
       >
         <p class="text-sm font-semibold text-foreground">{t('project.create_page.delivery_model.hybrid', {}, 'Hybrid')}</p>
       </button>
       <button
         type="button"
         class={`rounded-2xl border p-4 text-left ${deliveryModel === 'exploration' ? 'border-primary bg-primary/5' : 'border-border bg-background'}`}
-        onclick={() => onStaffingModelChange('exploration')}
+        onclick={() => {
+          deliveryModel = 'exploration'
+          onStaffingModelChange?.('exploration')
+        }}
       >
         <p class="text-sm font-semibold text-foreground">{t('project.create_page.delivery_model.exploration', {}, 'Exploration')}</p>
       </button>
@@ -97,21 +110,30 @@
       <button
         type="button"
         class={`rounded-2xl border p-4 text-left ${staffingFocus === 'fill_now' ? 'border-primary bg-primary/5' : 'border-border bg-background'}`}
-        onclick={() => onStaffingFocusChange('fill_now')}
+        onclick={() => {
+          staffingFocus = 'fill_now'
+          onStaffingFocusChange?.('fill_now')
+        }}
       >
         <p class="text-sm font-semibold text-foreground">{t('project.create_page.staffing_focus.fill_now', {}, 'Fill open roles')}</p>
       </button>
       <button
         type="button"
         class={`rounded-2xl border p-4 text-left ${staffingFocus === 'fill_after_scope' ? 'border-primary bg-primary/5' : 'border-border bg-background'}`}
-        onclick={() => onStaffingFocusChange('fill_after_scope')}
+        onclick={() => {
+          staffingFocus = 'fill_after_scope'
+          onStaffingFocusChange?.('fill_after_scope')
+        }}
       >
         <p class="text-sm font-semibold text-foreground">{t('project.create_page.staffing_focus.fill_after_scope', {}, 'Set up roles first')}</p>
       </button>
       <button
         type="button"
         class={`rounded-2xl border p-4 text-left ${staffingFocus === 'explore_market' ? 'border-primary bg-primary/5' : 'border-border bg-background'}`}
-        onclick={() => onStaffingFocusChange('explore_market')}
+        onclick={() => {
+          staffingFocus = 'explore_market'
+          onStaffingFocusChange?.('explore_market')
+        }}
       >
         <p class="text-sm font-semibold text-foreground">{t('project.create_page.staffing_focus.explore_market', {}, 'Open talent market')}</p>
       </button>
@@ -125,7 +147,10 @@
         <button
           type="button"
           class={`rounded-2xl border p-4 text-left ${projectSetupPreset === preset ? 'border-primary bg-primary/5' : 'border-border bg-background'}`}
-          onclick={() => onPresetChange(preset)}
+          onclick={() => {
+            projectSetupPreset = preset
+            onPresetChange?.(preset)
+          }}
         >
           <p class="text-sm font-semibold text-foreground">{t(`project.create_page.blueprints.${preset}.label`, {}, presetFallbacks[preset])}</p>
         </button>
@@ -163,7 +188,13 @@
       </p>
     {/if}
 
-    {#if !formData.organization_id}
+    {#if hasDuplicateStaffingAssignments}
+      <p class="mt-3 rounded-2xl border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+        {t('project.create_page.has_duplicate_staffing', {}, 'Duplicate member assignments detected across roles.')}
+      </p>
+    {/if}
+
+    {#if !formData?.organization_id}
       <div class="mt-4 rounded-2xl border border-dashed border-border px-4 py-5 text-sm text-muted-foreground">
         {t('project.create_page.initial_staffing.missing_organization', {}, 'Choose an organization before assigning first owners.')}
       </div>
@@ -190,7 +221,8 @@
                 id={`role-slot-${role.templateCode}`}
                 value={initialStaffingAssignments[role.templateCode] ?? ''}
                 onchange={(event) => {
-                  onStaffingAssignmentChange(role.templateCode, event.currentTarget.value)
+                  const handler = onStaffingChange ?? onStaffingAssignmentChange
+                  handler?.(role.templateCode, event.currentTarget.value)
                 }}
                 class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
               >
