@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises'
 
-const manifestPath = new URL('../build/public/assets/.vite/manifest.json', import.meta.url)
+const manifestPath = new URL('../../build/public/assets/.vite/manifest.json', import.meta.url)
 const manifest = JSON.parse(await readFile(manifestPath, 'utf8'))
 
 const requiredEntrypoints = [

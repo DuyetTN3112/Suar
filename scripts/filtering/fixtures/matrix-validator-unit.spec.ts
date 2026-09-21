@@ -1,5 +1,3 @@
-/* eslint-disable @unicorn/filename-case */
-
 import { test } from '@japa/runner'
 
 import {
@@ -9,7 +7,7 @@ import {
 } from '../validate_filter_search_test_matrix.js'
 
 const CASE_ID = 'TC-FST-002'
-const TEST_PATH = 'app/modules/search/tests/backend/integration/search_center_keyword_only.spec.ts'
+const TEST_PATH = 'app/modules/search/tests/backend/integration/search-discovery/search_center_keyword_only.spec.ts'
 const ROLE_PLAY_PATH =
   'inertia/apps/user/tests/e2e/filter_search_taxonomy/search_center_keyword_only_roleplay.spec.ts'
 const SCREENSHOT_PATH = 'scripts/filtering/fixtures/matrix-validator-screenshot.json'

@@ -45,7 +45,7 @@ const ReorderProjectBacklogController = () =>
   import('#modules/sprints/controllers/project-backlog/reorder_project_backlog_controller')
 const ListTaskSprintAssignmentHistoryController = () =>
   import('#modules/sprints/controllers/task-sprint-assignment/list_task_sprint_assignment_history_controller')
-const ListTasksController = () => import('#modules/tasks/controllers/list_tasks_controller')
+const ListTasksController = () => import('#modules/tasks/controllers/task-reading/list_tasks_controller')
 const ShowTaskReviewBoardController = () =>
   import('#modules/reviews/controllers/task-review/show_task_review_board_controller')
 const ShowSprintReverseReviewBoardController = () =>

@@ -22,9 +22,9 @@ const OrgCreateTaskStatusController = () =>
   import('#modules/organizations/controllers/workflow/create_task_status_controller')
 
 const ListOrgReviewDisputesController = () =>
-  import('#modules/reviews/controllers/disputes/list_org_review_disputes_controller')
+  import('#modules/disputes/controllers/list_org_review_disputes_controller')
 const RespondToReviewDisputeController = () =>
-  import('#modules/reviews/controllers/disputes/respond_to_review_dispute_controller')
+  import('#modules/disputes/controllers/respond_to_review_dispute_controller')
 
 const TalentsSearchController = () => import('#modules/users/controllers/recruiting/talents_search_controller')
 const TalentDetailController = () => import('#modules/users/controllers/recruiting/talent_detail_controller')

@@ -2,7 +2,7 @@
 
 import { basename } from 'node:path'
 
-import { enumerateTypeScriptFiles } from './architecture/import_scanner.mjs'
+import { enumerateTypeScriptFiles } from './import_scanner.mjs'
 
 const files = enumerateTypeScriptFiles(['app/modules'])
 const violations = []

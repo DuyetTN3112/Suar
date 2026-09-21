@@ -10,7 +10,7 @@
     SearchCenterResult,
     SourceStatus,
     TotalByType,
-  } from '@/apps/user/modules/search/types'
+  } from '@/apps/shared/search/types'
 
   let searchInput = $state('checkout qa')
   let activeFilter = $state<FilterType>('all')

@@ -2,7 +2,7 @@
 
 import { existsSync, readFileSync } from 'node:fs'
 
-import { enumerateTypeScriptFiles, scanTypeScriptImports } from './architecture/import_scanner.mjs'
+import { enumerateTypeScriptFiles, scanTypeScriptImports } from './import_scanner.mjs'
 
 const MODULE_ROOT = 'app/modules'
 const TOP_LEVEL_SERVICE_ROOT = 'app/services'

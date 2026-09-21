@@ -2,7 +2,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname } from 'node:path'
 
-import { enumerateTypeScriptFiles, scanTypeScriptImports } from './architecture/import_scanner.mjs'
+import { enumerateTypeScriptFiles, scanTypeScriptImports } from './import_scanner.mjs'
 
 const TARGETS = ['app/modules', 'app/infra', 'start']
 const EXCLUDED_SEGMENTS = ['/tests/']
@@ -17,7 +17,7 @@ const START_ALLOWED_TARGET_LAYERS = new Set([
 ])
 const ALLOWLIST_PATH = new URL('./module_boundary_runtime_allowlist.json', import.meta.url)
 const BASELINE_PATH = new URL(
-  '../docs/architecture/generated/module_boundary_runtime_baseline.json',
+  '../../docs/architecture/generated/module_boundary_runtime_baseline.json',
   import.meta.url
 )
 

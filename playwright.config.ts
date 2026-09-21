@@ -58,7 +58,7 @@ export default defineConfig({
   },
   projects: runFullMatrix ? [chromiumProject, ...optionalProjects] : [chromiumProject],
   webServer: {
-    command: 'sh scripts/start_e2e_server.sh',
+    command: 'sh scripts/tests/e2e/start_e2e_server.sh',
     url: testHealthUrl,
     reuseExistingServer,
   },

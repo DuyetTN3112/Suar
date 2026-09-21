@@ -293,7 +293,7 @@ CACHE_INTEGRATION_DRIVER=redis \
   ALLOW_UNSAFE_TEST_DATASTORES=true \
   ALLOW_UNSAFE_TEST_DATASTORES_REASON="local cache resilience drill on verified loopback redis-cache container" \
   node --import=@poppinss/ts-exec bin/test.ts integration \
-  --files app/modules/tasks/tests/backend/integration/list_tasks_cache_outage.spec.ts
+  --files app/modules/tasks/tests/backend/integration/task-discovery/list_tasks_cache_outage.spec.ts
 wait_for_cache_metric 0 || fail "Prometheus did not observe cache Redis as unavailable"
 wait_for_cache_alert_pending || fail "RedisCacheUnavailable alert did not become pending"
 restore_cache || fail "redis-cache did not become healthy after the outage-flow test"

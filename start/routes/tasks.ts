@@ -5,44 +5,44 @@ import { middleware } from '../kernel.js'
 import { throttle } from '#start/limiter'
 
 // Task use-case controllers
-const ListTasksController = () => import('#modules/tasks/controllers/list_tasks_controller')
-const ListMyWorkController = () => import('#modules/tasks/controllers/list_my_work_controller')
-const CreateTaskController = () => import('#modules/tasks/controllers/create_task_controller')
-const ShowTaskController = () => import('#modules/tasks/controllers/show_task_controller')
-const ShowTaskApiController = () => import('#modules/tasks/controllers/show_task_api_controller')
-const EditTaskController = () => import('#modules/tasks/controllers/edit_task_controller')
-const DeleteTaskController = () => import('#modules/tasks/controllers/delete_task_controller')
+const ListTasksController = () => import('#modules/tasks/controllers/task-reading/list_tasks_controller')
+const ListMyWorkController = () => import('#modules/tasks/controllers/task-reading/list_tasks_controller')
+const CreateTaskController = () => import('#modules/tasks/controllers/task-authoring/create_task_controller')
+const ShowTaskController = () => import('#modules/tasks/controllers/task-reading/show_task_controller')
+const ShowTaskApiController = () => import('#modules/tasks/controllers/task-reading/show_task_api_controller')
+const EditTaskController = () => import('#modules/tasks/controllers/task-authoring/edit_task_controller')
+const DeleteTaskController = () => import('#modules/tasks/controllers/task-authoring/delete_task_controller')
 const UpdateTaskStatusController = () =>
-  import('#modules/tasks/controllers/update_task_status_controller')
+  import('#modules/tasks/controllers/task-status/update_task_status_controller')
 const UpdateTaskTimeController = () =>
-  import('#modules/tasks/controllers/update_task_time_controller')
+  import('#modules/tasks/controllers/task-authoring/update_task_time_controller')
 const GetTaskAuditLogsController = () =>
   import('#modules/tasks/controllers/task-reading/get_task_audit_logs_controller')
 const TaskSubmissionController = () =>
-  import('#modules/tasks/controllers/task_submission_controller')
+  import('#modules/tasks/controllers/task-submissions/task_submission_surface')
 const CheckCreatePermissionController = () =>
-  import('#modules/tasks/controllers/check_create_permission_controller')
+  import('#modules/tasks/controllers/task-authoring/check_create_permission_controller')
 const ListTasksGroupedController = () =>
-  import('#modules/tasks/controllers/list_tasks_grouped_controller')
+  import('#modules/tasks/controllers/task-reading/list_tasks_grouped_controller')
 const ListTasksTimelineController = () =>
-  import('#modules/tasks/controllers/list_tasks_timeline_controller')
+  import('#modules/tasks/controllers/task-reading/list_tasks_timeline_controller')
 const UpdateTaskSortOrderController = () =>
-  import('#modules/tasks/controllers/update_task_sort_order_controller')
+  import('#modules/tasks/controllers/task-authoring/update_task_sort_order_controller')
 const BatchUpdateTaskStatusController = () =>
-  import('#modules/tasks/controllers/batch_update_task_status_controller')
+  import('#modules/tasks/controllers/task-status/batch_update_task_status_controller')
 
 // Task Status + Workflow controllers (Phase 4)
 const ListTaskStatusesController = () =>
-  import('#modules/tasks/controllers/list_task_statuses_controller')
+  import('#modules/tasks/controllers/task-status/list_task_statuses_controller')
 const CreateTaskStatusController = () =>
-  import('#modules/tasks/controllers/create_task_status_controller')
+  import('#modules/tasks/controllers/task-status/create_task_status_controller')
 const UpdateTaskStatusDefinitionController = () =>
-  import('#modules/tasks/controllers/update_task_status_definition_controller')
+  import('#modules/tasks/controllers/task-status/update_task_status_definition_controller')
 const DeleteTaskStatusController = () =>
-  import('#modules/tasks/controllers/delete_task_status_controller')
-const ListWorkflowController = () => import('#modules/tasks/controllers/list_workflow_controller')
+  import('#modules/tasks/controllers/task-status/delete_task_status_controller')
+const ListWorkflowController = () => import('#modules/tasks/controllers/task-workflow/list_workflow_controller')
 const ReplaceTaskWorkflowTransitionsController = () =>
-  import('#modules/tasks/controllers/replace_task_workflow_transitions_controller')
+  import('#modules/tasks/controllers/task-workflow/replace_task_workflow_transitions_controller')
 
 router
   .group(() => {

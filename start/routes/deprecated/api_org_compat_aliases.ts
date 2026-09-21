@@ -10,9 +10,9 @@ const RecruiterBookmarksController = () =>
   import('#modules/users/controllers/bookmarks/recruiter_bookmarks_controller')
 
 const ListOrgReviewDisputesController = () =>
-  import('#modules/reviews/controllers/disputes/list_org_review_disputes_controller')
+  import('#modules/disputes/controllers/list_org_review_disputes_controller')
 const RespondToReviewDisputeController = () =>
-  import('#modules/reviews/controllers/disputes/respond_to_review_dispute_controller')
+  import('#modules/disputes/controllers/respond_to_review_dispute_controller')
 
 /**
  * Deprecated compatibility aliases under `/api/org/*` and the deprecated

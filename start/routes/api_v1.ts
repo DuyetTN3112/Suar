@@ -66,10 +66,10 @@ const FilterContextsController = () =>
   import('#modules/filtering/controllers/filter_contexts_controller')
 const FilterQueryController = () => import('#modules/filtering/controllers/filter_query_controller')
 const FilterSavedViewsController = () =>
-  import('#modules/filtering/controllers/filter_saved_views_controller')
+  import('#modules/filtering/controllers/filter_saved_views_surface')
 const TaskAssignmentInteractionController = () =>
   import('#modules/tasks/controllers/task-assignment/task_assignment_interaction_controller')
-const TaskSubmissionController = () => import('#modules/tasks/controllers/task_submission_controller')
+const TaskSubmissionController = () => import('#modules/tasks/controllers/task-submissions/task_submission_surface')
 
 // Read-only routes — any authenticated user
 router

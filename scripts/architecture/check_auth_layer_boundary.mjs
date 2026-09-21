@@ -5,15 +5,15 @@ import { existsSync } from 'node:fs'
 import {
   enumerateTypeScriptFiles,
   scanTypeScriptImports,
-} from './architecture/import_scanner.mjs'
+} from './import_scanner.mjs'
 
 const AUTH_ROOT = 'app/modules/auth'
 const REQUIRED_DOMAIN_FILES = [
-  `${AUTH_ROOT}/domain/auth_session_observation.ts`,
-  `${AUTH_ROOT}/domain/landing_surface.ts`,
-  `${AUTH_ROOT}/domain/session_access_policy.ts`,
-  `${AUTH_ROOT}/domain/social_auth_provider.ts`,
-  `${AUTH_ROOT}/domain/social_login_identity.ts`,
+  `${AUTH_ROOT}/domain/session-management/auth_session_observation.ts`,
+  `${AUTH_ROOT}/domain/session-management/landing_surface.ts`,
+  `${AUTH_ROOT}/domain/session-management/session_access_policy.ts`,
+  `${AUTH_ROOT}/domain/social-auth/social_auth_provider.ts`,
+  `${AUTH_ROOT}/domain/social-auth/social_login_identity.ts`,
 ]
 const roots = [
   `${AUTH_ROOT}/actions`,

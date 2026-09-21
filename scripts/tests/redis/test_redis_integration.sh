@@ -17,6 +17,6 @@ run_integration_file() {
 # graph allows lifecycle cleanup to invalidate another file's in-flight lock.
 run_integration_file app/modules/cache/tests/backend/integration/cache_service_redis.spec.ts
 run_integration_file app/modules/cache/tests/backend/integration/cache_singleflight_multiprocess.spec.ts
-run_integration_file app/modules/notifications/tests/backend/integration/notification_unread_cache_redis.spec.ts
+run_integration_file app/modules/notifications/tests/backend/integration/notification-feed/notification_unread_cache_redis.spec.ts
 run_integration_file app/modules/http/tests/backend/integration/redis_api_standardization.spec.ts
 run_integration_file app/modules/http/tests/backend/integration/cache_metrics_endpoint.spec.ts

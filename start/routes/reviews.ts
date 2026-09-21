@@ -11,33 +11,33 @@ const UserReviewsController = () => import('#modules/reviews/controllers/review-
 const CreateReviewSessionController = () =>
   import('#modules/reviews/controllers/review-session/create_review_session_controller')
 const CreateReviewDisputeController = () =>
-  import('#modules/reviews/controllers/disputes/create_review_dispute_controller')
+  import('#modules/disputes/controllers/create_review_dispute_controller')
 const ListAdminReviewDisputesController = () =>
-  import('#modules/reviews/controllers/disputes/list_admin_review_disputes_controller')
+  import('#modules/disputes/controllers/list_admin_review_disputes_controller')
 const ListOrgReviewDisputesController = () =>
-  import('#modules/reviews/controllers/disputes/list_org_review_disputes_controller')
+  import('#modules/disputes/controllers/list_org_review_disputes_controller')
 const CreateReviewDisputeCommentController = () =>
-  import('#modules/reviews/controllers/disputes/create_review_dispute_comment_controller')
+  import('#modules/disputes/controllers/create_review_dispute_comment_controller')
 const CreateReviewDisputeEvidenceController = () =>
-  import('#modules/reviews/controllers/disputes/create_review_dispute_evidence_controller')
+  import('#modules/disputes/controllers/create_review_dispute_evidence_controller')
 const BuildReviewDisputeCaseFileController = () =>
-  import('#modules/reviews/controllers/disputes/build_review_dispute_case_file_controller')
+  import('#modules/disputes/controllers/build_review_dispute_case_file_controller')
 const ListReviewDisputeCaseFilesController = () =>
-  import('#modules/reviews/controllers/disputes/list_review_dispute_case_files_controller')
+  import('#modules/disputes/controllers/list_review_dispute_case_files_controller')
 const ListReviewDisputeCommentsController = () =>
-  import('#modules/reviews/controllers/disputes/list_review_dispute_comments_controller')
+  import('#modules/disputes/controllers/list_review_dispute_comments_controller')
 const ListAiDisputeEvaluationsController = () =>
-  import('#modules/reviews/controllers/disputes/list_ai_dispute_evaluations_controller')
+  import('#modules/disputes/controllers/list_ai_dispute_evaluations_controller')
 const ListReviewDisputeEvidencesController = () =>
-  import('#modules/reviews/controllers/disputes/list_review_dispute_evidences_controller')
+  import('#modules/disputes/controllers/list_review_dispute_evidences_controller')
 const ResolveReviewDisputeController = () =>
-  import('#modules/reviews/controllers/disputes/resolve_review_dispute_controller')
+  import('#modules/disputes/controllers/resolve_review_dispute_controller')
 const ShowAdminReviewDisputeController = () =>
-  import('#modules/reviews/controllers/disputes/show_admin_review_dispute_controller')
+  import('#modules/disputes/controllers/show_admin_review_dispute_controller')
 const StartAiDisputeEvaluationController = () =>
-  import('#modules/reviews/controllers/disputes/start_ai_dispute_evaluation_controller')
+  import('#modules/disputes/controllers/start_ai_dispute_evaluation_controller')
 const ApproveAiProfileCapabilityProposalController = () =>
-  import('#modules/reviews/controllers/disputes/approve_ai_profile_capability_proposal_controller')
+  import('#modules/disputes/controllers/approve_ai_profile_capability_proposal_controller')
 const CloseProjectSprintReviewController = () =>
   import('#modules/reviews/controllers/sprint-review/close_project_sprint_review_controller')
 const CloseProjectSprintReviewPeriodController = () =>
@@ -64,9 +64,9 @@ const ListSprintReviewPackagesController = () =>
 const ShowSprintReviewPackageController = () =>
   import('#modules/reviews/controllers/sprint-review/show_sprint_review_package_controller')
 const RespondToReviewDisputeController = () =>
-  import('#modules/reviews/controllers/disputes/respond_to_review_dispute_controller')
+  import('#modules/disputes/controllers/respond_to_review_dispute_controller')
 const ReportReviewDisputeController = () =>
-  import('#modules/reviews/controllers/disputes/report_review_dispute_controller')
+  import('#modules/disputes/controllers/report_review_dispute_controller')
 const AddReviewEvidenceController = () =>
   import('#modules/reviews/controllers/review-core/add_review_evidence_controller')
 const UpsertTaskSelfAssessmentController = () =>
@@ -476,7 +476,7 @@ router
   ])
 
 const AiDisputeCallbackController = () =>
-  import('#modules/reviews/controllers/disputes/ai_dispute_callback_controller')
+  import('#modules/disputes/controllers/ai_dispute_callback_controller')
 
 router
   .post('/api/public/ai-disputes/callback', [AiDisputeCallbackController, 'handle'])

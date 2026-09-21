@@ -1,9 +1,9 @@
 import router from '@adonisjs/core/services/router'
 
-const ListProficiencyScalesController = () => import('#modules/skills/controllers/list_proficiency_scales_controller')
-const ShowProficiencyScaleController = () => import('#modules/skills/controllers/show_proficiency_scale_controller')
-const ListSkillRubricsController = () => import('#modules/skills/controllers/list_skill_rubrics_controller')
-const ShowSkillRubricController = () => import('#modules/skills/controllers/show_skill_rubric_controller')
+const ListProficiencyScalesController = () => import('#modules/skills/controllers/rubric-and-proficiency/list_proficiency_scales_controller')
+const ShowProficiencyScaleController = () => import('#modules/skills/controllers/rubric-and-proficiency/show_proficiency_scale_controller')
+const ListSkillRubricsController = () => import('#modules/skills/controllers/rubric-and-proficiency/list_skill_rubrics_controller')
+const ShowSkillRubricController = () => import('#modules/skills/controllers/rubric-and-proficiency/show_skill_rubric_controller')
 import { middleware } from '#start/kernel'
 
 const GetRoleStaffingCandidatesController = () =>
@@ -25,22 +25,22 @@ router
 
     // Global active skills and templates
     router
-      .get('/skills', [() => import('#modules/skills/controllers/list_active_skills_controller'), 'handle'])
+      .get('/skills', [() => import('#modules/skills/controllers/skill-catalog/list_active_skills_controller'), 'handle'])
       .as('index')
     router
-      .get('/professional-role-templates', [() => import('#modules/skills/controllers/list_role_templates_controller'), 'handle'])
+      .get('/professional-role-templates', [() => import('#modules/skills/controllers/skill-catalog/list_role_templates_controller'), 'handle'])
       .as('role_templates.index')
 
     // Project skills catalog routes
     router
       .group(() => {
-        router.get('/', [() => import('#modules/skills/controllers/list_project_skills_controller'), 'handle']).as('projects.skills.index')
+        router.get('/', [() => import('#modules/skills/controllers/project-skills/list_project_skills_controller'), 'handle']).as('projects.skills.index')
         router
           .post('/custom', [() => import('#modules/skills/controllers/project-skills/create_custom_project_skill_controller'), 'handle'])
           .as('projects.skills.custom.store')
-        router.post('/', [() => import('#modules/skills/controllers/add_project_skill_controller'), 'handle']).as('projects.skills.store')
-        router.put('/:projectSkillId', [() => import('#modules/skills/controllers/update_project_skill_controller'), 'handle']).as('projects.skills.update')
-        router.delete('/:projectSkillId', [() => import('#modules/skills/controllers/deactivate_project_skill_controller'), 'handle']).as('projects.skills.destroy')
+        router.post('/', [() => import('#modules/skills/controllers/project-skills/add_project_skill_controller'), 'handle']).as('projects.skills.store')
+        router.put('/:projectSkillId', [() => import('#modules/skills/controllers/project-skills/update_project_skill_controller'), 'handle']).as('projects.skills.update')
+        router.delete('/:projectSkillId', [() => import('#modules/skills/controllers/project-skills/deactivate_project_skill_controller'), 'handle']).as('projects.skills.destroy')
       })
       .prefix('/projects/:projectId/skills')
       .use([middleware.bindApiAuthContract('bearer-or-session'), middleware.auth(), middleware.requireOrg()])
@@ -48,12 +48,12 @@ router
     // Project professional roles routes
     router
       .group(() => {
-        router.get('/', [() => import('#modules/skills/controllers/list_project_roles_controller'), 'handle']).as('projects.roles.index')
-        router.post('/', [() => import('#modules/skills/controllers/create_project_role_controller'), 'handle']).as('projects.roles.store')
-        router.put('/:roleId/skills/:roleSkillId', [() => import('#modules/skills/controllers/update_project_role_skill_controller'), 'handle']).as('projects.roles.skills.update')
-        router.post('/:roleId/skills', [() => import('#modules/skills/controllers/update_project_role_skill_controller'), 'handle']).as('projects.roles.skills.store')
-        router.delete('/:roleId/skills/:roleSkillId', [() => import('#modules/skills/controllers/deactivate_project_role_controller'), 'handle']).as('projects.roles.skills.destroy')
-        router.delete('/:roleId', [() => import('#modules/skills/controllers/deactivate_project_role_controller'), 'handle']).as('projects.roles.destroy')
+        router.get('/', [() => import('#modules/skills/controllers/project-roles/list_project_roles_controller'), 'handle']).as('projects.roles.index')
+        router.post('/', [() => import('#modules/skills/controllers/project-roles/create_project_role_controller'), 'handle']).as('projects.roles.store')
+        router.put('/:roleId/skills/:roleSkillId', [() => import('#modules/skills/controllers/project-roles/update_project_role_skill_controller'), 'handle']).as('projects.roles.skills.update')
+        router.post('/:roleId/skills', [() => import('#modules/skills/controllers/project-roles/update_project_role_skill_controller'), 'handle']).as('projects.roles.skills.store')
+        router.delete('/:roleId/skills/:roleSkillId', [() => import('#modules/skills/controllers/project-roles/deactivate_project_role_controller'), 'handle']).as('projects.roles.skills.destroy')
+        router.delete('/:roleId', [() => import('#modules/skills/controllers/project-roles/deactivate_project_role_controller'), 'handle']).as('projects.roles.destroy')
         router.get('/:roleId/candidates', [GetRoleStaffingCandidatesController, 'handle']).as('projects.roles.candidates')
         router
           .get('/:roleId/requirements', [GetRoleRequirementsController, 'handle'])

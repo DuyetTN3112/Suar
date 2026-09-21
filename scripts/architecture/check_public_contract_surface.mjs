@@ -2,13 +2,13 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname } from 'node:path'
 
-import { enumerateTypeScriptFiles, scanTypeScriptImports } from './architecture/import_scanner.mjs'
+import { enumerateTypeScriptFiles, scanTypeScriptImports } from './import_scanner.mjs'
 
 const MODULE_ROOTS = ['app/modules']
 const EXCLUDED_SEGMENTS = ['/tests/']
 const ALLOWLIST_PATH = new URL('./public_contract_surface_allowlist.json', import.meta.url)
 const BASELINE_PATH = new URL(
-  '../docs/architecture/generated/public_contract_surface_baseline.json',
+  '../../docs/architecture/generated/public_contract_surface_baseline.json',
   import.meta.url
 )
 const PUBLIC_CONTRACT_FORBIDDEN_PREFIXES = ['@adonisjs/', '#config/', '#database/']

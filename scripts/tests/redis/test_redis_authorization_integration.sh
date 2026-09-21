@@ -15,5 +15,5 @@ run_integration_file() {
 # the safe PostgreSQL integration bootstrap. Keep separate processes so schema
 # teardown and cache cleanup cannot overlap another file's in-flight work.
 run_integration_file app/modules/cache/tests/backend/integration/cache_invalidation_outbox_redis.spec.ts
-run_integration_file app/modules/tasks/tests/backend/integration/task_collection_generation_cache.spec.ts
-run_integration_file app/modules/tasks/tests/backend/integration/task_metadata_query.spec.ts
+run_integration_file app/modules/tasks/tests/backend/integration/task-discovery/task_collection_generation_cache.spec.ts
+run_integration_file app/modules/tasks/tests/backend/integration/task-discovery/task_metadata_query.spec.ts

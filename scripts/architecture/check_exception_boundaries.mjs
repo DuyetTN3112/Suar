@@ -4,7 +4,7 @@ import { extname, join, relative, resolve } from 'node:path'
 
 import ts from 'typescript'
 
-const ROOT = resolve(import.meta.dirname, '..')
+const ROOT = resolve(import.meta.dirname, '../..')
 
 /**
  * Transitional ratchet. Existing generic 400 exceptions are migration debt:
