@@ -2,32 +2,32 @@ import { test } from '@japa/runner'
 
 import ForbiddenException from '#modules/errors/public_contracts/forbidden_exception'
 import { Result } from '#modules/errors/public_contracts/result'
-import BatchUpdateTaskStatusController from '#modules/tasks/controllers/batch_update_task_status_controller'
 import CheckCreatePermissionController from '#modules/tasks/controllers/task-authoring/check_create_permission_controller'
-import CreateTaskStatusController from '#modules/tasks/controllers/create_task_status_controller'
-import DeleteTaskStatusController from '#modules/tasks/controllers/delete_task_status_controller'
-import EditTaskController from '#modules/tasks/controllers/edit_task_controller'
+import EditTaskController from '#modules/tasks/controllers/task-authoring/edit_task_controller'
+import UpdateTaskSortOrderController from '#modules/tasks/controllers/task-authoring/update_task_sort_order_controller'
+import UpdateTaskTimeController from '#modules/tasks/controllers/task-authoring/update_task_time_controller'
 import GetTaskAuditLogsController from '#modules/tasks/controllers/task-reading/get_task_audit_logs_controller'
-import ListTaskStatusesController from '#modules/tasks/controllers/list_task_statuses_controller'
-import ListTasksGroupedController from '#modules/tasks/controllers/list_tasks_grouped_controller'
-import ListTasksTimelineController from '#modules/tasks/controllers/list_tasks_timeline_controller'
-import ListWorkflowController from '#modules/tasks/controllers/list_workflow_controller'
-import ReplaceTaskWorkflowTransitionsController from '#modules/tasks/controllers/replace_task_workflow_transitions_controller'
-import UpdateTaskSortOrderController from '#modules/tasks/controllers/update_task_sort_order_controller'
-import UpdateTaskStatusController from '#modules/tasks/controllers/update_task_status_controller'
-import UpdateTaskStatusDefinitionController from '#modules/tasks/controllers/update_task_status_definition_controller'
-import UpdateTaskTimeController from '#modules/tasks/controllers/update_task_time_controller'
+import ListTasksGroupedController from '#modules/tasks/controllers/task-reading/list_tasks_grouped_controller'
+import ListTasksTimelineController from '#modules/tasks/controllers/task-reading/list_tasks_timeline_controller'
+import BatchUpdateTaskStatusController from '#modules/tasks/controllers/task-status/batch_update_task_status_controller'
+import CreateTaskStatusController from '#modules/tasks/controllers/task-status/create_task_status_controller'
+import DeleteTaskStatusController from '#modules/tasks/controllers/task-status/delete_task_status_controller'
+import ListTaskStatusesController from '#modules/tasks/controllers/task-status/list_task_statuses_controller'
+import UpdateTaskStatusController from '#modules/tasks/controllers/task-status/update_task_status_controller'
+import UpdateTaskStatusDefinitionController from '#modules/tasks/controllers/task-status/update_task_status_definition_controller'
+import ListWorkflowController from '#modules/tasks/controllers/task-workflow/list_workflow_controller'
+import ReplaceTaskWorkflowTransitionsController from '#modules/tasks/controllers/task-workflow/replace_task_workflow_transitions_controller'
 import AddTaskRequirementController from '#modules/tasks/controllers/v1/add_task_requirement_controller'
-import ListTaskRequirementVersionsController from '#modules/tasks/controllers/v1/list_task_requirement_versions_controller'
-import PrefillTaskRequirementsFromRoleController from '#modules/tasks/controllers/v1/prefill_task_requirements_from_role_controller'
-import RemoveTaskRequirementController from '#modules/tasks/controllers/v1/remove_task_requirement_controller'
-import UpdateTaskRequirementController from '#modules/tasks/controllers/v1/update_task_requirement_controller'
 import V1CreateTaskStatusController from '#modules/tasks/controllers/v1/create_task_status_controller'
 import V1DeleteTaskStatusController from '#modules/tasks/controllers/v1/delete_task_status_controller'
+import ListTaskRequirementVersionsController from '#modules/tasks/controllers/v1/list_task_requirement_versions_controller'
 import V1ListTaskStatusesController from '#modules/tasks/controllers/v1/list_task_statuses_controller'
 import V1ListWorkflowController from '#modules/tasks/controllers/v1/list_workflow_controller'
+import PrefillTaskRequirementsFromRoleController from '#modules/tasks/controllers/v1/prefill_task_requirements_from_role_controller'
+import RemoveTaskRequirementController from '#modules/tasks/controllers/v1/remove_task_requirement_controller'
 import V1ReplaceTaskWorkflowTransitionsController from '#modules/tasks/controllers/v1/replace_task_workflow_transitions_controller'
 import V1ShowTaskStatusController from '#modules/tasks/controllers/v1/show_task_status_controller'
+import UpdateTaskRequirementController from '#modules/tasks/controllers/v1/update_task_requirement_controller'
 import V1UpdateTaskStatusController from '#modules/tasks/controllers/v1/update_task_status_controller'
 
 function context(overrides: Record<string, unknown> = {}) {
@@ -202,46 +202,52 @@ test.group('Task status Result boundaries', () => {
       },
       failure
     )
+    const commandAction = { executeAndWrap: wrapped, execute: direct }
+    const updateRequirementCtx = {
+      ...context(),
+      params: { requirementId: 'requirement-1' },
+    }
     await assertFailure(
       assert,
       () =>
-        new UpdateTaskRequirementController({ executeAndWrap: wrapped, execute: direct } as never).handle({
-          ...context(),
-          params: { requirementId: 'requirement-1' },
-        } as never),
+        new UpdateTaskRequirementController(commandAction as never).handle(
+          updateRequirementCtx as never
+        ),
       failure
     )
+    const listVersionsCtx = { ...context(), params: { taskId: 'task-1' } }
     await assertFailure(
       assert,
       () =>
-        new ListTaskRequirementVersionsController({
-          executeAndWrap: wrapped,
-          execute: direct,
-        } as never).handle({ ...context(), params: { taskId: 'task-1' } } as never),
+        new ListTaskRequirementVersionsController(commandAction as never).handle(
+          listVersionsCtx as never
+        ),
       failure
     )
+    const prefillCtx = {
+      ...context({ projectProfessionalRoleId: '00000000-0000-4000-8000-000000000002' }),
+      params: { taskId: 'task-1' },
+    }
     await assertFailure(
       assert,
       () =>
         new PrefillTaskRequirementsFromRoleController({
           executeAndWrap: wrapped,
           execute: direct,
-        } as never).handle(
-          {
-            ...context({ projectProfessionalRoleId: '00000000-0000-4000-8000-000000000002' }),
-            params: { taskId: 'task-1' },
-          } as never
-        ),
+        }).handle(prefillCtx as never),
       failure
     )
+    const removeRequirementCtx = {
+      ...context(),
+      params: { requirementId: 'requirement-1' },
+      response: { noContent: () => undefined },
+    }
     await assertFailure(
       assert,
       () =>
-        new RemoveTaskRequirementController({ executeAndWrap: wrapped, execute: direct } as never).handle({
-          ...context(),
-          params: { requirementId: 'requirement-1' },
-          response: { noContent: () => undefined },
-        } as never),
+        new RemoveTaskRequirementController(commandAction as never).handle(
+          removeRequirementCtx as never
+        ),
       failure
     )
     await assertFailure(
@@ -260,7 +266,11 @@ test.group('Task status Result boundaries', () => {
       () => {
         const requirementCommand = { executeAndWrap: wrapped, execute: direct }
         const requirementContext = {
-          ...context({ skillId: '00000000-0000-4000-8000-000000000001' }),
+          ...context({
+            skillId: '00000000-0000-4000-8000-000000000001',
+            projectSkillId: '00000000-0000-4000-8000-000000000002',
+            minimumLevelId: '00000000-0000-4000-8000-000000000003',
+          }),
           params: { taskId: 'task-1' },
           response: { created: () => undefined },
         }

@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/consistent-type-assertions */
-
 import { test } from '@japa/runner'
 
 import ForbiddenException from '#modules/errors/public_contracts/forbidden_exception'
@@ -8,6 +6,10 @@ import CreateProjectRoleController from '#modules/skills/controllers/project-rol
 import DeactivateProjectRoleController from '#modules/skills/controllers/project-roles/deactivate_project_role_controller'
 import ListProjectRolesController from '#modules/skills/controllers/project-roles/list_project_roles_controller'
 import UpdateProjectRoleSkillController from '#modules/skills/controllers/project-roles/update_project_role_skill_controller'
+
+function asNever<T = never>(value: unknown): T {
+  return value as T
+}
 
 function baseContext() {
   return {
@@ -50,8 +52,8 @@ test.group('Skills project-roles Result boundaries', () => {
 
     await assertFailure(
       () =>
-        new ListProjectRolesController({ makeListRoles: () => query } as never).handle(
-          baseContext() as never
+        new ListProjectRolesController(asNever({ makeListRoles: () => query })).handle(
+          asNever(baseContext())
         ),
       failure,
       assert
@@ -71,25 +73,25 @@ test.group('Skills project-roles Result boundaries', () => {
     }
 
     await assertFailure(
-      () => new CreateProjectRoleController(actions as never).handle(baseContext() as never),
+      () => new CreateProjectRoleController(asNever(actions)).handle(asNever(baseContext())),
       failure,
       assert
     )
     await assertFailure(
       () =>
-        new DeactivateProjectRoleController(actions as never).handle({
+        new DeactivateProjectRoleController(asNever(actions)).handle(asNever({
           ...baseContext(),
           params: { projectId: 'project-1', roleId: 'role-1' },
-        } as never),
+        })),
       failure,
       assert
     )
     await assertFailure(
       () =>
-        new UpdateProjectRoleSkillController(actions as never).handle({
+        new UpdateProjectRoleSkillController(asNever(actions)).handle(asNever({
           ...baseContext(),
           params: { projectId: 'project-1', roleId: 'role-1' },
-        } as never),
+        })),
       failure,
       assert
     )
@@ -124,33 +126,33 @@ test.group('Skills project-roles Result boundaries', () => {
       },
     }
 
-    const listed = await new ListProjectRolesController({
+    const listed = await new ListProjectRolesController(asNever({
       makeListRoles: () => listResult,
-    } as never).handle(ctx as never)
+    })).handle(asNever(ctx))
     assert.deepEqual(listed, {
       data: [{ id: 'role-1', projectId: 'project-1', sourceTemplate: null, skills: [] }],
     })
 
-    const created = await new CreateProjectRoleController({
+    const created = await new CreateProjectRoleController(asNever({
       makeCreateRole: () => createResult,
-    } as never).handle(ctx as never)
+    })).handle(asNever(ctx))
     assert.deepEqual(created, { data: { id: 'role-1', projectId: 'project-1' } })
 
-    await new DeactivateProjectRoleController({
+    await new DeactivateProjectRoleController(asNever({
       makeDeleteRoleTarget: () => ({ executeAndWrap: () => Promise.resolve(Result.ok(undefined)) }),
-    } as never).handle({
+    })).handle(asNever({
       ...ctx,
       params: { projectId: 'project-1', roleId: 'role-1' },
-    } as never)
+    }))
     assert.strictEqual(statusCode, 204)
     assert.strictEqual(sentPayload, null)
 
-    const updated = await new UpdateProjectRoleSkillController({
+    const updated = await new UpdateProjectRoleSkillController(asNever({
       makeUpsertRoleSkill: () => mutationResult,
-    } as never).handle({
+    })).handle(asNever({
       ...ctx,
       params: { projectId: 'project-1', roleId: 'role-1' },
-    } as never)
+    }))
     assert.deepEqual(updated, { data: { id: 'role-skill-1', projectSkillId: 'skill-1' } })
   })
 
@@ -161,39 +163,39 @@ test.group('Skills project-roles Result boundaries', () => {
 
     await assertFailure(
       () =>
-        new ListProjectRolesController({ makeListRoles: () => query } as never).handle(
-          baseContext() as never
+        new ListProjectRolesController(asNever({ makeListRoles: () => query })).handle(
+          asNever(baseContext())
         ),
       unexpected,
       assert
     )
     await assertFailure(
       () =>
-        new CreateProjectRoleController({ makeCreateRole: () => command } as never).handle(
-          baseContext() as never
+        new CreateProjectRoleController(asNever({ makeCreateRole: () => command })).handle(
+          asNever(baseContext())
         ),
       unexpected,
       assert
     )
     await assertFailure(
       () =>
-        new DeactivateProjectRoleController({
+        new DeactivateProjectRoleController(asNever({
           makeDeleteRoleTarget: () => command,
-        } as never).handle({
+        })).handle(asNever({
           ...baseContext(),
           params: { projectId: 'project-1', roleId: 'role-1' },
-        } as never),
+        })),
       unexpected,
       assert
     )
     await assertFailure(
       () =>
-        new UpdateProjectRoleSkillController({
+        new UpdateProjectRoleSkillController(asNever({
           makeUpsertRoleSkill: () => command,
-        } as never).handle({
+        })).handle(asNever({
           ...baseContext(),
           params: { projectId: 'project-1', roleId: 'role-1' },
-        } as never),
+        })),
       unexpected,
       assert
     )

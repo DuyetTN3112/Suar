@@ -3,8 +3,8 @@ import { test } from '@japa/runner'
 import NotFoundException from '#modules/errors/public_contracts/not_found_exception'
 import { Result } from '#modules/errors/public_contracts/result'
 import type { OrganizationInvitationQueryFactory } from '#modules/organizations/actions/ports/inbound/invitations/organization_invitation_query_factory'
-import ListJoinRequestsController from '#modules/organizations/controllers/invitations/list_join_requests_controller'
 import type { OrganizationMemberCandidateQueryFactory } from '#modules/organizations/actions/ports/inbound/members/organization_member_candidate_query_factory'
+import ListJoinRequestsController from '#modules/organizations/controllers/invitations/list_join_requests_controller'
 import ListMemberCandidatesController from '#modules/organizations/controllers/members/list_member_candidates_controller'
 
 const failureAction = () => {

@@ -2,7 +2,7 @@ import { test } from '@japa/runner'
 
 import ConfirmReviewCommand from '#modules/reviews/actions/commands/review-submission/confirm_review_command'
 import { ConfirmReviewDTO } from '#modules/reviews/actions/dtos/request/review_dtos'
-import type { ReviewConfirmationDisputeUnitOfWork } from '#modules/reviews/actions/ports/outbound/review_confirmation_dispute_unit_of_work'
+import type { ReviewConfirmationDisputeUnitOfWork } from '#modules/disputes/actions/ports/outbound/review_confirmation_dispute_unit_of_work'
 
 test('confirm review exposes expected application failures through the canonical Result', async ({
   assert,

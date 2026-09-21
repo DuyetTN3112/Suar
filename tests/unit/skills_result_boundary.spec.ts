@@ -2,19 +2,19 @@ import { test } from '@japa/runner'
 
 import ForbiddenException from '#modules/errors/public_contracts/forbidden_exception'
 import { Result } from '#modules/errors/public_contracts/result'
-import AddProjectSkillController from '#modules/skills/controllers/project-skills/add_project_skill_controller'
 import CreateProjectRoleController from '#modules/skills/controllers/project-roles/create_project_role_controller'
-import DeactivateProjectSkillController from '#modules/skills/controllers/project-skills/deactivate_project_skill_controller'
 import DeactivateProjectRoleController from '#modules/skills/controllers/project-roles/deactivate_project_role_controller'
-import ListProficiencyScalesController from '#modules/skills/controllers/rubric-and-proficiency/list_proficiency_scales_controller'
 import ListProjectRolesController from '#modules/skills/controllers/project-roles/list_project_roles_controller'
+import UpdateProjectRoleSkillController from '#modules/skills/controllers/project-roles/update_project_role_skill_controller'
+import AddProjectSkillController from '#modules/skills/controllers/project-skills/add_project_skill_controller'
+import DeactivateProjectSkillController from '#modules/skills/controllers/project-skills/deactivate_project_skill_controller'
 import ListProjectSkillsController from '#modules/skills/controllers/project-skills/list_project_skills_controller'
-import ListRoleTemplatesController from '#modules/skills/controllers/skill-catalog/list_role_templates_controller'
+import UpdateProjectSkillController from '#modules/skills/controllers/project-skills/update_project_skill_controller'
+import ListProficiencyScalesController from '#modules/skills/controllers/rubric-and-proficiency/list_proficiency_scales_controller'
 import ListSkillRubricsController from '#modules/skills/controllers/rubric-and-proficiency/list_skill_rubrics_controller'
 import ShowProficiencyScaleController from '#modules/skills/controllers/rubric-and-proficiency/show_proficiency_scale_controller'
 import ShowSkillRubricController from '#modules/skills/controllers/rubric-and-proficiency/show_skill_rubric_controller'
-import UpdateProjectSkillController from '#modules/skills/controllers/project-skills/update_project_skill_controller'
-import UpdateProjectRoleSkillController from '#modules/skills/controllers/project-roles/update_project_role_skill_controller'
+import ListRoleTemplatesController from '#modules/skills/controllers/skill-catalog/list_role_templates_controller'
 
 function context() {
   return {
@@ -156,11 +156,12 @@ test.group('Skills Result boundaries', () => {
       failure,
       assert
     )
+    const roleCtx = {
+      ...mutationContext,
+      params: { projectId: 'project-1', roleId: 'role-1' },
+    }
     await assertFailure(
-      () => new DeactivateProjectRoleController(actions as never).handle({
-        ...mutationContext,
-        params: { projectId: 'project-1', roleId: 'role-1' },
-      } as never),
+      () => new DeactivateProjectRoleController(actions as never).handle(roleCtx as never),
       failure,
       assert
     )

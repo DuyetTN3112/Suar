@@ -3,8 +3,8 @@ import { test } from '@japa/runner'
 import ForbiddenException from '#modules/errors/public_contracts/forbidden_exception'
 import { Result } from '#modules/errors/public_contracts/result'
 import type { OrganizationInvitationQueryFactory } from '#modules/organizations/actions/ports/inbound/invitations/organization_invitation_query_factory'
-import ListInvitationsController from '#modules/organizations/controllers/invitations/list_invitations_controller'
 import type { OrganizationMemberQueryFactory } from '#modules/organizations/actions/ports/inbound/members/organization_member_query_factory'
+import ListInvitationsController from '#modules/organizations/controllers/invitations/list_invitations_controller'
 import ListMembersController from '#modules/organizations/controllers/members/list_members_controller'
 
 const makePageContext = () => ({

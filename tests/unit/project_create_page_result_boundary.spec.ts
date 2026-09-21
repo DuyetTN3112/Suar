@@ -20,7 +20,8 @@ test.group('Project create page Result boundary', () => {
 
     let thrown: unknown
     try {
-      await new CreateProjectController({ makeCreatePage: () => query } as never).handle(ctx as never)
+      const actions = { makeCreatePage: () => query }
+      await new CreateProjectController(actions as never).handle(ctx as never)
     } catch (error: unknown) {
       thrown = error
     }

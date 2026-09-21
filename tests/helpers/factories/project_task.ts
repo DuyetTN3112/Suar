@@ -7,9 +7,9 @@ import { OrganizationFactory, UserFactory } from './user_org.js'
 
 import Project from '#modules/projects/infra/models/project-context/project'
 import ProjectMember from '#modules/projects/infra/models/project-members/project_member'
-import Task from '#modules/tasks/infra/models/task-authoring/task'
 import TaskApplication from '#modules/tasks/infra/models/task-applications/task_application'
 import TaskAssignment from '#modules/tasks/infra/models/task-assignment/task_assignment'
+import Task from '#modules/tasks/infra/models/task-authoring/task'
 import TaskStatusModel from '#modules/tasks/infra/models/task-status/task_status'
 import { DEFAULT_TASK_STATUSES, TaskStatusCategory } from '#modules/tasks/public_contracts/task_constants'
 
@@ -180,10 +180,16 @@ export const TaskFactory = {
     }
 
     if (projectId === undefined) {
+      const isExternalTask =
+        overrides.task_visibility === 'external' || overrides.task_visibility === 'all'
       const project = await ProjectFactory.create({
         organization_id: organizationId,
         creator_id: creatorId,
         owner_id: creatorId,
+        ...(isExternalTask && {
+          visibility: 'public',
+          allow_external_contributors: true,
+        }),
       })
       projectId = project.id
     }

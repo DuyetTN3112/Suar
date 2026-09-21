@@ -332,6 +332,7 @@ test.group('Filter/search test-matrix validator', () => {
       caseIds: ['TC-FST-001'],
       path: 'scripts/filtering/fixtures/matrix-validator-screenshot.json',
       evidenceOwner: 'WP-26E',
+      releaseManifestId: 'FST-TEST',
     })
 
     const report = validateFilterSearchTestMatrixManifest(manifest)

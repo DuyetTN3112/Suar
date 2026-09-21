@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/consistent-type-assertions */
-
 import { test } from '@japa/runner'
 
 import ForbiddenException from '#modules/errors/public_contracts/forbidden_exception'
@@ -8,6 +6,10 @@ import AddProjectSkillController from '#modules/skills/controllers/project-skill
 import DeactivateProjectSkillController from '#modules/skills/controllers/project-skills/deactivate_project_skill_controller'
 import ListProjectSkillsController from '#modules/skills/controllers/project-skills/list_project_skills_controller'
 import UpdateProjectSkillController from '#modules/skills/controllers/project-skills/update_project_skill_controller'
+
+function asNever<T = never>(value: unknown): T {
+  return value as T
+}
 
 function context() {
   return {
@@ -47,8 +49,8 @@ test.group('Project skills Result boundaries', () => {
 
     await assertFailure(
       () =>
-        new ListProjectSkillsController({ makeListSkills: () => query } as never).handle(
-          context() as never
+        new ListProjectSkillsController(asNever({ makeListSkills: () => query })).handle(
+          asNever(context())
         ),
       failure,
       assert
@@ -68,17 +70,17 @@ test.group('Project skills Result boundaries', () => {
     }
 
     await assertFailure(
-      () => new AddProjectSkillController(actions as never).handle(context() as never),
+      () => new AddProjectSkillController(asNever(actions)).handle(asNever(context())),
       failure,
       assert
     )
     await assertFailure(
-      () => new UpdateProjectSkillController(actions as never).handle(context() as never),
+      () => new UpdateProjectSkillController(asNever(actions)).handle(asNever(context())),
       failure,
       assert
     )
     await assertFailure(
-      () => new DeactivateProjectSkillController(actions as never).handle(context() as never),
+      () => new DeactivateProjectSkillController(asNever(actions)).handle(asNever(context())),
       failure,
       assert
     )
@@ -90,32 +92,32 @@ test.group('Project skills Result boundaries', () => {
 
     await assertFailure(
       () =>
-        new ListProjectSkillsController({ makeListSkills: () => action } as never).handle(
-          context() as never
+        new ListProjectSkillsController(asNever({ makeListSkills: () => action })).handle(
+          asNever(context())
         ),
       failure,
       assert
     )
     await assertFailure(
       () =>
-        new AddProjectSkillController({ makeAddSkill: () => action } as never).handle(
-          context() as never
+        new AddProjectSkillController(asNever({ makeAddSkill: () => action })).handle(
+          asNever(context())
         ),
       failure,
       assert
     )
     await assertFailure(
       () =>
-        new UpdateProjectSkillController({ makeUpdateSkill: () => action } as never).handle(
-          context() as never
+        new UpdateProjectSkillController(asNever({ makeUpdateSkill: () => action })).handle(
+          asNever(context())
         ),
       failure,
       assert
     )
     await assertFailure(
       () =>
-        new DeactivateProjectSkillController({ makeDeactivateSkill: () => action } as never).handle(
-          context() as never
+        new DeactivateProjectSkillController(asNever({ makeDeactivateSkill: () => action })).handle(
+          asNever(context())
         ),
       failure,
       assert
@@ -132,10 +134,10 @@ test.group('Project skills Result boundaries', () => {
       is_active: true,
       is_selectable_for_tasks: false,
     }
+    let statusCode: number | undefined
     const response = {
-      statusCode: undefined as number | undefined,
       status(code: number) {
-        this.statusCode = code
+        statusCode = code
         return this
       },
       created: (payload: unknown) => payload,
@@ -143,9 +145,9 @@ test.group('Project skills Result boundaries', () => {
     }
     const successContext = { ...context(), response }
 
-    const added = await new AddProjectSkillController({
+    const added = await new AddProjectSkillController(asNever({
       makeAddSkill: () => ({ executeAndWrap: () => Promise.resolve(Result.ok(projectSkill)) }),
-    } as never).handle(successContext as never)
+    })).handle(asNever(successContext))
     assert.deepEqual(added, {
       data: {
         id: 'project-skill-1',
@@ -156,11 +158,11 @@ test.group('Project skills Result boundaries', () => {
       },
     })
 
-    const updated = await new UpdateProjectSkillController({
+    const updated = await new UpdateProjectSkillController(asNever({
       makeUpdateSkill: () => ({
         executeAndWrap: () => Promise.resolve(Result.ok({ projectSkill })),
       }),
-    } as never).handle(successContext as never)
+    })).handle(asNever(successContext))
     assert.deepEqual(updated, {
       data: {
         id: 'project-skill-1',
@@ -171,7 +173,7 @@ test.group('Project skills Result boundaries', () => {
       },
     })
 
-    const listed = await new ListProjectSkillsController({
+    const listed = await new ListProjectSkillsController(asNever({
       makeListSkills: () => ({
         executeAndWrap: () =>
           Promise.resolve(
@@ -189,7 +191,7 @@ test.group('Project skills Result boundaries', () => {
             ])
           ),
       }),
-    } as never).handle(successContext as never)
+    })).handle(asNever(successContext))
     assert.deepEqual(listed, {
       data: [
         {
@@ -211,11 +213,11 @@ test.group('Project skills Result boundaries', () => {
       ],
     })
 
-    await new DeactivateProjectSkillController({
+    await new DeactivateProjectSkillController(asNever({
       makeDeactivateSkill: () => ({
         executeAndWrap: () => Promise.resolve(Result.ok(projectSkill)),
       }),
-    } as never).handle(successContext as never)
-    assert.equal(response.statusCode, 204)
+    })).handle(asNever(successContext))
+    assert.equal(statusCode, 204)
   })
 })

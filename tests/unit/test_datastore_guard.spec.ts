@@ -72,7 +72,7 @@ const withEnv = async (patch: EnvPatch, callback: () => Promise<void> | void): P
 test.group('Test datastore guard', () => {
   test('safe integration script requires PG_TEST_DATABASE before side effects', ({ assert }) => {
     const isolatedCwd = mkdtempSync(join(tmpdir(), 'suar-no-test-db-'))
-    const scriptPath = resolve('scripts/test_integration_safe.sh')
+    const scriptPath = resolve('scripts/tests/test_integration_safe.sh')
 
     const result = spawnSync('bash', [scriptPath], {
       cwd: isolatedCwd,
@@ -95,7 +95,7 @@ test.group('Test datastore guard', () => {
     assert,
   }) => {
     const isolatedCwd = mkdtempSync(join(tmpdir(), 'suar-no-test-search-'))
-    const scriptPath = resolve('scripts/test_integration_safe.sh')
+    const scriptPath = resolve('scripts/tests/test_integration_safe.sh')
 
     const result = spawnSync('bash', [scriptPath], {
       cwd: isolatedCwd,

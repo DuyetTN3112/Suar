@@ -3,8 +3,8 @@ import { test } from '@japa/runner'
 import ConflictException from '#modules/errors/public_contracts/conflict_exception'
 import { Result } from '#modules/errors/public_contracts/result'
 import type { OrganizationProjectCreationCommandFactory } from '#modules/organizations/actions/ports/inbound/projects/organization_project_creation_command_factory'
-import CreateProjectController from '#modules/organizations/controllers/projects/create_project_controller'
 import type { OrganizationWorkflowCommandFactory } from '#modules/organizations/actions/ports/inbound/workflow/organization_workflow_command_factory'
+import CreateProjectController from '#modules/organizations/controllers/projects/create_project_controller'
 import CreateTaskStatusController from '#modules/organizations/controllers/workflow/create_task_status_controller'
 
 const makeContext = (input: Record<string, unknown>) => ({

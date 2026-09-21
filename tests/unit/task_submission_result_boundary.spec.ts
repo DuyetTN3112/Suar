@@ -3,7 +3,7 @@ import { test } from '@japa/runner'
 import ForbiddenException from '#modules/errors/public_contracts/forbidden_exception'
 import { Result } from '#modules/errors/public_contracts/result'
 import type { TaskCompletionApplicationFactory } from '#modules/tasks/actions/ports/inbound/task_completion_application_factory'
-import TaskSubmissionController from '#modules/tasks/controllers/task_submission_controller'
+import TaskSubmissionController from '#modules/tasks/controllers/task-submissions/task_submission_surface'
 
 test.group('Task submission Result boundaries', () => {
   test('submission show controller unwraps the query Result contract', async ({ assert }) => {

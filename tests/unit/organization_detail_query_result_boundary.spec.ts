@@ -3,8 +3,8 @@ import { test } from '@japa/runner'
 import NotFoundException from '#modules/errors/public_contracts/not_found_exception'
 import { Result } from '#modules/errors/public_contracts/result'
 import type { OrganizationPortfolioQueryFactory } from '#modules/organizations/actions/ports/inbound/directory/organization_portfolio_query_factory'
-import ShowOrganizationApiController from '#modules/organizations/controllers/directory/show_organization_api_controller'
 import type { OrganizationProjectDetailQueryFactory } from '#modules/organizations/actions/ports/inbound/projects/organization_project_detail_query_factory'
+import ShowOrganizationApiController from '#modules/organizations/controllers/directory/show_organization_api_controller'
 import OrgShowProjectController from '#modules/organizations/controllers/projects/show_project_controller'
 
 test.group('Organization detail query Result boundaries', () => {

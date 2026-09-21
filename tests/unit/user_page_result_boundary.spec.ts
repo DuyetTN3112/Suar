@@ -53,27 +53,30 @@ test.group('Users page Result boundaries', () => {
 
   test('profile edit page unwraps expected query failures', async ({ assert }) => {
     const failure = new ForbiddenException('Profile edit access denied')
-    const controller = new EditProfileController({
+    const actions = {
       makeEditPage: () => failingQuery(failure),
-    } as never)
+    }
+    const controller = new EditProfileController(actions as never)
 
     await assertThrown(assert, () => controller.handle(context() as never), failure)
   })
 
   test('profile show page unwraps expected query failures', async ({ assert }) => {
     const failure = new ForbiddenException('Profile show access denied')
-    const controller = new ShowProfileController({
+    const actions = {
       makeShow: () => failingQuery(failure),
-    } as never)
+    }
+    const controller = new ShowProfileController(actions as never)
 
     await assertThrown(assert, () => controller.handle(context() as never), failure)
   })
 
   test('public profile page unwraps expected query failures', async ({ assert }) => {
     const failure = new ForbiddenException('Public profile access denied')
-    const controller = new ViewUserProfileController({
+    const actions = {
       makeView: () => failingQuery(failure),
-    } as never)
+    }
+    const controller = new ViewUserProfileController(actions as never)
 
     await assertThrown(assert, () => controller.handle(context() as never), failure)
   })

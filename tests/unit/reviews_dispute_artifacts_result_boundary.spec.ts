@@ -2,8 +2,8 @@ import { test } from '@japa/runner'
 
 import ForbiddenException from '#modules/errors/public_contracts/forbidden_exception'
 import { Result } from '#modules/errors/public_contracts/result'
-import CreateReviewDisputeCommentController from '#modules/reviews/controllers/disputes/create_review_dispute_comment_controller'
-import ListReviewDisputeCommentsController from '#modules/reviews/controllers/disputes/list_review_dispute_comments_controller'
+import CreateReviewDisputeCommentController from '#modules/disputes/controllers/create_review_dispute_comment_controller'
+import ListReviewDisputeCommentsController from '#modules/disputes/controllers/list_review_dispute_comments_controller'
 
 const failure = new ForbiddenException('Review dispute access denied')
 

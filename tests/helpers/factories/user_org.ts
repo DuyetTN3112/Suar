@@ -1,8 +1,8 @@
 import { testEmail, testId, testSlug, testUsername } from '../test_utils.js'
 
-import type { OrganizationUserStatus } from '#modules/organizations/public_contracts/access/organization_constants'
 import Organization from '#modules/organizations/infra/models/directory/organization'
 import OrganizationUser from '#modules/organizations/infra/models/members/organization_user'
+import type { OrganizationUserStatus } from '#modules/organizations/public_contracts/access/organization_constants'
 import User from '#modules/users/infra/models/profile/user'
 
 type OrgUserStatus = `${OrganizationUserStatus}`
@@ -18,11 +18,15 @@ export const UserFactory = {
       auth_method: 'google' | 'github'
       is_external_contributor: boolean
       current_organization_id: string | null
+      currentOrganizationId?: string | null
       timezone: string
       language: string
       credibility_data: import('#modules/users/types/user_profile_data').UserCredibilityData | null
     }> = {}
   ): Promise<User> {
+    const orgId = overrides.currentOrganizationId !== undefined
+      ? overrides.currentOrganizationId
+      : (overrides.current_organization_id ?? null)
     return User.create({
       id: overrides.id ?? testId(),
       username: overrides.username ?? testUsername(),
@@ -31,7 +35,7 @@ export const UserFactory = {
       system_role: overrides.system_role ?? 'registered_user',
       auth_method: overrides.auth_method ?? 'google',
       is_external_contributor: overrides.is_external_contributor ?? false,
-      current_organization_id: overrides.current_organization_id ?? null,
+      current_organization_id: orgId,
       timezone: overrides.timezone ?? 'Asia/Ho_Chi_Minh',
       language: overrides.language ?? 'vi',
       ...(overrides.credibility_data !== undefined && {
@@ -46,6 +50,7 @@ export const UserFactory = {
       username: string
       email: string
       current_organization_id: string | null
+      currentOrganizationId?: string | null
     }> = {}
   ): Promise<User> {
     return this.create({ system_role: 'superadmin', ...overrides })
@@ -57,6 +62,7 @@ export const UserFactory = {
       username: string
       email: string
       current_organization_id: string | null
+      currentOrganizationId?: string | null
     }> = {}
   ): Promise<User> {
     return this.create({ is_external_contributor: true, ...overrides })
