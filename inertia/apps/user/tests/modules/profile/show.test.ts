@@ -84,8 +84,8 @@ function buildProps() {
           output: { title: 'Public API design', difficulty: 'hard' },
           outcome: { onTime: true, qualityScore: 5 },
           verification: {
-            status: 'review_confirmed',
-            confidence: 'high',
+            status: 'review_confirmed' as 'review_confirmed' | 'admin_confirmed' | 'retrospective',
+            confidence: 'high' as 'high' | 'limited',
             method: 'human_review',
             evidenceSufficiency: 'adequate',
           },
@@ -164,8 +164,8 @@ function buildPublicProfileProps() {
           output: { title: 'Public API delivery', difficulty: 'hard' },
           outcome: { onTime: true, qualityScore: 5 },
           verification: {
-            status: 'review_confirmed',
-            confidence: 'high',
+            status: 'review_confirmed' as const,
+            confidence: 'high' as const,
             method: 'human_review',
             evidenceSufficiency: 'adequate',
           },
@@ -224,7 +224,11 @@ describe('ProfileShowPage', () => {
 
   it('shows the approved AI work claim and observed capability without treating it as a score', () => {
     const props = buildProps()
-    const approvedWork = props.workHistory.demonstratedWork[0]! as (typeof props.workHistory.demonstratedWork)[number] & {
+    const firstDemonstratedWork = props.workHistory.demonstratedWork[0]
+    if (!firstDemonstratedWork) {
+      throw new Error('Expected at least one demonstrated work item')
+    }
+    const approvedWork = firstDemonstratedWork as (typeof props.workHistory.demonstratedWork)[number] & {
       statement?: string
       capabilities?: Array<{ name: string; observedLevel: string }>
     }

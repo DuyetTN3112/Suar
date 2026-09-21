@@ -25,6 +25,7 @@ type Status =
   | 'disputed'
   | 'reported'
   | 'ai_reviewing'
+  | 'admin_reviewing'
   | 'resolved'
   | 'done'
 
@@ -35,6 +36,7 @@ const statuses: Status[] = [
   'disputed',
   'reported',
   'ai_reviewing',
+  'admin_reviewing',
   'resolved',
   'done',
 ]
