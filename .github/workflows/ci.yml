@@ -133,6 +133,7 @@ jobs:
           HOST: 0.0.0.0
           APP_URL: http://localhost:3333
           APP_KEY: test-key-at-least-16-chars-long
+          NOTIFICATION_FEED_CURSOR_SECRET: test-notification-cursor-secret-32-bytes-long
           APP_NAME: Suar
           APP_LOCALE: vi
           APP_TIMEZONE: Asia/Ho_Chi_Minh
@@ -158,6 +159,7 @@ jobs:
       HOST: 0.0.0.0
       APP_URL: http://localhost:3333
       APP_KEY: test-key-at-least-16-chars-long
+      NOTIFICATION_FEED_CURSOR_SECRET: test-notification-cursor-secret-32-bytes-long
       APP_NAME: Suar
       APP_LOCALE: vi
       APP_TIMEZONE: Asia/Ho_Chi_Minh
@@ -320,6 +322,7 @@ jobs:
           HOST: 0.0.0.0
           APP_URL: http://localhost:3333
           APP_KEY: test-key-at-least-16-chars-long
+          NOTIFICATION_FEED_CURSOR_SECRET: test-notification-cursor-secret-32-bytes-long
           APP_NAME: Suar
           APP_LOCALE: vi
           APP_TIMEZONE: Asia/Ho_Chi_Minh
@@ -403,6 +406,7 @@ jobs:
       HOST: 0.0.0.0
       APP_URL: http://localhost:3333
       APP_KEY: test-key-at-least-16-chars-long
+      NOTIFICATION_FEED_CURSOR_SECRET: test-notification-cursor-secret-32-bytes-long
       APP_NAME: Suar
       APP_LOCALE: vi
       APP_TIMEZONE: Asia/Ho_Chi_Minh
