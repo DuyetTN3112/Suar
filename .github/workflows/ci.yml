@@ -143,6 +143,7 @@ jobs:
           PG_USER: root
           PG_PASSWORD: ''
           PG_DATABASE: suar_test
+          PG_TEST_DATABASE: suar_test
           REDIS_HOST: localhost
           REDIS_PORT: 6379
           LOCK_STORE: memory
@@ -178,6 +179,20 @@ jobs:
       REDIS_CACHE_TEST_PORT: 6381
       REDIS_CACHE_TEST_DB: 0
     services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: root
+          POSTGRES_PASSWORD: ''
+          POSTGRES_HOST_AUTH_METHOD: trust
+          POSTGRES_DB: suar_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U root"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=5
       redis:
         image: redis:7.4-alpine
         ports:
@@ -212,6 +227,9 @@ jobs:
         with:
           path: node_modules
           key: nm-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+
+      - name: Prepare PostgreSQL schema
+        run: pnpm run db:test:migrate
 
       - name: Build client assets
         run: pnpm exec vite build
