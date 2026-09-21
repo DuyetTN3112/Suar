@@ -7,7 +7,7 @@
     type TaskCreateIntent,
   } from '@/apps/shared/tasks/task_create_validation'
   import { isDocumentationTaskStatusId } from '@/apps/shared/tasks/documentation_task_status'
-  import { toIsoDueAt } from '@/apps/shared/tasks/task_schedule'
+  import { buildTaskCreatePayload } from '@/apps/shared/tasks/task_create_payload'
   import Button from '@/apps/user/shared/ui/button.svelte'
   import Card from '@/apps/user/shared/ui/card.svelte'
   import CardContent from '@/apps/user/shared/ui/card_content.svelte'
@@ -26,7 +26,9 @@
     formatTaskSkillCategoryViolations,
     getTaskSkillCategoryViolations,
   } from '@/apps/user/modules/tasks/lib/rules/task_skill_category_rules'
+  import { createInitialTaskBrief } from '@/apps/shared/tasks/task_brief_contract'
   import TaskRolePrefillPanel from '@/apps/user/modules/tasks/components/detail/task_role_prefill_panel.svelte'
+  import { fetchProjectAssigneeData } from '@/apps/user/modules/tasks/lib/creators/task_create_assignee_loader'
 
   interface Props {
     shellMode?: 'app' | 'organization'
@@ -53,33 +55,6 @@
     url: string
   }
 
-  interface ProjectDetailMemberRecord {
-    userId: string
-    username: string
-    email: string
-    role: string
-    projectProfessionalRoleId?: string | null
-    professionalRoleName?: string | null
-  }
-
-  interface ProjectDetailApiResponse {
-    data?: {
-      project?: {
-        visibility?: string | null
-      }
-      members?: ProjectDetailMemberRecord[]
-    }
-  }
-
-  interface ProjectMemberCandidateResponse {
-    data?: {
-      userId: string
-      username: string
-      email: string
-      orgRole: string
-    }[]
-  }
-
   const { metadata }: Props = $props()
   const currentPage = page as unknown as InertiaPageLike
   
@@ -87,48 +62,20 @@
   const currentQuery = $derived(new URLSearchParams(currentPage.url.split('?')[1] ?? ''))
   const currentProjectId = $derived(currentPage.props.auth?.user?.current_project?.id ?? '')
   const requestedRoleId = $derived(currentQuery.get('roleId') ?? currentQuery.get('role_id') ?? '')
-  const requestedTaskType = $derived(currentQuery.get('taskType') ?? currentQuery.get('task_type') ?? '')
 
   let formData = $state<TaskCreateFormData>({
-    title: '',
-    description: '',
-    task_status_id: '',
-    task_type: 'feature_development',
-    verification_method: 'code_review',
-    project_id: '',
-    priority: '',
-    label: '',
-    task_visibility: 'internal',
-    reviewer_visibility: 'project',
-    assigned_to: '',
-    reviewer_user_id: '',
-    due_date: '',
-    parent_task_id: '',
-    estimated_time: '0',
-    required_skills: [],
-    acceptance_criteria: '',
-    context_background: '',
-    role_in_task: '',
-    business_domain: '',
-    problem_category: '',
-    tech_stack_text: '',
-    learning_objectives_text: '',
-    domain_tags_text: '',
-    scope_text: '',
-    out_of_scope_text: '',
-    deliverables_text: '',
-    quality_requirements_text: '',
-    constraints_text: '',
-    dependencies_text: '',
-    authoring_mode: 'evidence_enabled',
-    authoring_intent: 'save_draft',
-    creator_confirmed: false,
-    constraints_addressed: false,
-    dependencies_addressed: false,
-    supporting_reference_uri: '',
-    supporting_reference_title: '',
-    reviewer_role_code: 'org_owner',
-    profile_eligibility: true,
+    title: '', description: '', task_status_id: '', task_type: 'feature_development',
+    verification_method: 'code_review', project_id: '', priority: '', label: '',
+    task_visibility: 'internal', reviewer_visibility: 'project', assigned_to: '',
+    reviewer_user_id: '', due_date: '', parent_task_id: '', estimated_time: '0',
+    required_skills: [], acceptance_criteria: '', context_background: '', role_in_task: '',
+    business_domain: '', problem_category: '', tech_stack_text: '', learning_objectives_text: '',
+    domain_tags_text: '', scope_text: '', out_of_scope_text: '', deliverables_text: '',
+    quality_requirements_text: '', constraints_text: '', dependencies_text: '',
+    authoring_mode: 'evidence_enabled', authoring_intent: 'save_draft', creator_confirmed: false,
+    constraints_addressed: false, dependencies_addressed: false, supporting_reference_uri: '',
+    supporting_reference_title: '', reviewer_role_code: 'org_owner', profile_eligibility: true,
+    brief: createInitialTaskBrief(),
   })
 
   let projectProfessionalRoleId = $state('')
@@ -219,10 +166,7 @@
   $effect(() => {
     const projectId = formData.project_id
     if (!projectId) {
-      assigneeGroups = {
-        projectMembers: [],
-        orgMembersOutsideProject: [],
-      }
+      assigneeGroups = { projectMembers: [], orgMembersOutsideProject: [] }
       selectedProjectVisibility = null
       return
     }
@@ -230,38 +174,16 @@
     const requestKey = ++assigneeGroupRequestKey
     loadingAssigneeGroups = true
 
-    Promise.all([
-      fetch(`/api/v1/projects/${projectId}`).then((response) => response.json() as Promise<ProjectDetailApiResponse>),
-      fetch(`/projects/${projectId}/member-candidates`).then((response) => response.json() as Promise<ProjectMemberCandidateResponse>),
-    ])
-      .then(([projectPayload, candidatePayload]) => {
+    fetchProjectAssigneeData(projectId)
+      .then((result) => {
         if (requestKey !== assigneeGroupRequestKey) return
-
-        selectedProjectVisibility = projectPayload.data?.project?.visibility ?? null
-        assigneeGroups = {
-          projectMembers: (projectPayload.data?.members ?? []).map((member) => ({
-            id: member.userId,
-            username: member.username,
-            email: member.email,
-            governanceRole: member.role,
-            deliveryRoleName: member.professionalRoleName ?? null,
-            projectProfessionalRoleId: member.projectProfessionalRoleId ?? null,
-          })),
-          orgMembersOutsideProject: (candidatePayload.data ?? []).map((member) => ({
-            id: member.userId,
-            username: member.username,
-            email: member.email,
-            orgRole: member.orgRole,
-          })),
-        }
+        selectedProjectVisibility = result.visibility
+        assigneeGroups = result.assigneeGroups
       })
       .catch(() => {
         if (requestKey !== assigneeGroupRequestKey) return
         selectedProjectVisibility = null
-        assigneeGroups = {
-          projectMembers: [],
-          orgMembersOutsideProject: [],
-        }
+        assigneeGroups = { projectMembers: [], orgMembersOutsideProject: [] }
       })
       .finally(() => {
         if (requestKey === assigneeGroupRequestKey) {
@@ -269,14 +191,6 @@
         }
       })
   })
-
-  const parseListInput = (raw: string) =>
-    raw
-      .split(/[\n,]/)
-      .map((item) => item.trim())
-      .filter((item) => item.length > 0)
-
-  const normalizeOptionalString = (value: string) => (value.trim().length > 0 ? value : undefined)
 
   function validateRequiredSkillMix(): string | null {
     const categoryCounts = countTaskSkillsByCategory(
@@ -299,167 +213,8 @@
     return validationErrors
   }
 
-  const buildPayload = (intent: TaskCreateFormData['authoring_intent']) => {
-    const authoringMode = isDocumentationItem ? 'operational_only' : 'evidence_enabled'
-    const resolvedIntent: TaskCreateIntent = isDocumentationItem
-      ? 'save_draft'
-      : intent ?? 'save_draft'
-    const referenceUri = formData.supporting_reference_uri?.trim() ?? ''
-    const referenceTitle = formData.supporting_reference_title?.trim() ?? ''
-    const listItems = (raw: string | undefined) => parseListInput(raw ?? '').map((text) => ({ id: crypto.randomUUID(), title: text, description: text }))
-    const deliverables = listItems(formData.deliverables_text).map((item) => ({ ...item, expectedFormat: null, expectedLocation: null }))
-    const acceptanceCriteria = parseListInput(formData.acceptance_criteria).map((statement) => ({ id: crypto.randomUUID(), statement, verificationMethod: formData.verification_method, critical: true }))
-    const dependencies = listItems(formData.dependencies_text).map((item) => ({ ...item, ownerId: null, state: 'available' }))
-    const levelNumber = (value: string) => {
-      const match = value.match(/\d+/)
-      return match ? Number(match[0]) : null
-    }
-    const evidenceRequirements: Array<{
-      id: string
-      type: string
-      title: string
-      description: string
-      criterionIds: string[]
-      deliverableIds: string[]
-      required: boolean
-      privacyClassification: string
-    }> = authoringMode === 'evidence_enabled'
-      ? [{
-          id: crypto.randomUUID(),
-          type: 'review_observation',
-          title: `Đánh giá kết quả: ${formData.title.trim()}`,
-          description: 'Người nghiệm thu đối chiếu kết quả công việc với tiêu chí nghiệm thu và đầu ra đã chốt.',
-          criterionIds: acceptanceCriteria.map((criterion) => criterion.id),
-          deliverableIds: deliverables.map((deliverable) => deliverable.id),
-          required: true,
-          privacyClassification: 'internal',
-        }]
-      : []
-    const evidenceCapabilities = authoringMode === 'evidence_enabled'
-      ? formData.required_skills.map((skill) => {
-          const level = levelNumber(skill.level)
-          return {
-            id: crypto.randomUUID(),
-            capabilityId: skill.id,
-            capabilityName: skill.name,
-            minimumLevel: level,
-            targetLevel: levelNumber(skill.target_level_code ?? skill.level),
-            assessmentCeiling: levelNumber(skill.assessment_ceiling_level_code ?? ''),
-            rubricVersionId: skill.rubric_version_id ?? null,
-            observableBehaviours: [`Demonstrates ${skill.name} through the task deliverables.`],
-          }
-        })
-      : []
-
-    return ({
-    title: formData.title,
-    description: formData.description,
-    taskStatusId: formData.task_status_id,
-    projectId: formData.project_id,
-    taskType: formData.task_type,
-    verificationMethod: formData.verification_method,
-    priority: normalizeOptionalString(formData.priority),
-    label: normalizeOptionalString(formData.label),
-    taskVisibility: formData.task_visibility,
-    assignedTo: !isDocumentationItem && resolvedIntent === 'publish'
-      ? normalizeOptionalString(formData.assigned_to)
-      : undefined,
-    dueDate: normalizeOptionalString(formData.due_date),
-    parentTaskId: normalizeOptionalString(formData.parent_task_id),
-    estimatedTime: Number(normalizeOptionalString(formData.estimated_time) ?? 0),
-    projectProfessionalRoleId: normalizeOptionalString(projectProfessionalRoleId),
-    requiredSkills: formData.required_skills.map((skill) => ({
-      id: skill.id,
-      level: skill.level,
-      customName: skill.custom_name ?? undefined,
-      categoryCode: skill.category_code ?? skill.categoryCode ?? undefined,
-      projectSkillId: skill.project_skill_id ?? undefined,
-      sourceProjectProfessionalRoleId: skill.source_project_professional_role_id ?? undefined,
-      sourceRoleSkillId: skill.source_role_skill_id ?? undefined,
-      minimumLevelId: skill.minimum_level_id ?? undefined,
-      targetLevelId: skill.target_level_id ?? undefined,
-      assessmentCeilingLevelId: skill.assessment_ceiling_level_id ?? undefined,
-      rubricVersionId: skill.rubric_version_id ?? undefined,
-      isMandatory: skill.is_mandatory ?? true,
-      importance: skill.importance ?? undefined,
-      weight: skill.weight ?? undefined,
-      requirementSource: skill.requirement_source ?? undefined,
-      requirementNotes: skill.requirement_notes ?? undefined,
-    })),
-    acceptanceCriteria: formData.acceptance_criteria,
-    contextBackground: normalizeOptionalString(formData.context_background),
-    roleInTask: normalizeOptionalString(formData.role_in_task),
-    problemCategory: normalizeOptionalString(formData.problem_category),
-    authoring: {
-      mode: authoringMode,
-      intent: resolvedIntent,
-      idempotencyKey: `task-authoring:${crypto.randomUUID()}`,
-      expectedHeadRevision: 0,
-      creatorConfirmed: resolvedIntent === 'publish' && (formData.creator_confirmed ?? false),
-      constraintsAddressed: formData.constraints_addressed ?? false,
-      dependenciesAddressed: formData.dependencies_addressed ?? false,
-      specification: {
-        plainText: [formData.title, formData.description, formData.context_background, formData.acceptance_criteria]
-          .filter((value) => value.trim().length > 0)
-          .join('\n\n'),
-      },
-      workContract: {
-        action: formData.task_type,
-        object: formData.title,
-        problemStatement: formData.context_background,
-        desiredOutcome: formData.acceptance_criteria,
-        roleInTask: formData.role_in_task,
-        ownershipLevel: 'contributor',
-        autonomyLevel: 'supervised',
-        collaborationType: 'team',
-        environment: 'application',
-        complexityContext: {},
-        impactScope: {},
-        estimatedUsersAffected: 1,
-        dueAt: formData.due_date
-          ? (toIsoDueAt(formData.due_date) ?? new Date(Date.now() + 7 * 86_400_000).toISOString())
-          : new Date(Date.now() + 7 * 86_400_000).toISOString(),
-        scope: listItems(formData.scope_text),
-        outOfScope: listItems(formData.out_of_scope_text),
-        deliverables,
-        acceptanceCriteria,
-        qualityRequirements: listItems(formData.quality_requirements_text),
-        constraints: listItems(formData.constraints_text),
-        dependencies,
-      },
-      evidenceContract: {
-        mode: authoringMode,
-        requirements: evidenceRequirements,
-        verificationMethods: formData.verification_method ? [formData.verification_method] : [],
-        verifierPolicy: {
-            reviewerIds: formData.reviewer_user_id ? [formData.reviewer_user_id] : [],
-            reviewerRoleCodes: [],
-          minimumReviewers: authoringMode === 'evidence_enabled' ? 1 : 0,
-          disallowSelfReview: true,
-        },
-        reviewerVisibility: formData.reviewer_visibility ?? 'project',
-        capabilities: evidenceCapabilities,
-        profileEligibility: authoringMode === 'evidence_enabled',
-        privacyClassification: 'internal',
-      },
-      ...(referenceUri
-        ? {
-            supportingReferences: [
-              {
-                type: 'url',
-                uri: referenceUri,
-                title: referenceTitle || formData.title.trim(),
-                relevantSection: 'specification',
-                relation: 'requirement_source',
-                accessState: 'unknown',
-                privacyClassification: 'internal',
-              },
-            ],
-          }
-        : {}),
-    },
-    })
-  }
+  const buildPayload = (intent: TaskCreateFormData['authoring_intent']) =>
+    buildTaskCreatePayload(formData, isDocumentationItem, intent, projectProfessionalRoleId)
 
   const handleSubmit = (intent: TaskCreateFormData['authoring_intent']) => {
     const resolvedIntent: TaskCreateIntent = isDocumentationItem
@@ -478,7 +233,7 @@
     errors = {}
     formError = ''
 
-    router.post(FRONTEND_ROUTES.TASKS, buildPayload(resolvedIntent), {
+    router.post(FRONTEND_ROUTES.TASKS, buildPayload(resolvedIntent) as never, {
       preserveState: true,
       preserveScroll: true,
       onSuccess: () => {

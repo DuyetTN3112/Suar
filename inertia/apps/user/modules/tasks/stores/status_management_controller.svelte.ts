@@ -1,7 +1,6 @@
 import { router } from '@inertiajs/svelte'
 
 import {
-  createTaskStatusDefinition,
   deleteTaskStatusDefinition,
   updateTaskStatusDefinition,
 } from '@/apps/user/modules/tasks/api/status_management_api'
@@ -10,30 +9,29 @@ import {
   canDeleteStatusDefinition,
   findStatusDefinition,
   getStatusMutationErrorMessage,
-  slugifyStatusName,
 } from '@/apps/user/modules/tasks/lib/helpers/status_management_helpers'
-import type { TaskMetadata, TaskStatusCategory } from '@/apps/user/modules/tasks/types/index.svelte'
+import type { TaskMetadata } from '@/apps/user/modules/tasks/types/index.svelte'
 import { notificationStore } from '@/apps/user/shared/stores/notification_store.svelte'
 import { useTranslation } from '@/apps/user/shared/stores/translation.svelte'
 
-interface StatusDeletePayload {
+import { createStatusCreateController } from './status_create_controller.svelte.js'
+import {
+  createStatusRenameController,
+  type StatusRenamePayload,
+  type StatusRenameTarget,
+} from './status_rename_controller.svelte.js'
+
+export type { StatusRenamePayload, StatusRenameTarget }
+
+export interface StatusDeletePayload {
   status: string
   label: string
   taskCount: number
 }
 
-interface StatusDeleteTarget extends StatusDeletePayload {
+export interface StatusDeleteTarget extends StatusDeletePayload {
   id?: string
   isSystem?: boolean
-}
-
-interface StatusRenamePayload {
-  status: string
-  label: string
-}
-
-interface StatusRenameTarget extends StatusRenamePayload {
-  id?: string
 }
 
 interface ControllerOptions {
@@ -51,24 +49,10 @@ export function createStatusManagementController({
 }: ControllerOptions) {
   const { t } = useTranslation()
 
-  let createStatusModalOpen = $state(false)
-  let createStatusName = $state('')
-  let createStatusCategory = $state<TaskStatusCategory | ''>('')
-  let createStatusDescription = $state('')
-  let createStatusColor = $state('#6B7280')
-  let createStatusSubmitting = $state(false)
-  let createStatusError = $state('')
-
   let deleteStatusModalOpen = $state(false)
   let deleteStatusSubmitting = $state(false)
   let deleteStatusError = $state('')
   let statusDeleteTarget = $state<StatusDeleteTarget | null>(null)
-  let renameStatusModalOpen = $state(false)
-  let renameStatusSubmitting = $state(false)
-  let renameStatusError = $state('')
-  let renameStatusName = $state('')
-  let renameStatusColor = $state('#6B7280')
-  let statusRenameTarget = $state<StatusRenameTarget | null>(null)
   let reorderStatusesSubmitting = $state(false)
 
   const statusDefinitions = $derived(buildStatusDefinitions(getStatuses()))
@@ -78,9 +62,9 @@ export function createStatusManagementController({
   function hasStatusMutationLock(): boolean {
     return (
       isBoardMutationLocked() ||
-      createStatusSubmitting ||
+      createController.createStatusSubmitting ||
       deleteStatusSubmitting ||
-      renameStatusSubmitting ||
+      renameController.renameStatusSubmitting ||
       reorderStatusesSubmitting
     )
   }
@@ -109,108 +93,22 @@ export function createStatusManagementController({
     return null
   }
 
-  function handleCreateStatusClick() {
-    if (!canManageWorkflow()) {
-      notificationStore.error(
-        t('task.workflow.permission_title', {}, 'You do not have permission to manage workflow'),
-        t(
-          'task.workflow.create_permission_message',
-          {},
-          'Only users with workflow permission can add statuses.'
-        )
-      )
-      return
-    }
+  const createController = createStatusCreateController({
+    getStatuses,
+    requireProjectId,
+    canManageWorkflow,
+    hasStatusMutationLock,
+    isBoardReady,
+  })
 
-    if (
-      !isBoardReady(
-        t(
-          'task.workflow.manage_wait_message',
-          {},
-          'Please wait for drag-and-drop changes to finish before managing statuses.'
-        )
-      )
-    )
-      return
-    if (!requireProjectId()) return
-    createStatusModalOpen = true
-    createStatusError = ''
-  }
-
-  async function handleCreateStatusSubmit() {
-    if (!canManageWorkflow()) {
-      createStatusError = t(
-        'task.workflow.no_permission_error',
-        {},
-        'You do not have permission to manage workflow.'
-      )
-      return
-    }
-
-    if (hasStatusMutationLock()) {
-      createStatusError = t(
-        'task.workflow.board_sync_retry_error',
-        {},
-        'Board is syncing. Please try again in a few seconds.'
-      )
-      return
-    }
-    const projectId = requireProjectId()
-    if (!projectId) return
-
-    const name = createStatusName.trim()
-    const slug = slugifyStatusName(name)
-
-    if (!name) {
-      createStatusError = t('task.workflow.status_name_required', {}, 'Status name is required')
-      return
-    }
-
-    if (!slug) {
-      createStatusError = t('task.workflow.status_name_invalid', {}, 'Status name is invalid')
-      return
-    }
-
-    if (!createStatusCategory) {
-      createStatusError = t('task.workflow.status_group_required', {}, 'Status group is required')
-      return
-    }
-
-    createStatusSubmitting = true
-    createStatusError = ''
-
-    try {
-      await createTaskStatusDefinition(
-        {
-          name,
-          slug,
-          group: createStatusCategory,
-          color: createStatusColor,
-          description: createStatusDescription.trim(),
-          sortOrder: getStatuses().length,
-        },
-        projectId
-      )
-      notificationStore.success(t('task.workflow.create_success', {}, 'New status created'))
-      createStatusModalOpen = false
-      createStatusName = ''
-      createStatusCategory = ''
-      createStatusDescription = ''
-      createStatusColor = '#6B7280'
-      router.reload({ only: ['metadata', 'tasks', 'flash'] })
-    } catch (error: unknown) {
-      createStatusError = getStatusMutationErrorMessage(
-        error,
-        t('task.workflow.create_error', {}, 'Unable to create status')
-      )
-      notificationStore.error(
-        t('task.workflow.create_failed', {}, 'Status creation failed'),
-        createStatusError
-      )
-    } finally {
-      createStatusSubmitting = false
-    }
-  }
+  const renameController = createStatusRenameController({
+    getStatuses,
+    getStatusDefinitions: () => statusDefinitions,
+    requireProjectId,
+    canManageWorkflow,
+    hasStatusMutationLock,
+    isBoardReady,
+  })
 
   function canDeleteStatus(status: string): boolean {
     return canDeleteStatusDefinition(statusDefinitions, status, canManageWorkflow())
@@ -237,8 +135,9 @@ export function createStatusManagementController({
           'Please wait for drag-and-drop changes to finish before deleting a status.'
         )
       )
-    )
+    ) {
       return
+    }
     if (!requireProjectId()) return
 
     const definition = findStatusDefinition(statusDefinitions, payload.status)
@@ -249,100 +148,6 @@ export function createStatusManagementController({
     }
     deleteStatusError = ''
     deleteStatusModalOpen = true
-  }
-
-  function handleRenameStatusClick(payload: StatusRenamePayload) {
-    if (!canManageWorkflow()) {
-      notificationStore.error(
-        t('task.workflow.permission_title', {}, 'You do not have permission to manage workflow'),
-        t(
-          'task.workflow.rename_permission_message',
-          {},
-          'Only users with workflow permission can rename statuses.'
-        )
-      )
-      return
-    }
-    if (
-      !isBoardReady(
-        t(
-          'task.workflow.rename_wait_message',
-          {},
-          'Please wait for drag-and-drop changes to finish before renaming a status.'
-        )
-      )
-    )
-      return
-    if (!requireProjectId()) return
-
-    const definition = findStatusDefinition(statusDefinitions, payload.status)
-    statusRenameTarget = { ...payload, id: definition?.id }
-    renameStatusName = payload.label
-    renameStatusColor =
-      getStatuses().find((status) => status.value === payload.status || status.slug === payload.status)
-        ?.color ?? '#6B7280'
-    renameStatusError = ''
-    renameStatusModalOpen = true
-  }
-
-  async function handleRenameStatusSubmit() {
-    if (!canManageWorkflow()) {
-      renameStatusError = t(
-        'task.workflow.no_permission_error',
-        {},
-        'You do not have permission to manage workflow.'
-      )
-      return
-    }
-    if (hasStatusMutationLock()) {
-      renameStatusError = t(
-        'task.workflow.board_sync_retry_error',
-        {},
-        'Board is syncing. Please try again in a few seconds.'
-      )
-      return
-    }
-    const projectId = requireProjectId()
-    if (!projectId) return
-    if (!statusRenameTarget?.id) {
-      renameStatusError = t(
-        'task.workflow.rename_missing_target',
-        {},
-        'Unable to rename this status.'
-      )
-      return
-    }
-
-    const name = renameStatusName.trim()
-    const slug = slugifyStatusName(name)
-    if (!name) {
-      renameStatusError = t('task.workflow.status_name_required', {}, 'Status name is required')
-      return
-    }
-    if (!slug) {
-      renameStatusError = t('task.workflow.status_name_invalid', {}, 'Status name is invalid')
-      return
-    }
-
-    renameStatusSubmitting = true
-    renameStatusError = ''
-    try {
-      await updateTaskStatusDefinition(statusRenameTarget.id, { name, slug, color: renameStatusColor }, projectId)
-      notificationStore.success(t('task.workflow.rename_success', {}, 'Status renamed'))
-      handleRenameStatusDialogClose()
-      router.reload({ only: ['metadata', 'tasks', 'flash'] })
-    } catch (error: unknown) {
-      renameStatusError = getStatusMutationErrorMessage(
-        error,
-        t('task.workflow.rename_error', {}, 'Unable to rename status')
-      )
-      notificationStore.error(
-        t('task.workflow.rename_failed', {}, 'Status rename failed'),
-        renameStatusError
-      )
-    } finally {
-      renameStatusSubmitting = false
-    }
   }
 
   async function handleReorderStatuses(payload: {
@@ -455,65 +260,48 @@ export function createStatusManagementController({
     }
   }
 
-  function handleCreateStatusDialogClose() {
-    createStatusModalOpen = false
-    createStatusName = ''
-    createStatusCategory = ''
-    createStatusDescription = ''
-    createStatusColor = '#6B7280'
-    createStatusError = ''
-  }
-
   function handleDeleteStatusDialogClose() {
     deleteStatusModalOpen = false
     deleteStatusError = ''
     statusDeleteTarget = null
   }
 
-  function handleRenameStatusDialogClose() {
-    renameStatusModalOpen = false
-    renameStatusError = ''
-    renameStatusName = ''
-    renameStatusColor = '#6B7280'
-    statusRenameTarget = null
-  }
-
   return {
     get createStatusModalOpen() {
-      return createStatusModalOpen
+      return createController.createStatusModalOpen
     },
     set createStatusModalOpen(value: boolean) {
-      createStatusModalOpen = value
+      createController.createStatusModalOpen = value
     },
     get createStatusName() {
-      return createStatusName
+      return createController.createStatusName
     },
     set createStatusName(value: string) {
-      createStatusName = value
+      createController.createStatusName = value
     },
     get createStatusCategory() {
-      return createStatusCategory
+      return createController.createStatusCategory
     },
-    set createStatusCategory(value: TaskStatusCategory | '') {
-      createStatusCategory = value
+    set createStatusCategory(value) {
+      createController.createStatusCategory = value
     },
     get createStatusDescription() {
-      return createStatusDescription
+      return createController.createStatusDescription
     },
     set createStatusDescription(value: string) {
-      createStatusDescription = value
+      createController.createStatusDescription = value
     },
     get createStatusColor() {
-      return createStatusColor
+      return createController.createStatusColor
     },
     set createStatusColor(value: string) {
-      createStatusColor = value
+      createController.createStatusColor = value
     },
     get createStatusError() {
-      return createStatusError
+      return createController.createStatusError
     },
     get createStatusSubmitting() {
-      return createStatusSubmitting
+      return createController.createStatusSubmitting
     },
     get deleteStatusModalOpen() {
       return deleteStatusModalOpen
@@ -528,31 +316,31 @@ export function createStatusManagementController({
       return deleteStatusSubmitting
     },
     get renameStatusModalOpen() {
-      return renameStatusModalOpen
+      return renameController.renameStatusModalOpen
     },
     set renameStatusModalOpen(value: boolean) {
-      renameStatusModalOpen = value
+      renameController.renameStatusModalOpen = value
     },
     get renameStatusName() {
-      return renameStatusName
+      return renameController.renameStatusName
     },
     set renameStatusName(value: string) {
-      renameStatusName = value
+      renameController.renameStatusName = value
     },
     get renameStatusColor() {
-      return renameStatusColor
+      return renameController.renameStatusColor
     },
     set renameStatusColor(value: string) {
-      renameStatusColor = value
+      renameController.renameStatusColor = value
     },
     get renameStatusError() {
-      return renameStatusError
+      return renameController.renameStatusError
     },
     get renameStatusSubmitting() {
-      return renameStatusSubmitting
+      return renameController.renameStatusSubmitting
     },
     get statusRenameTarget() {
-      return statusRenameTarget
+      return renameController.statusRenameTarget
     },
     get statusDeleteTarget() {
       return statusDeleteTarget
@@ -563,16 +351,16 @@ export function createStatusManagementController({
     get isStatusMutationLocked() {
       return isStatusMutationLocked
     },
-    handleCreateStatusClick,
-    handleCreateStatusSubmit,
+    handleCreateStatusClick: createController.handleCreateStatusClick,
+    handleCreateStatusSubmit: createController.handleCreateStatusSubmit,
     canDeleteStatus,
     handleDeleteStatusClick,
-    handleRenameStatusClick,
-    handleRenameStatusSubmit,
+    handleRenameStatusClick: renameController.handleRenameStatusClick,
+    handleRenameStatusSubmit: renameController.handleRenameStatusSubmit,
     handleReorderStatuses,
     confirmDeleteStatus,
-    handleCreateStatusDialogClose,
+    handleCreateStatusDialogClose: createController.handleCreateStatusDialogClose,
     handleDeleteStatusDialogClose,
-    handleRenameStatusDialogClose,
+    handleRenameStatusDialogClose: renameController.handleRenameStatusDialogClose,
   }
 }

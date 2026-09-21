@@ -11,6 +11,7 @@
   import { validateTaskCreate, type TaskCreateIntent } from '@/apps/shared/tasks/task_create_validation'
   import CreateTaskForm from '@/apps/user/modules/tasks/components/modals/create_task_form.svelte'
   import TaskDeleteDialog from '@/apps/user/modules/tasks/components/detail/task_delete_dialog.svelte'
+  import { createInitialTaskBrief, isTaskBriefV2 } from '@/apps/shared/tasks/task_brief_contract'
   import type { TaskDetail } from '@/apps/user/modules/tasks/types/index.svelte'
   import type { TaskCreateFormData } from '@/apps/user/modules/tasks/types/create_form_types'
 
@@ -47,20 +48,24 @@
   function contractLines(section: 'scope' | 'outOfScope' | 'deliverables' | 'qualityRequirements' | 'constraints' | 'dependencies'): string {
     return lines(task.resolved_brief?.resolvedContract?.work?.[section])
   }
-  const initialForm = (): TaskCreateFormData => ({
-    title: task.title, description: task.description ?? '', task_status_id: task.task_status_id ?? task.status,
-    task_type: task.task_type ?? 'feature_development', verification_method: task.verification_method ?? '', project_id: task.project_id,
-    priority: task.priority ?? '', label: task.label ?? '', task_visibility: task.task_visibility ?? 'internal', assigned_to: task.assigned_to ?? '',
-    reviewer_user_id: '', due_date: task.due_date?.slice(0, 10) ?? '', parent_task_id: task.parent_task_id ?? '', estimated_time: String(task.estimated_time ?? 0),
-    required_skills: (task.required_skills_rel ?? []).map((skill) => ({ id: skill.skill_id ?? skill.id, name: skill.skill?.skill_name ?? '', level: skill.required_public_proficiency_code ?? skill.level ?? '' })),
-    acceptance_criteria: task.acceptance_criteria ?? '', context_background: task.context_background ?? '', role_in_task: task.role_in_task ?? '',
-    business_domain: task.business_domain ?? '', problem_category: task.problem_category ?? '', tech_stack_text: (task.tech_stack ?? []).join(', '),
-    learning_objectives_text: (task.learning_objectives ?? []).join(', '), domain_tags_text: (task.domain_tags ?? []).join(', '),
-    scope_text: contractLines('scope'), out_of_scope_text: contractLines('outOfScope'), deliverables_text: contractLines('deliverables'),
-    quality_requirements_text: contractLines('qualityRequirements'), constraints_text: contractLines('constraints'), dependencies_text: contractLines('dependencies'),
-    authoring_mode: existingEvidenceContract?.mode === 'evidence_enabled' ? 'evidence_enabled' : 'operational_only', authoring_intent: isDraftTask ? 'save_draft' : 'publish', creator_confirmed: !isDraftTask, constraints_addressed: false, dependencies_addressed: false,
-    supporting_reference_uri: '', supporting_reference_title: '', reviewer_role_code: 'org_owner', profile_eligibility: existingEvidenceContract?.profileEligibility ?? false,
-  })
+  const initialForm = (): TaskCreateFormData => {
+    const rawBrief = task.resolved_brief?.resolvedContract?.specification?.richContent
+    return {
+      title: task.title, description: task.description ?? '', task_status_id: task.task_status_id ?? task.status,
+      task_type: task.task_type ?? 'feature_development', verification_method: task.verification_method ?? '', project_id: task.project_id,
+      priority: task.priority ?? '', label: task.label ?? '', task_visibility: task.task_visibility ?? 'internal', assigned_to: task.assigned_to ?? '',
+      reviewer_user_id: '', due_date: task.due_date?.slice(0, 10) ?? '', parent_task_id: task.parent_task_id ?? '', estimated_time: String(task.estimated_time ?? 0),
+      required_skills: (task.required_skills_rel ?? []).map((skill) => ({ id: skill.skill_id ?? skill.id, name: skill.skill?.skill_name ?? '', level: skill.required_public_proficiency_code ?? skill.level ?? '' })),
+      acceptance_criteria: task.acceptance_criteria ?? '', context_background: task.context_background ?? '', role_in_task: task.role_in_task ?? '',
+      business_domain: task.business_domain ?? '', problem_category: task.problem_category ?? '', tech_stack_text: (task.tech_stack ?? []).join(', '),
+      learning_objectives_text: (task.learning_objectives ?? []).join(', '), domain_tags_text: (task.domain_tags ?? []).join(', '),
+      scope_text: contractLines('scope'), out_of_scope_text: contractLines('outOfScope'), deliverables_text: contractLines('deliverables'),
+      quality_requirements_text: contractLines('qualityRequirements'), constraints_text: contractLines('constraints'), dependencies_text: contractLines('dependencies'),
+      authoring_mode: existingEvidenceContract?.mode === 'evidence_enabled' ? 'evidence_enabled' : 'operational_only', authoring_intent: isDraftTask ? 'save_draft' : 'publish', creator_confirmed: !isDraftTask, constraints_addressed: false, dependencies_addressed: false,
+      supporting_reference_uri: '', supporting_reference_title: '', reviewer_role_code: 'org_owner', profile_eligibility: existingEvidenceContract?.profileEligibility ?? false,
+      brief: isTaskBriefV2(rawBrief) ? rawBrief : createInitialTaskBrief(),
+    }
+  }
   let formData = $state<TaskCreateFormData>(initialForm())
   const setFormData = (updater: (previous: TaskCreateFormData) => TaskCreateFormData) => { formData = updater(formData) }
   const split = (value: string | undefined) => (value ?? '').split(/\n|,/).map((item) => item.trim()).filter(Boolean)
