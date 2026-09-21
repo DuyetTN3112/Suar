@@ -96,6 +96,35 @@ jobs:
           pnpm run check:arch:backend:public-contract-surface
           pnpm run check:arch:backend:exceptions
 
+      - name: Check ts-nocheck and bare eslint-disable
+        run: |
+          echo "Checking for @ts-nocheck and bare eslint-disable in app/**/*.ts..."
+          ALLOWLIST=""
+          ts_nocheck_matches=$(git grep -n "// @ts-nocheck" "app/**/*.ts" 2>/dev/null || true)
+          if [ -n "$ts_nocheck_matches" ]; then
+            for line in $ts_nocheck_matches; do
+              file=$(echo "$line" | cut -d: -f1)
+              if ! echo "$ALLOWLIST" | grep -q "$file"; then
+                echo "::error file=$file::Forbidden // @ts-nocheck found: $line"
+                FAILED=1
+              fi
+            done
+          fi
+          bare_disable_matches=$(git grep -nE "/\* eslint-disable \*/|// eslint-disable$" "app/**/*.ts" 2>/dev/null || true)
+          if [ -n "$bare_disable_matches" ]; then
+            for line in $bare_disable_matches; do
+              file=$(echo "$line" | cut -d: -f1)
+              if ! echo "$ALLOWLIST" | grep -q "$file"; then
+                echo "::error file=$file::Forbidden bare eslint-disable found: $line"
+                FAILED=1
+              fi
+            done
+          fi
+          if [ "${FAILED:-0}" = "1" ]; then
+            echo "CI validation failed: forbidden suppression comments detected."
+            exit 1
+          fi
+
       - run: pnpm run lint
       - run: pnpm run typecheck
       - run: pnpm run test:inventory
@@ -132,7 +161,8 @@ jobs:
           PORT: 3333
           HOST: 0.0.0.0
           APP_URL: http://localhost:3333
-          APP_KEY: test-key-at-least-16-chars-long
+          APP_KEY: test-key-for-ci-at-least-32-bytes-long
+          NOTIFICATION_FEED_CURSOR_SECRET: test-notification-cursor-secret-32-bytes-long
           APP_NAME: Suar
           APP_LOCALE: vi
           APP_TIMEZONE: Asia/Ho_Chi_Minh
@@ -143,6 +173,7 @@ jobs:
           PG_USER: root
           PG_PASSWORD: ''
           PG_DATABASE: suar_test
+          PG_TEST_DATABASE: suar_test
           REDIS_HOST: localhost
           REDIS_PORT: 6379
           LOCK_STORE: memory
@@ -156,7 +187,8 @@ jobs:
       PORT: 3333
       HOST: 0.0.0.0
       APP_URL: http://localhost:3333
-      APP_KEY: test-key-at-least-16-chars-long
+      APP_KEY: test-key-for-ci-at-least-32-bytes-long
+      NOTIFICATION_FEED_CURSOR_SECRET: test-notification-cursor-secret-32-bytes-long
       APP_NAME: Suar
       APP_LOCALE: vi
       APP_TIMEZONE: Asia/Ho_Chi_Minh
@@ -178,6 +210,20 @@ jobs:
       REDIS_CACHE_TEST_PORT: 6381
       REDIS_CACHE_TEST_DB: 0
     services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: root
+          POSTGRES_PASSWORD: ''
+          POSTGRES_HOST_AUTH_METHOD: trust
+          POSTGRES_DB: suar_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U root"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=5
       redis:
         image: redis:7.4-alpine
         ports:
@@ -215,6 +261,9 @@ jobs:
 
       - name: Build client assets
         run: pnpm exec vite build
+
+      - name: Prepare PostgreSQL schema
+        run: pnpm run db:test:migrate
 
       - name: Run real Redis behavior and authenticated metrics tests
         run: pnpm run test:redis:integration
@@ -301,7 +350,8 @@ jobs:
           PORT: 3333
           HOST: 0.0.0.0
           APP_URL: http://localhost:3333
-          APP_KEY: test-key-at-least-16-chars-long
+          APP_KEY: test-key-for-ci-at-least-32-bytes-long
+          NOTIFICATION_FEED_CURSOR_SECRET: test-notification-cursor-secret-32-bytes-long
           APP_NAME: Suar
           APP_LOCALE: vi
           APP_TIMEZONE: Asia/Ho_Chi_Minh
@@ -384,7 +434,8 @@ jobs:
       PORT: 3333
       HOST: 0.0.0.0
       APP_URL: http://localhost:3333
-      APP_KEY: test-key-at-least-16-chars-long
+      APP_KEY: test-key-for-ci-at-least-32-bytes-long
+      NOTIFICATION_FEED_CURSOR_SECRET: test-notification-cursor-secret-32-bytes-long
       APP_NAME: Suar
       APP_LOCALE: vi
       APP_TIMEZONE: Asia/Ho_Chi_Minh
