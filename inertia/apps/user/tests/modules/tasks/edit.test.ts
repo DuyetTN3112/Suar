@@ -135,7 +135,15 @@ describe('TaskEditPage', () => {
     render(UserTaskEditPage, {
       props: {
         ...buildProps('app'),
-        task: { ...baseTask, resolved_brief: { state: 'draft' } },
+        task: {
+          ...baseTask,
+          resolved_brief: {
+            schemaVersion: 'suar.task_brief.v2' as const,
+            state: 'draft' as const,
+            audience: 'author' as const,
+            resolutionSource: 'draft' as const,
+          },
+        },
       },
     })
 
@@ -163,8 +171,12 @@ describe('TaskEditPage', () => {
         task: {
           ...baseTask,
           resolved_brief: {
-            state: 'published',
+            schemaVersion: 'suar.task_brief.v2' as const,
+            state: 'published' as const,
+            audience: 'author' as const,
+            resolutionSource: 'published' as const,
             resolvedContract: {
+              title: baseTask.title,
               evidence: {
                 mode: 'evidence_enabled',
                 profileEligibility: true,
@@ -198,40 +210,68 @@ describe('TaskEditPage', () => {
     )
   })
 
-  it.each([
-    ['user', UserTaskEditPage, 'app'],
-    ['org', OrgTaskEditPage, 'organization'],
-  ] as const)(
-    'persists typed title and description in the %s edit page',
-    async (_shell, Page, shellMode) => {
-      routerPut.mockClear()
+  it('persists typed title and description in the user edit page', async () => {
+    routerPut.mockClear()
 
-      render(Page, {
-        props: {
-          ...buildProps(shellMode),
-          ...(_shell === 'user'
-            ? { task: { ...baseTask, resolved_brief: { state: 'draft' } } }
-            : {}),
+    render(UserTaskEditPage, {
+      props: {
+        ...buildProps('app'),
+        task: {
+          ...baseTask,
+          resolved_brief: {
+            schemaVersion: 'suar.task_brief.v2' as const,
+            state: 'draft' as const,
+            audience: 'author' as const,
+            resolutionSource: 'draft' as const,
+          },
         },
-      })
+      },
+    })
 
-      await fireEvent.input(screen.getByLabelText(/Tiêu đề|Title/i), {
-        target: { value: 'Updated title. with spaces' },
+    await fireEvent.input(screen.getByLabelText(/Tiêu đề|Title/i), {
+      target: { value: 'Updated title. with spaces' },
+    })
+    await fireEvent.input(screen.getByLabelText(/Mô tả|Description/i), {
+      target: { value: 'Context description. with spaces' },
+    })
+    await fireEvent.click(
+      screen.getByRole('button', {
+        name: /lưu nháp|save draft/i,
       })
-      await fireEvent.input(screen.getByLabelText(/Mô tả|Description/i), {
-        target: { value: 'Context description. with spaces' },
-      })
-      await fireEvent.click(
-        screen.getByRole('button', {
-          name: _shell === 'user' ? /lưu nháp|save draft/i : /lưu|save changes/i,
-        })
-      )
+    )
 
-      expect(routerPut).toHaveBeenCalledTimes(1)
-      expect(routerPut.mock.calls[0]?.[1]).toMatchObject({
-        title: 'Updated title. with spaces',
-        description: 'Context description. with spaces',
+    expect(routerPut).toHaveBeenCalledTimes(1)
+    expect(routerPut.mock.calls[0]?.[1]).toMatchObject({
+      title: 'Updated title. with spaces',
+      description: 'Context description. with spaces',
+    })
+  })
+
+  it('persists typed title and description in the org edit page', async () => {
+    routerPut.mockClear()
+
+    render(OrgTaskEditPage, {
+      props: {
+        ...buildProps('organization'),
+      },
+    })
+
+    await fireEvent.input(screen.getByLabelText(/Tiêu đề|Title/i), {
+      target: { value: 'Updated title. with spaces' },
+    })
+    await fireEvent.input(screen.getByLabelText(/Mô tả|Description/i), {
+      target: { value: 'Context description. with spaces' },
+    })
+    await fireEvent.click(
+      screen.getByRole('button', {
+        name: /lưu|save changes/i,
       })
-    }
-  )
+    )
+
+    expect(routerPut).toHaveBeenCalledTimes(1)
+    expect(routerPut.mock.calls[0]?.[1]).toMatchObject({
+      title: 'Updated title. with spaces',
+      description: 'Context description. with spaces',
+    })
+  })
 })

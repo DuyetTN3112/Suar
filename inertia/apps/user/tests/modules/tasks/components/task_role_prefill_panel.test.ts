@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/svelte'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { createEmptyTaskBrief } from '@/apps/shared/tasks/task_brief_contract'
 import TaskRolePrefillPanel from '@/apps/user/modules/tasks/components/detail/task_role_prefill_panel.svelte'
 import type { TaskCreateFormData } from '@/apps/user/modules/tasks/types/create_form_types'
 
@@ -21,8 +22,20 @@ describe('TaskRolePrefillPanel', () => {
           json: () =>
             Promise.resolve({
               data: [
-                { id: 'role-1', name: 'Backend Developer', code: 'backend_engineer' },
-                { id: 'role-2', name: 'Quality Reviewer', code: 'quality_reviewer' },
+                {
+                  id: 'role-1',
+                  role_name: 'Backend Developer',
+                  role_code: 'backend_developer',
+                  required_skills: [
+                    {
+                      id: 'skill-1',
+                      skill_name: 'Node.js',
+                      proficiency_level: '3',
+                      rubric_version_id: 'rubric-v1',
+                      assessment_ceiling_level_id: 'ceiling-1',
+                    },
+                  ],
+                },
               ],
             }),
         })
@@ -81,6 +94,7 @@ describe('TaskRolePrefillPanel', () => {
       tech_stack_text: '',
       learning_objectives_text: '',
       domain_tags_text: '',
+      brief: createEmptyTaskBrief(),
     }
 
     const setFormData = (updater: (prev: TaskCreateFormData) => TaskCreateFormData) => {
@@ -91,7 +105,6 @@ describe('TaskRolePrefillPanel', () => {
       props: {
         projectId: 'project-1',
         assignedTo: '',
-        requestedTaskType: '',
         requestedRoleId: '',
         assigneeGroups: {
           projectMembers: [
